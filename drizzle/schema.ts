@@ -1,17 +1,7 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -22,7 +12,64 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const loanApplications = mysqlTable("loan_applications", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull().unique(),
+  borrowerOpenId: varchar("borrowerOpenId", { length: 64 }),
+  walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
+  sourceChain: varchar("sourceChain", { length: 48 }).notNull(),
+  state: varchar("state", { length: 32 }).notNull(),
+  requestedAmount: decimal("requestedAmount", { precision: 18, scale: 2 }).notNull(),
+  evidenceRoot: varchar("evidenceRoot", { length: 128 }),
+  policyHash: varchar("policyHash", { length: 128 }),
+  modelVersion: varchar("modelVersion", { length: 128 }),
+  decisionHash: varchar("decisionHash", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const verifiedFacts = mysqlTable("verified_facts", {
+  id: int("id").autoincrement().primaryKey(),
+  factId: varchar("factId", { length: 64 }).notNull().unique(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull(),
+  chain: varchar("chain", { length: 48 }).notNull(),
+  sourceBlock: int("sourceBlock").notNull(),
+  txHash: varchar("txHash", { length: 128 }).notNull(),
+  eventType: varchar("eventType", { length: 48 }).notNull(),
+  amount: varchar("amount", { length: 64 }).notNull(),
+  verificationBlock: int("verificationBlock").notNull(),
+  freshness: varchar("freshness", { length: 16 }).notNull(),
+  proofRoot: varchar("proofRoot", { length: 128 }).notNull(),
+  verifiedAt: timestamp("verifiedAt").defaultNow().notNull(),
+});
+
+export const decisions = mysqlTable("decisions", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull(),
+  pd30: decimal("pd30", { precision: 8, scale: 5 }).notNull(),
+  pd90: decimal("pd90", { precision: 8, scale: 5 }).notNull(),
+  confidence: decimal("confidence", { precision: 8, scale: 5 }).notNull(),
+  riskTier: varchar("riskTier", { length: 8 }).notNull(),
+  reasonCodes: text("reasonCodes").notNull(),
+  featureVersion: varchar("featureVersion", { length: 128 }).notNull(),
+  modelVersion: varchar("modelVersion", { length: 128 }).notNull(),
+  policyHash: varchar("policyHash", { length: 128 }).notNull(),
+  evidenceRoot: varchar("evidenceRoot", { length: 128 }).notNull(),
+  decisionHash: varchar("decisionHash", { length: 128 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const offers = mysqlTable("offers", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull(),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  apr: decimal("apr", { precision: 8, scale: 3 }).notNull(),
+  ltv: decimal("ltv", { precision: 8, scale: 5 }).notNull(),
+  termDays: int("termDays").notNull(),
+  status: varchar("status", { length: 16 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here

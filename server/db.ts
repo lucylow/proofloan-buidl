@@ -90,3 +90,33 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+
+import { loanApplications, verifiedFacts, decisions, offers } from "../drizzle/schema";
+import type { LoanSnapshot } from "@shared/proofloan";
+
+export async function persistLoanSnapshot(snapshot: LoanSnapshot) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(loanApplications).values({
+    applicationId: snapshot.applicationId,
+    walletAddress: snapshot.walletAddress,
+    sourceChain: snapshot.sourceChain,
+    state: snapshot.state,
+    requestedAmount: String(snapshot.offer?.amount ?? 1500),
+    evidenceRoot: snapshot.decision?.evidenceRoot,
+    policyHash: snapshot.decision?.policyHash,
+    modelVersion: snapshot.decision?.modelVersion,
+    decisionHash: snapshot.decision?.decisionHash,
+  }).onDuplicateKeyUpdate({ set: { state: snapshot.state, evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash } });
+
+  for (const fact of snapshot.facts) {
+    await db.insert(verifiedFacts).values({ factId: fact.id, applicationId: snapshot.applicationId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt: new Date(fact.verifiedAt) }).onDuplicateKeyUpdate({ set: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } });
+  }
+  if (snapshot.decision) {
+    await db.insert(decisions).values({ applicationId: snapshot.applicationId, pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash });
+  }
+  if (snapshot.offer) {
+    await db.insert(offers).values({ applicationId: snapshot.applicationId, amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) });
+  }
+}
