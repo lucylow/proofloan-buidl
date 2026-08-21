@@ -1,3 +1,4 @@
+import { reportClientError } from "@/lib/clientErrorReporter";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
@@ -27,7 +28,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
-    console.error("[ProofLoan Runtime Error]", error, info);
+    reportClientError("runtime", error, info.componentStack);
   }
 
   render() {
