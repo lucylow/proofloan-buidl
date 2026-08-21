@@ -224,3 +224,10 @@
 
 - [x] Add differentiated mobile recovery guidance and actions for proof-worker, database, validation, policy, and state-conflict errors
 - [x] Add targeted frontend coverage for differentiated mobile recovery guidance and action visibility
+
+## Mobile error-handling hardening pass 3
+
+- [x] Fix the next reported mobile-flow errors and add stronger recovery handling with targeted validation
+- [x] Inspect and harden mobile proof-request, dashboard refresh, acceptance, and unexpected-runtime error surfaces
+- [x] Add or update Vitest coverage for the new mobile recovery behavior
+- [x] Revalidate 390px and desktop rendering plus production build

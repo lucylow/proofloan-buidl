@@ -12,6 +12,26 @@ describe("mobile error notice model", () => {
     });
   });
 
+  it("maps validation failures to input review guidance", () => {
+    expect(getMobileErrorNoticeModel("[PROOFLOAN_VALIDATION_ERROR] Enter a wallet address.")).toEqual({
+      code: "PROOFLOAN_VALIDATION_ERROR",
+      message: "Enter a wallet address.",
+      guidance: "Check the source value and selected chain, then submit again.",
+      actionLabel: "Review input",
+      canRetry: false,
+    });
+  });
+
+  it("uses a safe retry fallback for unclassified mobile failures", () => {
+    expect(getMobileErrorNoticeModel("Clipboard access is unavailable on this device.", true)).toEqual({
+      code: "UNCLASSIFIED_ERROR",
+      message: "Clipboard access is unavailable on this device.",
+      guidance: "Try again, and contact support if the problem continues.",
+      actionLabel: "Try again",
+      canRetry: true,
+    });
+  });
+
   it("only exposes retry when the caller provides a retry action", () => {
     expect(getMobileErrorNoticeModel("[PROOFLOAN_STATE_CONFLICT] Offer is already accepted.")).toEqual({
       code: "PROOFLOAN_STATE_CONFLICT",
