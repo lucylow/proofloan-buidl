@@ -50,3 +50,9 @@
 - [x] Revalidate narrow and desktop viewports after the second mobile pass
 
 - [x] Add safe-area padding and reduced-motion handling for mobile navigation and page interactions
+
+## Mobile refinement pass 3
+
+- [x] Improve mobile loading, success, and error feedback around proof requests and offer acceptance
+- [x] Improve mobile empty-state guidance and dashboard tab affordances, including explicit success states and a visible mobile swipe cue
+- [x] Revalidate mobile and desktop rendering after the focused polish
