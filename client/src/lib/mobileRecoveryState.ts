@@ -41,6 +41,19 @@ export function shouldInvokeMobileAction({ action, isOnline, pending, hasApplica
   return true;
 }
 
+export type AcceptanceFailureRecovery = {
+  shouldResumePolling: boolean;
+  shouldInvalidateCreditFile: boolean;
+};
+
+export function getAcceptanceFailureRecovery({ hasApplication, isOnline, pollingPaused }: { hasApplication: boolean; isOnline: boolean; pollingPaused: boolean }): AcceptanceFailureRecovery {
+  const shouldRecover = hasApplication && isOnline;
+  return {
+    shouldResumePolling: shouldRecover && pollingPaused,
+    shouldInvalidateCreditFile: shouldRecover,
+  };
+}
+
 export function shouldRefreshAfterAcceptanceFailure({ hasApplication, isOnline }: { hasApplication: boolean; isOnline: boolean }): boolean {
-  return hasApplication && isOnline;
+  return getAcceptanceFailureRecovery({ hasApplication, isOnline, pollingPaused: false }).shouldInvalidateCreditFile;
 }

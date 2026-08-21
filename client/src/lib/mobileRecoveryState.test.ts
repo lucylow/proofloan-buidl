@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRefreshAfterAcceptanceFailure, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -10,10 +10,11 @@ describe("mobile action availability", () => {
     });
   });
 
-  it("reconciles authoritative state only after an online acceptance failure", () => {
-    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: true, isOnline: true })).toBe(true);
-    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: true, isOnline: false })).toBe(false);
-    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: false, isOnline: true })).toBe(false);
+  it("resumes a paused credit-file query only for online acceptance recovery", () => {
+    expect(getAcceptanceFailureRecovery({ hasApplication: true, isOnline: true, pollingPaused: true })).toEqual({ shouldResumePolling: true, shouldInvalidateCreditFile: true });
+    expect(getAcceptanceFailureRecovery({ hasApplication: true, isOnline: true, pollingPaused: false })).toEqual({ shouldResumePolling: false, shouldInvalidateCreditFile: true });
+    expect(getAcceptanceFailureRecovery({ hasApplication: true, isOnline: false, pollingPaused: true })).toEqual({ shouldResumePolling: false, shouldInvalidateCreditFile: false });
+    expect(getAcceptanceFailureRecovery({ hasApplication: false, isOnline: true, pollingPaused: true })).toEqual({ shouldResumePolling: false, shouldInvalidateCreditFile: false });
   });
 
   it("blocks delayed or programmatic actions while offline or pending", () => {
