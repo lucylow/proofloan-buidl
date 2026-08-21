@@ -123,3 +123,17 @@
 - [x] Add concrete CSS spacing for mobile dashboard tabs, copy action, and acceptance CTA; revalidate narrow and desktop screenshots
 
 - [x] Add a dedicated mobile spacing rule for the acceptance CTA and revalidate narrow plus desktop screenshots
+
+## Mobile refinement pass 12
+
+- [x] Improve mobile dashboard density and section separation
+- [x] Improve mobile state and decision summary clarity
+- [x] Improve accessibility cues for compact mobile evidence surfaces
+- [x] Revalidate narrow and desktop viewports after the twelfth mobile pass
+
+- [x] Add concrete mobile layout CSS for dashboard density and section separation; revalidate 390px and desktop
+- [x] Add a visible structural refinement for the state rail and decision summary; rerun screenshots
+- [x] Add explicit accessibility semantics and cues to VerifiedFact evidence cards; verify wiring
+
+- [x] Add concrete mobile CSS for fact cards, decision metrics, and reason-code grouping; rerun 390px and desktop screenshots
+- [x] Add a new visible mobile state-rail refinement beyond the existing labels and markers; rerun screenshots

@@ -39,7 +39,14 @@ button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation
   .mobile-dashboard-tabs [role="tab"] { min-height: 2.75rem; padding-inline: 0.875rem; }
   .mobile-copy-action { margin-top: 0.75rem; width: 100%; justify-content: center; }
   .mobile-acceptance-cta { margin-top: 1.25rem; min-height: 3rem; padding-inline: 1rem; }
-  .mobile-state-tracker { margin-bottom: 0.25rem; }
+  .mobile-state-tracker { margin: 0.125rem -0.25rem 0.5rem; padding: 0.5rem 0.375rem 0.75rem; border-top: 1px solid rgba(255,255,255,.06); border-bottom: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.018); }
+  .mobile-state-tracker > div { min-width: max-content; }
+  .mobile-state-tracker > div[aria-current="step"] { border-radius: 0.75rem; background: rgba(103,232,249,.08); padding: 0.25rem 0.5rem; }
+  .mobile-fact-card { border-color: rgba(103,232,249,.12); padding: 0.875rem; }
+  .mobile-decision-metrics { border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 0.75rem; }
+  .mobile-decision-metrics > div:not(.mobile-summary-kicker) { border-radius: 0.75rem; background: rgba(255,255,255,.025); padding: 0.25rem; }
+  .mobile-reason-codes { border-color: rgba(103,232,249,.12); }
+  .mobile-summary-kicker { margin-bottom: -0.125rem; }
 }
 @media (max-width: 640px) {
   html { scroll-padding-top: 72px; }
