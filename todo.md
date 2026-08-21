@@ -177,3 +177,7 @@
 - [x] Validate persisted event type, freshness, risk tier, offer status, and audit state instead of unchecked casts
 
 - [x] Exercise the persisted snapshot reconstruction validation boundary directly for invalid application state, source chain, and malformed reason-code JSON
+
+## Code improvement pass 4
+
+- [x] Improve the next highest-impact reliability or maintainability issue and add targeted validation

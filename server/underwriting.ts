@@ -5,6 +5,7 @@ import {
   type FeatureVector,
   type Offer,
   type ReasonCode,
+  isReasonCode,
   type SourceChain,
   type VerifiedFact,
 } from "@shared/proofloan";
@@ -113,6 +114,19 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   };
 }
 
+const clampProbability = (value: unknown, fallback: number) => {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? Math.min(1, Math.max(0, numeric)) : fallback;
+};
+
+export function sanitizeAiCandidate(candidate: Partial<Decision>, baseline: Decision): Decision {
+  const pd30 = clampProbability(candidate.pd30, baseline.pd30);
+  const pd90 = Math.max(pd30, clampProbability(candidate.pd90, baseline.pd90));
+  const confidence = clampProbability(candidate.confidence, baseline.confidence);
+  const reasonCodes = Array.isArray(candidate.reasonCodes) ? candidate.reasonCodes.filter((code): code is ReasonCode => typeof code === "string" && isReasonCode(code)) : [];
+  return { ...baseline, pd30, pd90, confidence, reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes };
+}
+
 export async function runAiUnderwriting(features: FeatureVector, facts: VerifiedFact[]): Promise<Decision> {
   const baseline = deterministicDecision(features, facts);
   try {
@@ -138,7 +152,7 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
     });
     const content = response.choices?.[0]?.message?.content;
     const parsed = typeof content === "string" ? JSON.parse(content) as Partial<Decision> : {};
-    const candidate = { ...baseline, pd30: Number(parsed.pd30 ?? baseline.pd30), pd90: Number(parsed.pd90 ?? baseline.pd90), confidence: Number(parsed.confidence ?? baseline.confidence), reasonCodes: (parsed.reasonCodes ?? baseline.reasonCodes) as ReasonCode[] };
+    const candidate = sanitizeAiCandidate(parsed, baseline);
     return { ...candidate, decisionHash: hashValue(candidate) };
   } catch {
     return baseline;
