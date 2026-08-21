@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -42,7 +42,7 @@ export default function Home() {
   }, []);
   const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true) });
-  const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
+  const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, retry: (_failureCount, _error) => shouldRetryCreditFileQuery({ isOnline, pollingPaused, failureCount: _failureCount }), refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
   const app = applicationQuery.data;
   useEffect(() => {
     if (applicationQuery.error) setPollingPaused(true);

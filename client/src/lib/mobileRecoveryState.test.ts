@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -8,6 +8,13 @@ describe("mobile action availability", () => {
       canRefresh: false,
       canAccept: false,
     });
+  });
+
+  it("allows at most one automatic retry only while online and unpaused", () => {
+    expect(shouldRetryCreditFileQuery({ isOnline: true, pollingPaused: false, failureCount: 0 })).toBe(true);
+    expect(shouldRetryCreditFileQuery({ isOnline: true, pollingPaused: false, failureCount: 1 })).toBe(false);
+    expect(shouldRetryCreditFileQuery({ isOnline: false, pollingPaused: false, failureCount: 0 })).toBe(false);
+    expect(shouldRetryCreditFileQuery({ isOnline: true, pollingPaused: true, failureCount: 0 })).toBe(false);
   });
 
   it("classifies credit-file loading, error, empty, and ready states safely", () => {

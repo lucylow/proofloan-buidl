@@ -9,6 +9,10 @@ export function shouldPollCreditFile({ hasApplication, isOnline, pollingPaused }
   return hasApplication && isOnline && !pollingPaused;
 }
 
+export function shouldRetryCreditFileQuery({ isOnline, pollingPaused, failureCount }: { isOnline: boolean; pollingPaused: boolean; failureCount: number }): boolean {
+  return isOnline && !pollingPaused && failureCount < 1;
+}
+
 export type MobileCreditFileViewState = "loading" | "error" | "empty" | "ready";
 
 export function getMobileCreditFileViewState({ hasApplication, isLoading, hasError }: { hasApplication: boolean; isLoading: boolean; hasError: boolean }): MobileCreditFileViewState {
