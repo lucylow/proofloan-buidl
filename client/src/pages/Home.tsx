@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRefreshAfterAcceptanceFailure, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -40,8 +40,9 @@ export default function Home() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+  const proofloanUtils = trpc.useUtils();
   const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
-  const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true) });
+  const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true), onError: (_error, variables) => { if (shouldRefreshAfterAcceptanceFailure({ hasApplication: Boolean(variables.applicationId), isOnline })) void proofloanUtils.proofloan.getApplication.invalidate({ applicationId: variables.applicationId }); } });
   const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, retry: (_failureCount, _error) => shouldRetryCreditFileQuery({ isOnline, pollingPaused, failureCount: _failureCount }), refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
   const app = applicationQuery.data;
   useEffect(() => {

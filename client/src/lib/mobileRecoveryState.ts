@@ -40,3 +40,7 @@ export function shouldInvokeMobileAction({ action, isOnline, pending, hasApplica
   if (action === "refresh" || action === "accept") return hasApplication;
   return true;
 }
+
+export function shouldRefreshAfterAcceptanceFailure({ hasApplication, isOnline }: { hasApplication: boolean; isOnline: boolean }): boolean {
+  return hasApplication && isOnline;
+}

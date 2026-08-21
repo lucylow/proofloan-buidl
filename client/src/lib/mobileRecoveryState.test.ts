@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRefreshAfterAcceptanceFailure, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -8,6 +8,12 @@ describe("mobile action availability", () => {
       canRefresh: false,
       canAccept: false,
     });
+  });
+
+  it("reconciles authoritative state only after an online acceptance failure", () => {
+    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: true, isOnline: true })).toBe(true);
+    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: true, isOnline: false })).toBe(false);
+    expect(shouldRefreshAfterAcceptanceFailure({ hasApplication: false, isOnline: true })).toBe(false);
   });
 
   it("blocks delayed or programmatic actions while offline or pending", () => {
