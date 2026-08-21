@@ -72,3 +72,10 @@ The AI model is never the financial oracle and never the signer. External text a
 | Proof component | Attestcoin proof worker |
 | Policy component | RiskGuard |
 | Execution | Simulated Creditcoin testnet transaction submission |
+
+
+## Current demo boundary
+
+The borrower intake accepts either a wallet address or a mined source transaction hash. A wallet address intentionally selects the labeled preview adapter so judges can run the end-to-end interface without external chain history. A 32-byte source transaction hash selects the official `@gluwa/usc-sdk` path: `ProofBuilder` requests an Attestcoin Protocol proof and `PrecompileBlockProver` verifies it against the Creditcoin testnet boundary. Live transaction-hash applications require database persistence before an offer is prepared; preview applications may use the in-memory fallback only when the managed database endpoint is unavailable.
+
+The repository validates the core state machine and replay protection through Vitest, and the landing, intake, and documentation surfaces have been visually checked. A final browser click-through from proof request to Executed UI state should be run in a connected preview session before submission.
