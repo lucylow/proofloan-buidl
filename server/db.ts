@@ -95,9 +95,9 @@ export async function getUserByOpenId(openId: string) {
 import { loanApplications, verifiedFacts, decisions, offers, auditEvents } from "../drizzle/schema";
 import type { LoanSnapshot } from "@shared/proofloan";
 
-export async function persistLoanSnapshot(snapshot: LoanSnapshot) {
+export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boolean> {
   const db = await getDb();
-  if (!db) return;
+  if (!db) return false;
   try {
     await db.insert(loanApplications).values({
     applicationId: snapshot.applicationId,
@@ -123,8 +123,10 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot) {
     for (const event of snapshot.audit) {
       await db.insert(auditEvents).values({ applicationId: snapshot.applicationId, state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt: new Date(event.timestamp) }).onDuplicateKeyUpdate({ set: { detail: event.detail, state: event.state } });
     }
+    return true;
   } catch (error) {
     console.warn("[ProofLoan] Persistence unavailable; keeping the active snapshot in memory for the demo.", error instanceof Error ? error.message : error);
+    return false;
   }
 }
 

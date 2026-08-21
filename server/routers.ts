@@ -62,7 +62,8 @@ export const appRouter = router({
       snapshot.audit.push(audit(snapshot.state, snapshot.offer.status === "Blocked" ? snapshot.offer.rejectionReason ?? "RiskGuard rejected the offer." : "RiskGuard approved a bounded offer; awaiting borrower acceptance."));
       if (snapshot.offer.status === "Ready") snapshot.state = "AwaitingAcceptance";
       if (previewMode) applications.set(snapshot.applicationId, snapshot);
-      await persistLoanSnapshot(snapshot);
+      const persisted = await persistLoanSnapshot(snapshot);
+      if (!previewMode && !persisted) throw new Error("Live Attestcoin applications require database persistence before an offer can be prepared.");
       return snapshot;
     }),
     getApplication: publicProcedure.input(z.object({ applicationId: z.string() })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
@@ -72,8 +73,9 @@ export const appRouter = router({
       snapshot.offer.status = "Executed";
       snapshot.state = "Executed";
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
-      if (!await getPersistedLoanSnapshot(input.applicationId)) applications.set(snapshot.applicationId, snapshot);
-      await persistLoanSnapshot(snapshot);
+      const persisted = await persistLoanSnapshot(snapshot);
+      if (!persisted && !applications.has(snapshot.applicationId)) throw new Error("Creditcoin execution could not be committed to the database.");
+      if (!persisted) applications.set(snapshot.applicationId, snapshot);
       return { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, at: Date.now() })}` };
     }),
   }),
