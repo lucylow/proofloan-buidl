@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { getProofLoanErrorCode, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
@@ -12,6 +12,12 @@ describe("ProofLoan shared validation", () => {
     expect(isLiveTxHash(`0x${"a".repeat(63)}`)).toBe(false);
     expect(isLiveTxHash(`0x${"g".repeat(64)}`)).toBe(false);
     expect(isLiveTxHash("71C7...9A2F")).toBe(false);
+  });
+
+  it("classifies structured router errors without misclassifying plain messages", () => {
+    expect(getProofLoanErrorCode("[PROOFLOAN_STATE_CONFLICT] Offer is unavailable.")).toBe("PROOFLOAN_STATE_CONFLICT");
+    expect(getProofLoanErrorCode("[PROOFLOAN_DATABASE_ERROR] Read-back failed.")).toBe("PROOFLOAN_DATABASE_ERROR");
+    expect(getProofLoanErrorCode("Offer is unavailable.")).toBeUndefined();
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {

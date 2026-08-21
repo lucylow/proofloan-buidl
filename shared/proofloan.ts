@@ -8,6 +8,10 @@ export const PROOFLOAN_ERROR_CODES = {
 
 export type ProofLoanErrorCode = (typeof PROOFLOAN_ERROR_CODES)[keyof typeof PROOFLOAN_ERROR_CODES];
 
+export function getProofLoanErrorCode(message: string): ProofLoanErrorCode | undefined {
+  return Object.values(PROOFLOAN_ERROR_CODES).find(code => message.includes(`[${code}]`));
+}
+
 export const PROOFLOAN_STATES = [
   "Intake",
   "EvidencePending",
