@@ -26,6 +26,7 @@ describe("proofloan API flow", () => {
     const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xreplay-test-wallet", sourceChain: "Polygon Amoy" });
     const executed = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId });
     expect(executed.state).toBe("Executed");
+    await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT]");
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("already accepted");
   }, 30_000);
 });

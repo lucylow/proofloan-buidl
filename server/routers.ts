@@ -6,25 +6,27 @@ import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
-import { isLiveTxHash, type LoanSnapshot, type ProofLoanState, type SourceChain } from "@shared/proofloan";
+import { PROOFLOAN_ERROR_CODES, isLiveTxHash, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
+import { TRPCError } from "@trpc/server";
 
 const applications = new Map<string, LoanSnapshot>();
 
 const now = () => new Date().toISOString();
+const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${message}` });
 const audit = (state: ProofLoanState, detail: string) => ({ state, label: state, timestamp: now(), detail, hash: hashValue({ state, detail, at: Date.now() }) });
 async function transitionLiveState(snapshot: LoanSnapshot, from: ProofLoanState, to: ProofLoanState, live: boolean) {
   if (!live) { snapshot.state = to; return; }
-  if (!(await transitionLoanState(snapshot.applicationId, from, to))) throw new Error(`Database rejected state transition ${from} -> ${to}.`);
+  if (!(await transitionLoanState(snapshot.applicationId, from, to))) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, `Database rejected state transition ${from} -> ${to}.`);
   snapshot.state = to;
   const persisted = await getPersistedLoanSnapshot(snapshot.applicationId);
-  if (!persisted || persisted.state !== to) throw new Error(`Database state transition was not read back as ${to}.`);
+  if (!persisted || persisted.state !== to) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, `Database state transition was not read back as ${to}.`);
 }
 
 async function persistLiveSnapshot(snapshot: LoanSnapshot, live: boolean) {
   if (!live) return;
-  if (!(await persistLoanSnapshot(snapshot))) throw new Error("Live Attestcoin applications require database persistence for every state transition.");
+  if (!(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence for every state transition.");
   const persisted = await getPersistedLoanSnapshot(snapshot.applicationId);
-  if (!persisted || persisted.state !== snapshot.state) throw new Error(`Database state transition was not committed as ${snapshot.state}.`);
+  if (!persisted || persisted.state !== snapshot.state) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, `Database state transition was not committed as ${snapshot.state}.`);
 }
 
 function seedSnapshot(walletAddress: string, sourceChain: SourceChain): LoanSnapshot {
@@ -54,13 +56,13 @@ export const appRouter = router({
     createApplication: publicProcedure.input(z.object({ walletAddress: z.string().min(8), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
       const previewMode = !isLiveTxHash(input.walletAddress);
       const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
-      if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw new Error("Live Attestcoin applications require database persistence before state transitions.");
+      if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence before state transitions.");
       await transitionLiveState(snapshot, "Intake", "EvidencePending", !previewMode);
       snapshot.audit.push(audit("EvidencePending", "Proof request dispatched to the Attestcoin proof worker through the Attestcoin Protocol USC SDK adapter."));
       await persistLiveSnapshot(snapshot, !previewMode);
       if (isLiveTxHash(input.walletAddress)) {
         const verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
-        if (!verified.verified) throw new Error("Attestcoin Protocol precompile verification returned false.");
+        if (!verified.verified) throw proofLoanError(PROOFLOAN_ERROR_CODES.PROOF_WORKER, "Attestcoin Protocol precompile verification returned false.");
         snapshot.facts = [{ id: `vf_${hashValue(verified)}`, chain: input.sourceChain, sourceBlock: verified.sourceBlock, txHash: verified.txHash, eventType: "REPAYMENT", amount: "1,250 USDC", asset: "USDC", verificationBlock: verified.verificationBlock, verifiedAt: now(), observedAt: now(), freshness: "Fresh", proofRoot: verified.proofRoot, proofWorker: "Attestcoin proof worker" }];
         snapshot.audit.push(audit("EvidencePending", "Official @gluwa/usc-sdk ProofBuilder and Creditcoin BlockProver completed the proof path."));
       } else {
@@ -89,7 +91,7 @@ export const appRouter = router({
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
       const previewMode = !!snapshot && !isLiveTxHash(snapshot.walletAddress);
-      if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status)) throw new Error("Offer is unavailable, expired, or already accepted.");
+      if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status)) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "Offer is unavailable, expired, or already accepted.");
       snapshot.offer.status = "Executed";
       await transitionLiveState(snapshot, "AwaitingAcceptance", "Executed", !previewMode);
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
