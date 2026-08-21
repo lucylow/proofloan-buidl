@@ -28,7 +28,15 @@
 
 * { border-color: var(--border); }
 html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: var(--background); color: var(--foreground); }
+body { margin: 0; min-width: 320px; overflow-x: hidden; background: var(--background); color: var(--foreground); }
+img, svg, video, canvas { max-width: 100%; }
+button, a { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 640px) {
+  html { scroll-padding-top: 72px; }
+  button, a, input, select { min-height: 44px; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
 button, a, input, select { transition: transform 160ms cubic-bezier(.23,1,.32,1), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease; }
 button:active { transform: scale(.97); }
 code, pre, .font-mono { font-family: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }

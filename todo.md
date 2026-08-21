@@ -29,3 +29,15 @@
 
 - [ ] Refactor createApplication and acceptOffer so all state transitions are database-authoritative; keep the Map only for explicit preview-only mode
 - [ ] Complete a successful browser verification pass through proof request, offer acceptance, Executed UI state, and inline proof/acceptance error states
+
+## Mobile refinement
+
+- [x] Improve narrow-screen navigation, hero sizing, and section spacing for ProofLoan
+- [x] Make borrower intake controls and dashboard tabs touch-friendly and mobile-safe
+- [x] Prevent horizontal overflow in state tracker, evidence cards, audit trail, and technical documentation
+- [x] Validate mobile viewport rendering and preserve desktop layout behavior
+
+## Mobile review corrections
+
+- [x] Add a compact mobile navigation pattern for How it works, Evidence, and Docs
+- [x] Make full transaction hashes truncate or wrap safely inside VerifiedFact cards
