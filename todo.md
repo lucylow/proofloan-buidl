@@ -137,3 +137,13 @@
 
 - [x] Add concrete mobile CSS for fact cards, decision metrics, and reason-code grouping; rerun 390px and desktop screenshots
 - [x] Add a new visible mobile state-rail refinement beyond the existing labels and markers; rerun screenshots
+
+## Mobile refinement pass 13
+
+- [x] Improve mobile evidence scanning with clearer fact metadata grouping
+- [x] Improve mobile decision-action hierarchy and offer status visibility
+- [x] Improve accessibility cues for mobile action and evidence regions
+- [x] Revalidate narrow and desktop viewports after the thirteenth mobile pass
+
+- [x] Add concrete mobile CSS/layout for VerifiedFact metadata grouping; rerun 390px and desktop validation
+- [x] Add concrete mobile offer-panel CSS and explicit visible offer-status treatment; rerun 390px and desktop validation
