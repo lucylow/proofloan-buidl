@@ -95,40 +95,50 @@ export async function getUserByOpenId(openId: string) {
 import { loanApplications, verifiedFacts, decisions, offers, auditEvents } from "../drizzle/schema";
 import type { LoanSnapshot } from "@shared/proofloan";
 
-export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boolean> {
-  const db = await getDb();
+export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
+  const createdAt = new Date(event.timestamp);
+  return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
+}
+
+type DatabaseClient = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+
+export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: DatabaseClient): Promise<boolean> {
+  const db = dbOverride ?? await getDb();
   if (!db) return false;
   try {
-    await db.insert(loanApplications).values({
-    applicationId: snapshot.applicationId,
-    walletAddress: snapshot.walletAddress,
-    sourceChain: snapshot.sourceChain,
-    state: snapshot.state,
-    requestedAmount: String(snapshot.offer?.amount ?? 1500),
-    evidenceRoot: snapshot.decision?.evidenceRoot,
-    policyHash: snapshot.decision?.policyHash,
-    modelVersion: snapshot.decision?.modelVersion,
-    decisionHash: snapshot.decision?.decisionHash,
-  }).onDuplicateKeyUpdate({ set: { state: snapshot.state, evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash } });
+    await db.transaction(async tx => {
+      await tx.insert(loanApplications).values({
+        applicationId: snapshot.applicationId,
+        walletAddress: snapshot.walletAddress,
+        sourceChain: snapshot.sourceChain,
+        state: snapshot.state,
+        requestedAmount: String(snapshot.offer?.amount ?? 1500),
+        evidenceRoot: snapshot.decision?.evidenceRoot,
+        policyHash: snapshot.decision?.policyHash,
+        modelVersion: snapshot.decision?.modelVersion,
+        decisionHash: snapshot.decision?.decisionHash,
+      }).onDuplicateKeyUpdate({ set: { state: snapshot.state, evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash } });
 
-  for (const fact of snapshot.facts) {
-    await db.insert(verifiedFacts).values({ factId: fact.id, applicationId: snapshot.applicationId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt: new Date(fact.verifiedAt) }).onDuplicateKeyUpdate({ set: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } });
-  }
-  if (snapshot.decision) {
-    const decisionValues = { pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash };
-    const existingDecision = await db.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).limit(1);
-    if (existingDecision[0]) await db.update(decisions).set(decisionValues).where(eq(decisions.id, existingDecision[0].id));
-    else await db.insert(decisions).values({ applicationId: snapshot.applicationId, ...decisionValues });
-  }
-    if (snapshot.offer) {
-      const existingOffer = await db.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).limit(1);
-      const offerValues = { amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) };
-      if (existingOffer[0]) await db.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
-      else await db.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
-    }
-    for (const event of snapshot.audit) {
-      await db.insert(auditEvents).values({ applicationId: snapshot.applicationId, state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt: new Date(event.timestamp) }).onDuplicateKeyUpdate({ set: { detail: event.detail, state: event.state } });
-    }
+      for (const fact of snapshot.facts) {
+        await tx.insert(verifiedFacts).values({ factId: fact.id, applicationId: snapshot.applicationId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt: new Date(fact.verifiedAt) }).onDuplicateKeyUpdate({ set: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } });
+      }
+      if (snapshot.decision) {
+        const decisionValues = { pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash };
+        const existingDecision = await tx.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).limit(1);
+        if (existingDecision[0]) await tx.update(decisions).set(decisionValues).where(eq(decisions.id, existingDecision[0].id));
+        else await tx.insert(decisions).values({ applicationId: snapshot.applicationId, ...decisionValues });
+      }
+      if (snapshot.offer) {
+        const existingOffer = await tx.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).limit(1);
+        const offerValues = { amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) };
+        if (existingOffer[0]) await tx.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
+        else await tx.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
+      }
+      for (const event of snapshot.audit) {
+        const auditValues = buildAuditUpsertValues(event);
+        await tx.insert(auditEvents).values({ applicationId: snapshot.applicationId, ...auditValues.values }).onDuplicateKeyUpdate({ set: auditValues.updateSet });
+      }
+    });
     return true;
   } catch (error) {
     console.warn("[ProofLoan] Persistence unavailable; keeping the active snapshot in memory for the demo.", error instanceof Error ? error.message : error);

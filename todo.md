@@ -193,3 +193,12 @@
 ## Code improvement pass 7
 
 - [x] Improve the next highest-impact reliability or maintainability issue and add targeted validation
+
+## Code improvement pass 8
+
+- [x] Improve the next highest-impact reliability or maintainability issue and add targeted validation
+
+- [x] Add targeted Vitest coverage for transactional snapshot persistence failure and rollback behavior
+- [x] Add targeted audit-upsert coverage for synchronized label, state, detail, and timestamp fields
+
+- [x] Add a mid-bundle transaction test where early application writes succeed and a later audit write fails, proving no partial success is reported
