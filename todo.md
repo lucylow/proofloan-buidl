@@ -63,3 +63,10 @@
 - [x] Improve mobile dashboard evidence and offer readability with clearer grouping
 - [x] Improve touch feedback and responsive spacing in the mobile borrower flow
 - [x] Revalidate narrow and desktop viewports after the fourth mobile pass
+
+## Mobile refinement pass 5
+
+- [x] Improve compact mobile controls and visual hierarchy in the borrower dashboard
+- [x] Improve mobile evidence and audit content scanning without increasing overflow risk
+- [x] Improve responsive spacing and interaction feedback for repeated mobile actions
+- [x] Revalidate narrow and desktop viewports after the fifth mobile pass
