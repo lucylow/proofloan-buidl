@@ -16,7 +16,9 @@ const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCEr
 const audit = (state: ProofLoanState, detail: string) => ({ state, label: state, timestamp: now(), detail, hash: hashValue({ state, detail, at: Date.now() }) });
 async function transitionLiveState(snapshot: LoanSnapshot, from: ProofLoanState, to: ProofLoanState, live: boolean) {
   if (!live) { snapshot.state = to; return; }
-  if (!(await transitionLoanState(snapshot.applicationId, from, to))) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, `Database rejected state transition ${from} -> ${to}.`);
+  const transitionResult = await transitionLoanState(snapshot.applicationId, from, to);
+  if (transitionResult === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Database is unavailable; the live proof state was not committed.");
+  if (transitionResult === "conflict") throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, `Database rejected state transition ${from} -> ${to}.`);
   snapshot.state = to;
   const persisted = await getPersistedLoanSnapshot(snapshot.applicationId);
   if (!persisted || persisted.state !== to) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, `Database state transition was not read back as ${to}.`);
@@ -61,7 +63,13 @@ export const appRouter = router({
       snapshot.audit.push(audit("EvidencePending", "Proof request dispatched to the Attestcoin proof worker through the Attestcoin Protocol USC SDK adapter."));
       await persistLiveSnapshot(snapshot, !previewMode);
       if (isLiveTxHash(input.walletAddress)) {
-        const verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
+        let verified;
+        try {
+          verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "Attestcoin proof worker failed.";
+          throw proofLoanError(PROOFLOAN_ERROR_CODES.PROOF_WORKER, detail);
+        }
         if (!verified.verified) throw proofLoanError(PROOFLOAN_ERROR_CODES.PROOF_WORKER, "Attestcoin Protocol precompile verification returned false.");
         snapshot.facts = [{ id: `vf_${hashValue(verified)}`, chain: input.sourceChain, sourceBlock: verified.sourceBlock, txHash: verified.txHash, eventType: "REPAYMENT", amount: "1,250 USDC", asset: "USDC", verificationBlock: verified.verificationBlock, verifiedAt: now(), observedAt: now(), freshness: "Fresh", proofRoot: verified.proofRoot, proofWorker: "Attestcoin proof worker" }];
         snapshot.audit.push(audit("EvidencePending", "Official @gluwa/usc-sdk ProofBuilder and Creditcoin BlockProver completed the proof path."));

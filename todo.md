@@ -202,3 +202,18 @@
 - [x] Add targeted audit-upsert coverage for synchronized label, state, detail, and timestamp fields
 
 - [x] Add a mid-bundle transaction test where early application writes succeed and a later audit write fails, proving no partial success is reported
+
+## Mobile error-handling hardening
+
+- [x] Fix active mobile-flow errors and add resilient, readable handling for proof, persistence, and acceptance failures
+
+- [x] Reproduce a concrete mobile-flow failure and document the specific fix
+- [x] Exercise proof-request, dashboard refresh, and acceptance failure notices plus retry actions at 390px
+- [x] Add targeted frontend coverage for mobile error-code stripping and retry visibility
+
+- [x] Fix live transition error classification so database unavailability renders a database error instead of a misleading state-conflict error
+
+- [x] Exercise an actual borrower-dashboard query or refresh failure in-browser at 390px and confirm mobile recovery behavior
+- [x] Add frontend-level coverage for mobile error-code stripping and conditional retry visibility
+
+- [x] Add a development-only dashboard query-failure hook and verify the mobile notice plus recovery path in-browser at 390px

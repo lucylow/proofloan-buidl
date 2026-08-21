@@ -12,6 +12,10 @@ export function getProofLoanErrorCode(message: string): ProofLoanErrorCode | und
   return Object.values(PROOFLOAN_ERROR_CODES).find(code => message.includes(`[${code}]`));
 }
 
+export function cleanProofLoanErrorMessage(message: string): string {
+  return message.replace(/^\[[^\]]+\]\s*/, "");
+}
+
 export const PROOFLOAN_STATES = [
   "Intake",
   "EvidencePending",

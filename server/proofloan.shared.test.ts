@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getProofLoanErrorCode, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
@@ -17,6 +17,9 @@ describe("ProofLoan shared validation", () => {
   it("classifies structured router errors without misclassifying plain messages", () => {
     expect(getProofLoanErrorCode("[PROOFLOAN_STATE_CONFLICT] Offer is unavailable.")).toBe("PROOFLOAN_STATE_CONFLICT");
     expect(getProofLoanErrorCode("[PROOFLOAN_DATABASE_ERROR] Read-back failed.")).toBe("PROOFLOAN_DATABASE_ERROR");
+    expect(getProofLoanErrorCode("[PROOFLOAN_PROOF_WORKER_ERROR] Source transaction is not mined yet.")).toBe("PROOFLOAN_PROOF_WORKER_ERROR");
+    expect(cleanProofLoanErrorMessage("[PROOFLOAN_PROOF_WORKER_ERROR] Source transaction is not mined yet.")).toBe("Source transaction is not mined yet.");
+    expect(cleanProofLoanErrorMessage("A plain error message")).toBe("A plain error message");
     expect(getProofLoanErrorCode("Offer is unavailable.")).toBeUndefined();
   });
 

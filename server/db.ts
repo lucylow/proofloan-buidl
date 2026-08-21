@@ -150,16 +150,23 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 import { buildFeatureVector } from "./underwriting";
 import { isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
-export async function transitionLoanState(applicationId: string, expectedState: ProofLoanState, nextState: ProofLoanState): Promise<boolean> {
+export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
+
+export async function transitionLoanState(applicationId: string, expectedState: ProofLoanState, nextState: ProofLoanState): Promise<LoanTransitionResult> {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return "unavailable";
   try {
     const result = await db.update(loanApplications).set({ state: nextState }).where(and(eq(loanApplications.applicationId, applicationId), eq(loanApplications.state, expectedState)));
     const affectedRows = Number((result as unknown as { affectedRows?: number }).affectedRows ?? 0);
-    return affectedRows === 1;
+    if (affectedRows === 1) return "committed";
+    const current = await db.select({ state: loanApplications.state }).from(loanApplications).where(eq(loanApplications.applicationId, applicationId)).limit(1);
+    if (!current[0]) return "unavailable";
+    if (current[0].state === nextState) return "committed";
+    if (current[0].state !== expectedState) return "conflict";
+    return "unavailable";
   } catch (error) {
     console.warn("[ProofLoan] Database transition unavailable", error instanceof Error ? error.message : error);
-    return false;
+    return "unavailable";
   }
 }
 
