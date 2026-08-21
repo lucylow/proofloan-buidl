@@ -15,6 +15,13 @@
       "when": 1787335549248,
       "tag": "0001_fat_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787336439649,
+      "tag": "0002_powerful_blonde_phantom",
+      "breakpoints": true
     }
   ]
 }

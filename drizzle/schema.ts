@@ -73,3 +73,14 @@ export const offers = mysqlTable("offers", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+
+export const auditEvents = mysqlTable("audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull(),
+  state: varchar("state", { length: 32 }).notNull(),
+  label: varchar("label", { length: 64 }).notNull(),
+  detail: text("detail").notNull(),
+  eventHash: varchar("eventHash", { length: 128 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

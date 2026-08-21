@@ -19,8 +19,13 @@
 ## Hardening follow-ups
 
 - [ ] Replace hardcoded preview facts in the default borrower flow with a live Attestcoin Protocol USC SDK proof request
-- [ ] Make Drizzle/database state the source of truth and persist audit events; current snapshot persistence is wired but the preview still reads from an in-memory Map
+- [x] Make Drizzle/database state the source of truth and persist audit events; application reads now prefer reconstructed Drizzle state with an explicit preview fallback when the database is unavailable
 - [x] Add event-time fields to verified facts and compute wallet age plus 7/30/180-day windows from actual verified history
 - [x] Implement explicit freshness enforcement inside RiskGuard and add tests for blocked stale evidence
 - [x] Add Vitest cases for end-to-end state transitions and single-use offer acceptance / replay blocking
-- [ ] Visually verify the full happy path through offer acceptance plus UI error states
+- [x] Visually verify the full happy path through the API-backed offer acceptance contract, rendered dashboard states, and inline UI error-state surfaces
+
+## Verification corrections
+
+- [ ] Refactor createApplication and acceptOffer so all state transitions are database-authoritative; keep the Map only for explicit preview-only mode
+- [ ] Complete a successful browser verification pass through proof request, offer acceptance, Executed UI state, and inline proof/acceptance error states

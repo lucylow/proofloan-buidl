@@ -5,7 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
-import { persistLoanSnapshot } from "./db";
+import { getPersistedLoanSnapshot, persistLoanSnapshot } from "./db";
 import type { LoanSnapshot, ProofLoanState, SourceChain } from "@shared/proofloan";
 
 const applications = new Map<string, LoanSnapshot>();
@@ -38,6 +38,7 @@ export const appRouter = router({
   }),
   proofloan: router({
     createApplication: publicProcedure.input(z.object({ walletAddress: z.string().min(8), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
+      const previewMode = !/^0x[a-fA-F0-9]{64}$/.test(input.walletAddress);
       const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
       snapshot.state = "EvidencePending";
       snapshot.audit.push(audit("EvidencePending", "Proof request dispatched to the Attestcoin proof worker through the Attestcoin Protocol USC SDK adapter."));
@@ -60,18 +61,18 @@ export const appRouter = router({
       snapshot.state = snapshot.offer.status === "Blocked" ? "Rejected" : "OfferPrepared";
       snapshot.audit.push(audit(snapshot.state, snapshot.offer.status === "Blocked" ? snapshot.offer.rejectionReason ?? "RiskGuard rejected the offer." : "RiskGuard approved a bounded offer; awaiting borrower acceptance."));
       if (snapshot.offer.status === "Ready") snapshot.state = "AwaitingAcceptance";
-      applications.set(snapshot.applicationId, snapshot);
+      if (previewMode) applications.set(snapshot.applicationId, snapshot);
       await persistLoanSnapshot(snapshot);
       return snapshot;
     }),
-    getApplication: publicProcedure.input(z.object({ applicationId: z.string() })).query(({ input }) => applications.get(input.applicationId) ?? null),
+    getApplication: publicProcedure.input(z.object({ applicationId: z.string() })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
     acceptOffer: publicProcedure.input(z.object({ applicationId: z.string() })).mutation(async ({ input }) => {
-      const snapshot = applications.get(input.applicationId);
+      const snapshot = (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId);
       if (!snapshot || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status)) throw new Error("Offer is unavailable, expired, or already accepted.");
       snapshot.offer.status = "Executed";
       snapshot.state = "Executed";
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
-      applications.set(snapshot.applicationId, snapshot);
+      if (!await getPersistedLoanSnapshot(input.applicationId)) applications.set(snapshot.applicationId, snapshot);
       await persistLoanSnapshot(snapshot);
       return { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, at: Date.now() })}` };
     }),
