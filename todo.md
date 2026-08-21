@@ -77,3 +77,10 @@
 - [x] Improve mobile decision and audit content hierarchy at narrow widths
 - [x] Improve responsive spacing and focus visibility in the borrower flow
 - [x] Revalidate narrow and desktop viewports after the sixth mobile pass
+
+## Mobile refinement pass 7
+
+- [x] Improve mobile borrower-dashboard section discoverability and scan order
+- [x] Improve touch feedback for mobile navigation and dashboard interactions
+- [x] Improve narrow-screen readability for compact evidence and decision summaries
+- [x] Revalidate narrow and desktop viewports after the seventh mobile pass
