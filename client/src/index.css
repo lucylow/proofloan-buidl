@@ -35,6 +35,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
   html { scroll-padding-top: 72px; }
   button, a, input, select { min-height: 44px; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  header { padding-top: env(safe-area-inset-top); }
+  footer { padding-bottom: env(safe-area-inset-bottom); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 button, a, input, select { transition: transform 160ms cubic-bezier(.23,1,.32,1), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease; }

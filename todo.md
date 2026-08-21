@@ -48,3 +48,5 @@
 - [x] Improve mobile form readability, input ergonomics, and loading/error feedback
 - [x] Improve mobile dashboard card density, evidence readability, and decision actions
 - [x] Revalidate narrow and desktop viewports after the second mobile pass
+
+- [x] Add safe-area padding and reduced-motion handling for mobile navigation and page interactions
