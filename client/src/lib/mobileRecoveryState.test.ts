@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability, shouldPollCreditFile, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -8,6 +8,13 @@ describe("mobile action availability", () => {
       canRefresh: false,
       canAccept: false,
     });
+  });
+
+  it("classifies credit-file loading, error, empty, and ready states safely", () => {
+    expect(getMobileCreditFileViewState({ hasApplication: false, isLoading: true, hasError: false })).toBe("loading");
+    expect(getMobileCreditFileViewState({ hasApplication: true, isLoading: true, hasError: true })).toBe("error");
+    expect(getMobileCreditFileViewState({ hasApplication: false, isLoading: false, hasError: false })).toBe("empty");
+    expect(getMobileCreditFileViewState({ hasApplication: true, isLoading: false, hasError: false })).toBe("ready");
   });
 
   it("stops background polling for missing, offline, or paused credit files", () => {

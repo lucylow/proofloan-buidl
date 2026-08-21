@@ -9,6 +9,14 @@ export function shouldPollCreditFile({ hasApplication, isOnline, pollingPaused }
   return hasApplication && isOnline && !pollingPaused;
 }
 
+export type MobileCreditFileViewState = "loading" | "error" | "empty" | "ready";
+
+export function getMobileCreditFileViewState({ hasApplication, isLoading, hasError }: { hasApplication: boolean; isLoading: boolean; hasError: boolean }): MobileCreditFileViewState {
+  if (hasError) return "error";
+  if (isLoading) return "loading";
+  return hasApplication ? "ready" : "empty";
+}
+
 export function shouldShowAcceptanceError({ state, hasError }: { state: string; hasError: boolean }): boolean {
   return hasError && state !== "Executed" && state !== "Rejected";
 }

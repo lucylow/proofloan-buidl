@@ -252,3 +252,10 @@
 - [x] Harden recovery messaging, stale-state transitions, and user action feedback
 - [x] Add targeted tests for the new mobile recovery behavior
 - [x] Revalidate 390px and desktop rendering plus the exact production build
+
+## Mobile error-handling hardening pass 7
+
+- [x] Fix the next concrete mobile-flow failure and add resilient recovery handling
+- [x] Harden mobile credit-file loading-state feedback without misrepresenting empty or failed states
+- [x] Add targeted tests for the new mobile credit-file view-state behavior
+- [x] Revalidate 390px and desktop rendering plus the exact production build
