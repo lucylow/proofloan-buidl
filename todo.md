@@ -91,3 +91,12 @@
 - [x] Improve dashboard tab interaction clarity and touch feedback
 - [x] Improve narrow-screen text wrapping in decision and audit surfaces
 - [x] Revalidate narrow and desktop viewports after the eighth mobile pass
+
+## Mobile refinement pass 9
+
+- [x] Improve mobile navigation state visibility after section jumps
+- [x] Improve dashboard action feedback and compact status readability
+- [x] Improve narrow-screen spacing around mobile section controls
+- [x] Revalidate narrow and desktop viewports after the ninth mobile pass
+
+- [x] Add explicit mobile section-rail spacing, snap behavior, and edge-safe padding; revalidate at narrow width

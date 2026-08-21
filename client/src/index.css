@@ -31,6 +31,9 @@ html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; overflow-x: hidden; background: var(--background); color: var(--foreground); }
 img, svg, video, canvas { max-width: 100%; }
 button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.mobile-section-nav { scrollbar-width: none; scroll-snap-type: x proximity; padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right)); }
+.mobile-section-nav::-webkit-scrollbar { display: none; }
+.mobile-section-nav > a { scroll-snap-align: start; }
 @media (max-width: 640px) {
   html { scroll-padding-top: 72px; }
   button, a, input, select { min-height: 44px; }
