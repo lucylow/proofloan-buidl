@@ -100,3 +100,12 @@
 - [x] Revalidate narrow and desktop viewports after the ninth mobile pass
 
 - [x] Add explicit mobile section-rail spacing, snap behavior, and edge-safe padding; revalidate at narrow width
+
+## Mobile refinement pass 10
+
+- [x] Improve mobile navigation label clarity and active-state accessibility
+- [x] Improve touch-safe dashboard tab and status affordances
+- [x] Improve narrow-screen accessibility cues without adding visual clutter
+- [x] Revalidate narrow and desktop viewports after the tenth mobile pass
+
+- [x] Link the mobile swipe hint to the credit-file tabs with aria-describedby and revalidate responsive behavior
