@@ -109,3 +109,17 @@
 - [x] Revalidate narrow and desktop viewports after the tenth mobile pass
 
 - [x] Link the mobile swipe hint to the credit-file tabs with aria-describedby and revalidate responsive behavior
+
+## Mobile refinement pass 11
+
+- [x] Improve compact dashboard navigation clarity and current-view feedback
+- [x] Improve mobile state tracker and status announcement readability
+- [x] Improve touch-safe spacing around repeated dashboard controls
+- [x] Revalidate narrow and desktop viewports after the eleventh mobile pass
+
+- [x] Improve the mobile state tracker rail spacing, labels, and step hit-area readability; revalidate at 390px
+- [x] Add explicit spacing refinements for repeated dashboard controls and revalidate narrow plus desktop screenshots
+
+- [x] Add concrete CSS spacing for mobile dashboard tabs, copy action, and acceptance CTA; revalidate narrow and desktop screenshots
+
+- [x] Add a dedicated mobile spacing rule for the acceptance CTA and revalidate narrow plus desktop screenshots
