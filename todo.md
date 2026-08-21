@@ -56,3 +56,10 @@
 - [x] Improve mobile loading, success, and error feedback around proof requests and offer acceptance
 - [x] Improve mobile empty-state guidance and dashboard tab affordances, including explicit success states and a visible mobile swipe cue
 - [x] Revalidate mobile and desktop rendering after the focused polish
+
+## Mobile refinement pass 4
+
+- [x] Improve mobile input behavior and keyboard-friendly form ergonomics
+- [x] Improve mobile dashboard evidence and offer readability with clearer grouping
+- [x] Improve touch feedback and responsive spacing in the mobile borrower flow
+- [x] Revalidate narrow and desktop viewports after the fourth mobile pass
