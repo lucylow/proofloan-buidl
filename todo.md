@@ -84,3 +84,10 @@
 - [x] Improve touch feedback for mobile navigation and dashboard interactions
 - [x] Improve narrow-screen readability for compact evidence and decision summaries
 - [x] Revalidate narrow and desktop viewports after the seventh mobile pass
+
+## Mobile refinement pass 8
+
+- [x] Improve mobile section navigation affordances and active context
+- [x] Improve dashboard tab interaction clarity and touch feedback
+- [x] Improve narrow-screen text wrapping in decision and audit surfaces
+- [x] Revalidate narrow and desktop viewports after the eighth mobile pass
