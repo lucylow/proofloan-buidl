@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
+import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 
 const demoWallet = "0x71C7...9A2F";
-const isLiveTxHash = (value: string) => /^0x[a-fA-F0-9]{64}$/.test(value);
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");

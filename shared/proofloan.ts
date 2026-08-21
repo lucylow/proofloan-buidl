@@ -21,6 +21,10 @@ export const REASON_CODES = [
 export type ReasonCode = (typeof REASON_CODES)[number];
 export type SourceChain = "Ethereum Sepolia" | "Polygon Amoy";
 
+export function isLiveTxHash(value: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
 export type VerifiedFact = {
   id: string;
   chain: SourceChain;

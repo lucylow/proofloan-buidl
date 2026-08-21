@@ -6,13 +6,12 @@ import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
-import type { LoanSnapshot, ProofLoanState, SourceChain } from "@shared/proofloan";
+import { isLiveTxHash, type LoanSnapshot, type ProofLoanState, type SourceChain } from "@shared/proofloan";
 
 const applications = new Map<string, LoanSnapshot>();
 
 const now = () => new Date().toISOString();
 const audit = (state: ProofLoanState, detail: string) => ({ state, label: state, timestamp: now(), detail, hash: hashValue({ state, detail, at: Date.now() }) });
-const isLiveTxHash = (value: string) => /^0x[a-fA-F0-9]{64}$/.test(value);
 async function transitionLiveState(snapshot: LoanSnapshot, from: ProofLoanState, to: ProofLoanState, live: boolean) {
   if (!live) { snapshot.state = to; return; }
   if (!(await transitionLoanState(snapshot.applicationId, from, to))) throw new Error(`Database rejected state transition ${from} -> ${to}.`);
