@@ -31,6 +31,7 @@ export type VerifiedFact = {
   asset: string;
   verificationBlock: number;
   verifiedAt: string;
+  observedAt: string;
   freshness: "Fresh" | "Aging" | "Stale";
   proofRoot: string;
   proofWorker: "Attestcoin proof worker";

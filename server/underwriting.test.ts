@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isOfferAcceptable } from "./underwriting";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -13,7 +13,7 @@ describe("ProofLoan underwriting primitives", () => {
 
   it("builds a deterministic FeatureVector with fixed time windows", () => {
     const features = buildFeatureVector(buildVerifiedFacts("0x71C7...9A2F", "Polygon Amoy"));
-    expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 418, volume7d: 1250, volume30d: 2100, volume180d: 4900, evidenceCount: 3 });
+    expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 90, volume7d: 4050, volume30d: 4050, volume180d: 4900, evidenceCount: 3 });
     expect(features.leverageRatio).toBeGreaterThan(0);
     expect(features.freshnessScore).toBeLessThan(1);
   });
@@ -26,6 +26,12 @@ describe("ProofLoan underwriting primitives", () => {
     expect(evaluateRiskGuard(decision, 3000).status).toBe("Blocked");
     expect(evaluateRiskGuard({ ...decision, freshnessScore: 0.5 }, 1500).status).toBe("Blocked");
     expect(features.evidenceCount).toBe(3);
+  });
+
+  it("blocks replay after the offer transitions to Executed", () => {
+    expect(isOfferAcceptable("AwaitingAcceptance", "Ready")).toBe(true);
+    expect(isOfferAcceptable("Executed", "Executed")).toBe(false);
+    expect(isOfferAcceptable("AwaitingAcceptance", "Executed")).toBe(false);
   });
 
   it("freezes the exact hackathon state and reason-code contracts", () => {

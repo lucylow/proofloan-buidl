@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { buildFeatureVector, evaluateRiskGuard, hashValue, runAiUnderwriting } from "./underwriting";
+import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { persistLoanSnapshot } from "./db";
 import type { LoanSnapshot, ProofLoanState, SourceChain } from "@shared/proofloan";
@@ -44,7 +44,7 @@ export const appRouter = router({
       if (/^0x[a-fA-F0-9]{64}$/.test(input.walletAddress)) {
         const verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
         if (!verified.verified) throw new Error("Attestcoin Protocol precompile verification returned false.");
-        snapshot.facts = [{ id: `vf_${hashValue(verified)}`, chain: input.sourceChain, sourceBlock: verified.sourceBlock, txHash: verified.txHash, eventType: "REPAYMENT", amount: "1,250 USDC", asset: "USDC", verificationBlock: verified.verificationBlock, verifiedAt: now(), freshness: "Fresh", proofRoot: verified.proofRoot, proofWorker: "Attestcoin proof worker" }];
+        snapshot.facts = [{ id: `vf_${hashValue(verified)}`, chain: input.sourceChain, sourceBlock: verified.sourceBlock, txHash: verified.txHash, eventType: "REPAYMENT", amount: "1,250 USDC", asset: "USDC", verificationBlock: verified.verificationBlock, verifiedAt: now(), observedAt: now(), freshness: "Fresh", proofRoot: verified.proofRoot, proofWorker: "Attestcoin proof worker" }];
         snapshot.audit.push(audit("EvidencePending", "Official @gluwa/usc-sdk ProofBuilder and Creditcoin BlockProver completed the proof path."));
       } else {
         snapshot.facts = previewAttestcoinFacts(input.walletAddress, input.sourceChain);
@@ -67,7 +67,7 @@ export const appRouter = router({
     getApplication: publicProcedure.input(z.object({ applicationId: z.string() })).query(({ input }) => applications.get(input.applicationId) ?? null),
     acceptOffer: publicProcedure.input(z.object({ applicationId: z.string() })).mutation(async ({ input }) => {
       const snapshot = applications.get(input.applicationId);
-      if (!snapshot || !snapshot.offer || snapshot.offer.status !== "Ready" || snapshot.state !== "AwaitingAcceptance") throw new Error("Offer is unavailable, expired, or already accepted.");
+      if (!snapshot || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status)) throw new Error("Offer is unavailable, expired, or already accepted.");
       snapshot.offer.status = "Executed";
       snapshot.state = "Executed";
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));

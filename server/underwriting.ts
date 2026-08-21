@@ -30,6 +30,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       asset: "USDC",
       verificationBlock: 3_204_118,
       verifiedAt: now,
+      observedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       freshness: "Fresh",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 1 })}`,
       proofWorker: "Attestcoin proof worker",
@@ -44,6 +45,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       asset: "USDC",
       verificationBlock: 3_204_123,
       verifiedAt: now,
+      observedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       freshness: "Fresh",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 2 })}`,
       proofWorker: "Attestcoin proof worker",
@@ -58,6 +60,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       asset: "USDC",
       verificationBlock: 3_204_127,
       verifiedAt: now,
+      observedAt: new Date(Date.now() - 90 * 86_400_000).toISOString(),
       freshness: "Aging",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 3 })}`,
       proofWorker: "Attestcoin proof worker",
@@ -66,20 +69,25 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
 }
 
 export function buildFeatureVector(facts: VerifiedFact[]): FeatureVector {
-  const repaymentCount = facts.filter(f => f.eventType === "REPAYMENT").length;
+  const nowMs = Date.now();
+  const ageDays = (fact: VerifiedFact) => Math.max(0, (nowMs - new Date(fact.observedAt).getTime()) / 86_400_000);
+  const amountValue = (fact: VerifiedFact) => Number.parseFloat(fact.amount.replace(/[^0-9.]/g, "")) || 0;
+  const repaymentFacts = facts.filter(f => f.eventType === "REPAYMENT");
   const latePayments = facts.filter(f => f.eventType === "LATE_PAYMENT").length;
-  const collateral = facts.filter(f => f.eventType === "COLLATERAL_DEPOSIT").length * 2800;
-  const repaymentVolume = repaymentCount * 1050;
+  const collateral = facts.filter(f => f.eventType === "COLLATERAL_DEPOSIT").reduce((sum, fact) => sum + amountValue(fact), 0);
+  const repaymentVolume = repaymentFacts.reduce((sum, fact) => sum + amountValue(fact), 0);
+  const volumeInWindow = (days: number) => facts.filter(f => ageDays(f) <= days).reduce((sum, fact) => sum + amountValue(fact), 0);
+  const walletAgeDays = facts.length ? Math.round(Math.max(...facts.map(f => ageDays(f)))) : 0;
   return {
-    repaymentCount,
+    repaymentCount: repaymentFacts.length,
     latePayments,
     leverageRatio: Number((repaymentVolume / Math.max(collateral, 1)).toFixed(2)),
-    walletAgeDays: 418,
-    volume7d: 1250,
-    volume30d: 2100,
-    volume180d: 4900,
+    walletAgeDays,
+    volume7d: volumeInWindow(7),
+    volume30d: volumeInWindow(30),
+    volume180d: volumeInWindow(180),
     evidenceCount: facts.length,
-    freshnessScore: facts.every(f => f.freshness === "Fresh") ? 1 : 0.86,
+    freshnessScore: facts.length ? facts.reduce((sum, fact) => sum + (fact.freshness === "Fresh" ? 1 : fact.freshness === "Aging" ? 0.8 : 0.3), 0) / facts.length : 0,
   };
 }
 
@@ -135,6 +143,10 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
   } catch {
     return baseline;
   }
+}
+
+export function isOfferAcceptable(state: string, status: Offer["status"]) {
+  return state === "AwaitingAcceptance" && status === "Ready";
 }
 
 export function evaluateRiskGuard(decision: Decision, requestedAmount: number, collateralValue = 2800, poolLiquidity = 250_000): Offer {
