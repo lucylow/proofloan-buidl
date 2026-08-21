@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
-import { getMobileActionAvailability } from "@/lib/mobileRecoveryState";
+import { getMobileActionAvailability, shouldPollCreditFile } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -29,6 +29,7 @@ export default function Home() {
   const [inputError, setInputError] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
+  const [pollingPaused, setPollingPaused] = useState(false);
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -39,10 +40,13 @@ export default function Home() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-  const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setProofSubmitted(true); } });
+  const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true) });
-  const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId), refetchInterval: applicationId ? 5000 : false });
+  const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
   const app = applicationQuery.data;
+  useEffect(() => {
+    if (applicationQuery.error) setPollingPaused(true);
+  }, [applicationQuery.error]);
   const actionAvailability = getMobileActionAvailability({ isOnline, proofPending: createApplication.isPending, refreshPending: applicationQuery.isFetching, acceptPending: acceptOffer.isPending });
   const currentIndex = useMemo(() => PROOFLOAN_STATES.indexOf(app?.state ?? "Intake"), [app?.state]);
 
@@ -69,6 +73,7 @@ export default function Home() {
   };
   const refreshCreditFile = () => {
     setDebugDashboardFailure(false);
+    setPollingPaused(false);
     void applicationQuery.refetch().catch(() => undefined);
   };
 

@@ -5,6 +5,10 @@ export type MobileActionAvailabilityInput = {
   acceptPending: boolean;
 };
 
+export function shouldPollCreditFile({ hasApplication, isOnline, pollingPaused }: { hasApplication: boolean; isOnline: boolean; pollingPaused: boolean }): boolean {
+  return hasApplication && isOnline && !pollingPaused;
+}
+
 export function getMobileActionAvailability({ isOnline, proofPending, refreshPending, acceptPending }: MobileActionAvailabilityInput) {
   return {
     canSubmitProof: isOnline && !proofPending,

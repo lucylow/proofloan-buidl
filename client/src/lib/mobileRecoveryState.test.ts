@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability } from "./mobileRecoveryState";
+import { getMobileActionAvailability, shouldPollCreditFile } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -8,6 +8,13 @@ describe("mobile action availability", () => {
       canRefresh: false,
       canAccept: false,
     });
+  });
+
+  it("stops background polling for missing, offline, or paused credit files", () => {
+    expect(shouldPollCreditFile({ hasApplication: false, isOnline: true, pollingPaused: false })).toBe(false);
+    expect(shouldPollCreditFile({ hasApplication: true, isOnline: false, pollingPaused: false })).toBe(false);
+    expect(shouldPollCreditFile({ hasApplication: true, isOnline: true, pollingPaused: true })).toBe(false);
+    expect(shouldPollCreditFile({ hasApplication: true, isOnline: true, pollingPaused: false })).toBe(true);
   });
 
   it("suppresses duplicate taps independently for each pending action", () => {

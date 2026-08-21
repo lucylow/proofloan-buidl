@@ -238,3 +238,10 @@
 - [x] Harden offline, unexpected-runtime, and repeated-action behavior without hiding real failures
 - [x] Add targeted tests for the new mobile recovery behavior
 - [x] Revalidate 390px and desktop rendering plus the exact production build
+
+## Mobile error-handling hardening pass 5
+
+- [x] Fix the next concrete mobile-flow failure and add resilient recovery handling
+- [x] Harden stale-query and recovery-state behavior without hiding real failures
+- [x] Add targeted tests for the new mobile recovery behavior
+- [x] Revalidate 390px and desktop rendering plus the exact production build
