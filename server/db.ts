@@ -138,14 +138,15 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boole
 
 
 import { buildFeatureVector } from "./underwriting";
-import type { SourceChain, VerifiedFact, Decision, Offer, AuditEvent } from "@shared/proofloan";
+import type { SourceChain, VerifiedFact, Decision, Offer, AuditEvent, ProofLoanState } from "@shared/proofloan";
 
-export async function transitionLoanState(applicationId: string, expectedState: string, nextState: string): Promise<boolean> {
+export async function transitionLoanState(applicationId: string, expectedState: ProofLoanState, nextState: ProofLoanState): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
   try {
     const result = await db.update(loanApplications).set({ state: nextState }).where(and(eq(loanApplications.applicationId, applicationId), eq(loanApplications.state, expectedState)));
-    return Number((result as unknown as { affectedRows?: number }).affectedRows ?? 1) > 0;
+    const affectedRows = Number((result as unknown as { affectedRows?: number }).affectedRows ?? 0);
+    return affectedRows === 1;
   } catch (error) {
     console.warn("[ProofLoan] Database transition unavailable", error instanceof Error ? error.message : error);
     return false;
