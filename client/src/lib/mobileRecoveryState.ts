@@ -9,6 +9,10 @@ export function shouldPollCreditFile({ hasApplication, isOnline, pollingPaused }
   return hasApplication && isOnline && !pollingPaused;
 }
 
+export function shouldShowAcceptanceError({ state, hasError }: { state: string; hasError: boolean }): boolean {
+  return hasError && state !== "Executed" && state !== "Rejected";
+}
+
 export function getMobileActionAvailability({ isOnline, proofPending, refreshPending, acceptPending }: MobileActionAvailabilityInput) {
   return {
     canSubmitProof: isOnline && !proofPending,

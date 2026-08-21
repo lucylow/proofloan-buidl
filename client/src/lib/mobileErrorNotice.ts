@@ -12,8 +12,8 @@ const RECOVERY_BY_CODE: Record<ProofLoanErrorCode, { guidance: string; actionLab
   [PROOFLOAN_ERROR_CODES.VALIDATION]: { guidance: "Check the source value and selected chain, then submit again.", actionLabel: "Review input" },
   [PROOFLOAN_ERROR_CODES.DATABASE]: { guidance: "Your evidence is unchanged. Refresh the credit file or try again shortly.", actionLabel: "Refresh credit file" },
   [PROOFLOAN_ERROR_CODES.PROOF_WORKER]: { guidance: "Confirm the transaction is mined on the selected testnet, then retry verification.", actionLabel: "Retry verification" },
-  [PROOFLOAN_ERROR_CODES.POLICY]: { guidance: "This offer cannot proceed under RiskGuard policy. Review the decision details.", actionLabel: "Review decision" },
-  [PROOFLOAN_ERROR_CODES.STATE_CONFLICT]: { guidance: "This action is no longer available because the offer state changed.", actionLabel: "Refresh status" },
+  [PROOFLOAN_ERROR_CODES.POLICY]: { guidance: "RiskGuard blocked this offer. Review the decision details and contact support if you believe the policy result is incorrect.", actionLabel: "Review decision" },
+  [PROOFLOAN_ERROR_CODES.STATE_CONFLICT]: { guidance: "This action is no longer available because the offer state changed. Refresh status before trying another action.", actionLabel: "Refresh status" },
 };
 
 export function getMobileErrorNoticeModel(message: string, canRetry = false): MobileErrorNoticeModel {

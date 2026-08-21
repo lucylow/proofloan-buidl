@@ -36,11 +36,12 @@ describe("mobile error notice model", () => {
     expect(getMobileErrorNoticeModel("[PROOFLOAN_STATE_CONFLICT] Offer is already accepted.")).toEqual({
       code: "PROOFLOAN_STATE_CONFLICT",
       message: "Offer is already accepted.",
-      guidance: "This action is no longer available because the offer state changed.",
+      guidance: "This action is no longer available because the offer state changed. Refresh status before trying another action.",
       actionLabel: "Refresh status",
       canRetry: false,
     });
     expect(getMobileErrorNoticeModel("[PROOFLOAN_DATABASE_ERROR] Read-back failed.", true).actionLabel).toBe("Refresh credit file");
+    expect(getMobileErrorNoticeModel("[PROOFLOAN_POLICY_ERROR] Offer blocked.").guidance).toContain("contact support");
     expect(isRetryableMobileError(true)).toBe(true);
     expect(isRetryableMobileError(false)).toBe(false);
     expect(isRetryableMobileError(undefined)).toBe(false);
