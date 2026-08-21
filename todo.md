@@ -70,3 +70,10 @@
 - [x] Improve mobile evidence and audit content scanning without increasing overflow risk
 - [x] Improve responsive spacing and interaction feedback for repeated mobile actions
 - [x] Revalidate narrow and desktop viewports after the fifth mobile pass
+
+## Mobile refinement pass 6
+
+- [x] Improve mobile touch ergonomics for dashboard actions and repeated controls
+- [x] Improve mobile decision and audit content hierarchy at narrow widths
+- [x] Improve responsive spacing and focus visibility in the borrower flow
+- [x] Revalidate narrow and desktop viewports after the sixth mobile pass
