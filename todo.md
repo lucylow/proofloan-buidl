@@ -231,3 +231,10 @@
 - [x] Inspect and harden mobile proof-request, dashboard refresh, acceptance, and unexpected-runtime error surfaces
 - [x] Add or update Vitest coverage for the new mobile recovery behavior
 - [x] Revalidate 390px and desktop rendering plus production build
+
+## Mobile error-handling hardening pass 4
+
+- [x] Fix the next concrete mobile-flow failure and add resilient recovery handling
+- [x] Harden offline, unexpected-runtime, and repeated-action behavior without hiding real failures
+- [x] Add targeted tests for the new mobile recovery behavior
+- [x] Revalidate 390px and desktop rendering plus the exact production build
