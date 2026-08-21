@@ -163,18 +163,23 @@ export function parsePersistedReasonCodes(raw: string): Decision["reasonCodes"] 
 }
 
 type PersistedSnapshotValidationInput = {
-  application: { state: string; sourceChain: string };
-  facts: Array<{ chain: string; eventType: string; freshness: string }>;
-  decision?: { reasonCodes: string; riskTier: string };
-  offer?: { status: string };
+  application: { state: string; sourceChain: string; requestedAmount: unknown };
+  facts: Array<{ chain: string; eventType: string; freshness: string; sourceBlock: unknown; verificationBlock: unknown }>;
+  decision?: { reasonCodes: string; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown };
+  offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; termDays: unknown; expiresAt: unknown };
   audit: Array<{ state: string }>;
 };
 
+const isFiniteInRange = (value: unknown, min: number, max: number) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= min && numeric <= max;
+};
+
 export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput): boolean {
-  if (!isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain)) return false;
-  if (input.facts.some(fact => !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness))) return false;
-  if (input.decision && (!parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier))) return false;
-  if (input.offer && !isOfferStatus(input.offer.status)) return false;
+  if (!isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
+  if (input.facts.some(fact => !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER))) return false;
+  if (input.decision && (!parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
+  if (input.offer && (!isOfferStatus(input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || !isFiniteInRange(input.offer.apr, 0, 24) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   return input.audit.every(event => isProofLoanState(event.state));
 }
 

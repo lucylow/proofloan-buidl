@@ -15,11 +15,14 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {
-    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B" }, offer: { status: "Executed" }, audit: [{ state: "Intake" }] };
+    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake" }] };
     expect(isPersistedSnapshotValid(valid)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, reasonCodes: "not-json" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: "NaN" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, ltv: "1.5" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "-1" } })).toBe(false);
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
