@@ -5,6 +5,8 @@ export type MobileActionAvailabilityInput = {
   acceptPending: boolean;
 };
 
+export type MobileActionKind = "proof" | "refresh" | "accept";
+
 export function shouldPollCreditFile({ hasApplication, isOnline, pollingPaused }: { hasApplication: boolean; isOnline: boolean; pollingPaused: boolean }): boolean {
   return hasApplication && isOnline && !pollingPaused;
 }
@@ -31,4 +33,10 @@ export function getMobileActionAvailability({ isOnline, proofPending, refreshPen
     canRefresh: isOnline && !refreshPending,
     canAccept: isOnline && !acceptPending,
   };
+}
+
+export function shouldInvokeMobileAction({ action, isOnline, pending, hasApplication }: { action: MobileActionKind; isOnline: boolean; pending: boolean; hasApplication: boolean }): boolean {
+  if (!isOnline || pending) return false;
+  if (action === "refresh" || action === "accept") return hasApplication;
+  return true;
 }

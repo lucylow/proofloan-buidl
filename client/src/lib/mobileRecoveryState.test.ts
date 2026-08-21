@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMobileActionAvailability, getMobileCreditFileViewState, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -8,6 +8,14 @@ describe("mobile action availability", () => {
       canRefresh: false,
       canAccept: false,
     });
+  });
+
+  it("blocks delayed or programmatic actions while offline or pending", () => {
+    expect(shouldInvokeMobileAction({ action: "proof", isOnline: false, pending: false, hasApplication: false })).toBe(false);
+    expect(shouldInvokeMobileAction({ action: "proof", isOnline: true, pending: true, hasApplication: false })).toBe(false);
+    expect(shouldInvokeMobileAction({ action: "refresh", isOnline: true, pending: false, hasApplication: false })).toBe(false);
+    expect(shouldInvokeMobileAction({ action: "accept", isOnline: true, pending: false, hasApplication: false })).toBe(false);
+    expect(shouldInvokeMobileAction({ action: "accept", isOnline: true, pending: false, hasApplication: true })).toBe(true);
   });
 
   it("allows at most one automatic retry only while online and unpaused", () => {
