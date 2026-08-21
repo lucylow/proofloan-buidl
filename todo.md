@@ -152,3 +152,7 @@
 - [x] Exercise proof-request and acceptance failure paths in the browser and confirm inline error alerts render
 
 - [x] Refactor live createApplication and acceptOffer so each state change uses explicit conditional database transitions and read-backs
+
+## Mobile refinement pass 14
+
+- [x] Improve the next highest-impact narrow-screen borrower interaction and revalidate responsive behavior

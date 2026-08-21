@@ -51,6 +51,17 @@ button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation
   .mobile-fact-metadata > div:not(:first-child) { border-radius: 0.625rem; background: rgba(255,255,255,.025); padding: 0.5rem; }
   .mobile-offer-panel { box-shadow: inset 0 1px 0 rgba(103,232,249,.08); }
   .mobile-offer-panel .mobile-offer-status { display: inline-flex; align-items: center; gap: 0.375rem; margin-bottom: 0.75rem; border-radius: 999px; background: rgba(103,232,249,.09); padding: 0.25rem 0.5rem; font-size: 0.625rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgb(165 243 252); }
+  .mobile-trace { border-color: rgba(103,232,249,.18); }
+  .mobile-trace > div.relative { padding: 0.875rem; }
+  .mobile-trace-row { position: relative; min-height: 2.75rem; }
+  .mobile-trace-row:not(:last-child)::after { content: ""; position: absolute; left: 1rem; top: 2rem; bottom: -0.75rem; width: 1px; background: linear-gradient(to bottom, rgba(103,232,249,.35), rgba(255,255,255,.06)); }
+  .mobile-trace-row > div:first-child { position: relative; z-index: 1; height: 2rem; width: 2rem; border: 1px solid rgba(103,232,249,.16); }
+  .mobile-trace-row > div:last-child { min-width: 0; }
+  .mobile-trace-row > div:last-child > div:first-child { font-size: .8125rem; font-weight: 650; color: rgb(226 232 240); }
+  .mobile-trace-row > div:last-child > div:last-child { margin-top: .125rem; overflow-wrap: anywhere; }
+  .mobile-trace .mt-8 { margin-top: 1.5rem; }
+  .mobile-trace .text-3xl { font-size: 1.75rem; }
+
 }
 @media (max-width: 640px) {
   html { scroll-padding-top: 72px; }
