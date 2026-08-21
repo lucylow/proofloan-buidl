@@ -217,3 +217,10 @@
 - [x] Add frontend-level coverage for mobile error-code stripping and conditional retry visibility
 
 - [x] Add a development-only dashboard query-failure hook and verify the mobile notice plus recovery path in-browser at 390px
+
+## Mobile error-handling hardening pass 2
+
+- [x] Fix the next active mobile error and strengthen borrower-flow recovery handling with targeted validation
+
+- [x] Add differentiated mobile recovery guidance and actions for proof-worker, database, validation, policy, and state-conflict errors
+- [x] Add targeted frontend coverage for differentiated mobile recovery guidance and action visibility

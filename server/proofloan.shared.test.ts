@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
@@ -21,6 +21,9 @@ describe("ProofLoan shared validation", () => {
     expect(cleanProofLoanErrorMessage("[PROOFLOAN_PROOF_WORKER_ERROR] Source transaction is not mined yet.")).toBe("Source transaction is not mined yet.");
     expect(cleanProofLoanErrorMessage("A plain error message")).toBe("A plain error message");
     expect(getProofLoanErrorCode("Offer is unavailable.")).toBeUndefined();
+    expect(isExpectedProofLoanError(new Error("[PROOFLOAN_STATE_CONFLICT] Offer is already accepted."))).toBe(true);
+    expect(isExpectedProofLoanError(new Error("Network request failed"))).toBe(false);
+    expect(isExpectedProofLoanError("not an Error instance")).toBe(false);
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {

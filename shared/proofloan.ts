@@ -16,6 +16,10 @@ export function cleanProofLoanErrorMessage(message: string): string {
   return message.replace(/^\[[^\]]+\]\s*/, "");
 }
 
+export function isExpectedProofLoanError(error: unknown): boolean {
+  return error instanceof Error && getProofLoanErrorCode(error.message) !== undefined;
+}
+
 export const PROOFLOAN_STATES = [
   "Intake",
   "EvidencePending",
