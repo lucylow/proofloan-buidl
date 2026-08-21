@@ -41,3 +41,10 @@
 
 - [x] Add a compact mobile navigation pattern for How it works, Evidence, and Docs
 - [x] Make full transaction hashes truncate or wrap safely inside VerifiedFact cards
+
+## Mobile refinement pass 2
+
+- [x] Improve mobile header hierarchy and compact navigation affordances
+- [x] Improve mobile form readability, input ergonomics, and loading/error feedback
+- [x] Improve mobile dashboard card density, evidence readability, and decision actions
+- [x] Revalidate narrow and desktop viewports after the second mobile pass
