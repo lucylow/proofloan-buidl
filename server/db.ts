@@ -138,7 +138,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boole
 
 
 import { buildFeatureVector } from "./underwriting";
-import type { SourceChain, VerifiedFact, Decision, Offer, AuditEvent, ProofLoanState } from "@shared/proofloan";
+import { isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export async function transitionLoanState(applicationId: string, expectedState: ProofLoanState, nextState: ProofLoanState): Promise<boolean> {
   const db = await getDb();
@@ -153,6 +153,31 @@ export async function transitionLoanState(applicationId: string, expectedState: 
   }
 }
 
+export function parsePersistedReasonCodes(raw: string): Decision["reasonCodes"] | undefined {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every(code => typeof code === "string" && isReasonCode(code)) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+type PersistedSnapshotValidationInput = {
+  application: { state: string; sourceChain: string };
+  facts: Array<{ chain: string; eventType: string; freshness: string }>;
+  decision?: { reasonCodes: string; riskTier: string };
+  offer?: { status: string };
+  audit: Array<{ state: string }>;
+};
+
+export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput): boolean {
+  if (!isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain)) return false;
+  if (input.facts.some(fact => !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness))) return false;
+  if (input.decision && (!parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier))) return false;
+  if (input.offer && !isOfferStatus(input.offer.status)) return false;
+  return input.audit.every(event => isProofLoanState(event.state));
+}
+
 export async function getPersistedLoanSnapshot(applicationId: string): Promise<LoanSnapshot | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -164,13 +189,25 @@ export async function getPersistedLoanSnapshot(applicationId: string): Promise<L
     const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).limit(1);
     const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).limit(1);
     const auditRows = await db.select().from(auditEvents).where(eq(auditEvents.applicationId, applicationId));
-    const facts: VerifiedFact[] = factRows.map(fact => ({ id: fact.factId, chain: fact.chain as SourceChain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType as VerifiedFact["eventType"], amount: fact.amount, asset: "USDC", verificationBlock: fact.verificationBlock, verifiedAt: fact.verifiedAt.toISOString(), observedAt: fact.verifiedAt.toISOString(), freshness: fact.freshness as VerifiedFact["freshness"], proofRoot: fact.proofRoot, proofWorker: "Attestcoin proof worker" }));
+    if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows })) return undefined;
+    if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
+    const facts: VerifiedFact[] = factRows.map(fact => {
+      if (!isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness)) throw new Error(`Invalid persisted fact enum for ${fact.factId}.`);
+      return { id: fact.factId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, asset: "USDC", verificationBlock: fact.verificationBlock, verifiedAt: fact.verifiedAt.toISOString(), observedAt: fact.verifiedAt.toISOString(), freshness: fact.freshness, proofRoot: fact.proofRoot, proofWorker: "Attestcoin proof worker" };
+    });
     const decisionRow = decisionRows[0];
-    const decision: Decision | undefined = decisionRow ? { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier: decisionRow.riskTier as Decision["riskTier"], reasonCodes: JSON.parse(decisionRow.reasonCodes) as Decision["reasonCodes"], featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, decisionHash: decisionRow.decisionHash } : undefined;
+    let decision: Decision | undefined;
+    if (decisionRow) {
+      const parsedReasonCodes = parsePersistedReasonCodes(decisionRow.reasonCodes);
+      if (!parsedReasonCodes || !isRiskTier(decisionRow.riskTier)) return undefined;
+      const riskTier = decisionRow.riskTier;
+      decision = { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier, reasonCodes: parsedReasonCodes, featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, decisionHash: decisionRow.decisionHash };
+    }
     const offerRow = offerRows[0];
-    const offer: Offer | undefined = offerRow ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), poolLiquidity: 250000, status: offerRow.status as Offer["status"] } : undefined;
+    const offerStatus: Offer["status"] | undefined = offerRow && isOfferStatus(offerRow.status) ? offerRow.status : undefined;
+    const offer: Offer | undefined = offerRow && offerStatus ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), poolLiquidity: 250000, status: offerStatus } : undefined;
     const audit: AuditEvent[] = auditRows.map(event => ({ state: event.state as AuditEvent["state"], label: event.label, timestamp: event.createdAt.toISOString(), detail: event.detail, hash: event.eventHash }));
-    return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain as SourceChain, state: application.state as LoanSnapshot["state"], facts, features: buildFeatureVector(facts), decision, offer, audit };
+    return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features: buildFeatureVector(facts), decision, offer, audit };
   } catch (error) {
     console.warn("[ProofLoan] Database read unavailable; using active in-memory snapshot.", error instanceof Error ? error.message : error);
     return undefined;

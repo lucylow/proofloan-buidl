@@ -168,3 +168,12 @@
 ## Code improvement pass 2
 
 - [x] Improve the next highest-impact reliability or maintainability issue and add targeted validation
+
+## Code improvement pass 3
+
+- [x] Improve the next highest-impact reliability or maintainability issue and add targeted validation
+
+- [x] Add targeted Vitest coverage for persisted snapshot reconstruction failing closed on invalid state, source chain, and malformed reason codes
+- [x] Validate persisted event type, freshness, risk tier, offer status, and audit state instead of unchecked casts
+
+- [x] Exercise the persisted snapshot reconstruction validation boundary directly for invalid application state, source chain, and malformed reason-code JSON

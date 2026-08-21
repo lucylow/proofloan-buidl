@@ -20,6 +20,38 @@ export const REASON_CODES = [
 
 export type ReasonCode = (typeof REASON_CODES)[number];
 export type SourceChain = "Ethereum Sepolia" | "Polygon Amoy";
+export type VerifiedEventType = VerifiedFact["eventType"];
+export type Freshness = VerifiedFact["freshness"];
+export type RiskTier = Decision["riskTier"];
+export type OfferStatus = Offer["status"];
+
+export function isProofLoanState(value: string): value is ProofLoanState {
+  return (PROOFLOAN_STATES as readonly string[]).includes(value);
+}
+
+export function isSourceChain(value: string): value is SourceChain {
+  return value === "Ethereum Sepolia" || value === "Polygon Amoy";
+}
+
+export function isReasonCode(value: string): value is ReasonCode {
+  return (REASON_CODES as readonly string[]).includes(value);
+}
+
+export function isVerifiedEventType(value: string): value is VerifiedEventType {
+  return value === "REPAYMENT" || value === "COLLATERAL_DEPOSIT" || value === "LATE_PAYMENT";
+}
+
+export function isFreshness(value: string): value is Freshness {
+  return value === "Fresh" || value === "Aging" || value === "Stale";
+}
+
+export function isRiskTier(value: string): value is RiskTier {
+  return value === "A" || value === "B" || value === "C" || value === "D";
+}
+
+export function isOfferStatus(value: string): value is OfferStatus {
+  return value === "Ready" || value === "Blocked" || value === "Accepted" || value === "Executed";
+}
 
 export function isLiveTxHash(value: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(value);
