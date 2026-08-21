@@ -98,7 +98,8 @@ import type { LoanSnapshot } from "@shared/proofloan";
 export async function persistLoanSnapshot(snapshot: LoanSnapshot) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(loanApplications).values({
+  try {
+    await db.insert(loanApplications).values({
     applicationId: snapshot.applicationId,
     walletAddress: snapshot.walletAddress,
     sourceChain: snapshot.sourceChain,
@@ -116,7 +117,10 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot) {
   if (snapshot.decision) {
     await db.insert(decisions).values({ applicationId: snapshot.applicationId, pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash });
   }
-  if (snapshot.offer) {
-    await db.insert(offers).values({ applicationId: snapshot.applicationId, amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) });
+    if (snapshot.offer) {
+      await db.insert(offers).values({ applicationId: snapshot.applicationId, amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) });
+    }
+  } catch (error) {
+    console.warn("[ProofLoan] Persistence unavailable; keeping the active snapshot in memory for the demo.", error instanceof Error ? error.message : error);
   }
 }
