@@ -18,7 +18,7 @@
 
 ## Hardening follow-ups
 
-- [ ] Replace hardcoded preview facts in the default borrower flow with a live Attestcoin Protocol USC SDK proof request
+- [x] Replace hardcoded preview facts in the default borrower flow with a live Attestcoin Protocol USC SDK proof request
 - [x] Make Drizzle/database state the source of truth and persist audit events; application reads now prefer reconstructed Drizzle state with an explicit preview fallback when the database is unavailable
 - [x] Add event-time fields to verified facts and compute wallet age plus 7/30/180-day windows from actual verified history
 - [x] Implement explicit freshness enforcement inside RiskGuard and add tests for blocked stale evidence
@@ -27,8 +27,8 @@
 
 ## Verification corrections
 
-- [ ] Refactor createApplication and acceptOffer so all state transitions are database-authoritative; keep the Map only for explicit preview-only mode
-- [ ] Complete a successful browser verification pass through proof request, offer acceptance, Executed UI state, and inline proof/acceptance error states
+- [x] Refactor createApplication and acceptOffer so all state transitions are database-authoritative; keep the Map only for explicit preview-only mode
+- [x] Complete a successful browser verification pass through proof request, offer acceptance, Executed UI state, and inline proof/acceptance error states
 
 ## Mobile refinement
 
@@ -147,3 +147,8 @@
 
 - [x] Add concrete mobile CSS/layout for VerifiedFact metadata grouping; rerun 390px and desktop validation
 - [x] Add concrete mobile offer-panel CSS and explicit visible offer-status treatment; rerun 390px and desktop validation
+
+- [x] Make live state transitions truly database-authoritative with explicit DB-backed transition writes/read-backs and eliminate duplicate decision rows
+- [x] Exercise proof-request and acceptance failure paths in the browser and confirm inline error alerts render
+
+- [x] Refactor live createApplication and acceptOffer so each state change uses explicit conditional database transitions and read-backs

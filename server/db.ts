@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -115,10 +115,16 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boole
     await db.insert(verifiedFacts).values({ factId: fact.id, applicationId: snapshot.applicationId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt: new Date(fact.verifiedAt) }).onDuplicateKeyUpdate({ set: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } });
   }
   if (snapshot.decision) {
-    await db.insert(decisions).values({ applicationId: snapshot.applicationId, pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash });
+    const decisionValues = { pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash };
+    const existingDecision = await db.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).limit(1);
+    if (existingDecision[0]) await db.update(decisions).set(decisionValues).where(eq(decisions.id, existingDecision[0].id));
+    else await db.insert(decisions).values({ applicationId: snapshot.applicationId, ...decisionValues });
   }
     if (snapshot.offer) {
-      await db.insert(offers).values({ applicationId: snapshot.applicationId, amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) });
+      const existingOffer = await db.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).limit(1);
+      const offerValues = { amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) };
+      if (existingOffer[0]) await db.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
+      else await db.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
     }
     for (const event of snapshot.audit) {
       await db.insert(auditEvents).values({ applicationId: snapshot.applicationId, state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt: new Date(event.timestamp) }).onDuplicateKeyUpdate({ set: { detail: event.detail, state: event.state } });
@@ -133,6 +139,18 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot): Promise<boole
 
 import { buildFeatureVector } from "./underwriting";
 import type { SourceChain, VerifiedFact, Decision, Offer, AuditEvent } from "@shared/proofloan";
+
+export async function transitionLoanState(applicationId: string, expectedState: string, nextState: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    const result = await db.update(loanApplications).set({ state: nextState }).where(and(eq(loanApplications.applicationId, applicationId), eq(loanApplications.state, expectedState)));
+    return Number((result as unknown as { affectedRows?: number }).affectedRows ?? 1) > 0;
+  } catch (error) {
+    console.warn("[ProofLoan] Database transition unavailable", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
 
 export async function getPersistedLoanSnapshot(applicationId: string): Promise<LoanSnapshot | undefined> {
   const db = await getDb();
