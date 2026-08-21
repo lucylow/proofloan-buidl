@@ -156,3 +156,7 @@
 ## Mobile refinement pass 14
 
 - [x] Improve the next highest-impact narrow-screen borrower interaction and revalidate responsive behavior
+
+## Mobile refinement pass 15
+
+- [x] Improve narrow-screen borrower-dashboard context and scan order while preserving touch-safe tabs

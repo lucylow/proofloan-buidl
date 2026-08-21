@@ -61,6 +61,8 @@ button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation
   .mobile-trace-row > div:last-child > div:last-child { margin-top: .125rem; overflow-wrap: anywhere; }
   .mobile-trace .mt-8 { margin-top: 1.5rem; }
   .mobile-trace .text-3xl { font-size: 1.75rem; }
+  .mobile-dashboard-context { position: sticky; top: 4.5rem; z-index: 8; display: flex; align-items: center; gap: .375rem; min-height: 2.25rem; margin: -.125rem 0 .25rem; border: 1px solid rgba(103,232,249,.14); border-radius: .75rem; background: rgba(7,11,18,.92); padding: .5rem .625rem; box-shadow: 0 8px 20px rgba(0,0,0,.18); font-size: .6875rem; line-height: 1.1; color: rgb(148 163 184); backdrop-filter: blur(12px); }
+  .mobile-dashboard-context + .mobile-state-tracker { margin-top: .25rem; }
 
 }
 @media (max-width: 640px) {
