@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
+import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "./mobileRecoveryState";
 
 describe("mobile action availability", () => {
   it("disables every network action while offline", () => {
@@ -37,6 +37,14 @@ describe("mobile action availability", () => {
     expect(getMobileCreditFileViewState({ hasApplication: true, isLoading: true, hasError: true })).toBe("error");
     expect(getMobileCreditFileViewState({ hasApplication: false, isLoading: false, hasError: false })).toBe("empty");
     expect(getMobileCreditFileViewState({ hasApplication: true, isLoading: false, hasError: false })).toBe("ready");
+  });
+
+  it("clears only a completed, error-free missing application result", () => {
+    expect(shouldClearMissingApplication({ hasApplicationId: true, hasData: true, isLoading: false, isFetching: false, hasError: false })).toBe(true);
+    expect(shouldClearMissingApplication({ hasApplicationId: true, hasData: false, isLoading: true, isFetching: true, hasError: false })).toBe(false);
+    expect(shouldClearMissingApplication({ hasApplicationId: true, hasData: true, isLoading: false, isFetching: true, hasError: false })).toBe(false);
+    expect(shouldClearMissingApplication({ hasApplicationId: true, hasData: true, isLoading: false, isFetching: false, hasError: true })).toBe(false);
+    expect(shouldClearMissingApplication({ hasApplicationId: false, hasData: true, isLoading: false, isFetching: false, hasError: false })).toBe(false);
   });
 
   it("stops background polling for missing, offline, or paused credit files", () => {

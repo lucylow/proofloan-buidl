@@ -57,3 +57,7 @@ export function getAcceptanceFailureRecovery({ hasApplication, isOnline, polling
 export function shouldRefreshAfterAcceptanceFailure({ hasApplication, isOnline }: { hasApplication: boolean; isOnline: boolean }): boolean {
   return getAcceptanceFailureRecovery({ hasApplication, isOnline, pollingPaused: false }).shouldInvalidateCreditFile;
 }
+
+export function shouldClearMissingApplication({ hasApplicationId, hasData, isLoading, isFetching, hasError }: { hasApplicationId: boolean; hasData: boolean; isLoading: boolean; isFetching: boolean; hasError: boolean }): boolean {
+  return hasApplicationId && hasData && !isLoading && !isFetching && !hasError;
+}

@@ -9,7 +9,7 @@ import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofl
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
 import { clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "@/lib/applicationSession";
 import { scheduleFeedbackReset, type FeedbackTimer } from "@/lib/transientFeedback";
-import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
+import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -60,6 +60,13 @@ export default function Home() {
   useEffect(() => {
     if (applicationQuery.error) setPollingPaused(true);
   }, [applicationQuery.error]);
+  useEffect(() => {
+    if (shouldClearMissingApplication({ hasApplicationId: Boolean(applicationId), hasData: applicationQuery.data !== undefined, isLoading: applicationQuery.isLoading, isFetching: applicationQuery.isFetching, hasError: Boolean(applicationQuery.error) }) && applicationQuery.data === null) {
+      setApplicationId(null);
+      setPollingPaused(false);
+      setProofSubmitted(false);
+    }
+  }, [applicationId, applicationQuery.data, applicationQuery.error, applicationQuery.isFetching, applicationQuery.isLoading]);
   const actionAvailability = getMobileActionAvailability({ isOnline, proofPending: createApplication.isPending, refreshPending: applicationQuery.isFetching, acceptPending: acceptOffer.isPending });
   const creditFileViewState = getMobileCreditFileViewState({ hasApplication: Boolean(app), isLoading: applicationQuery.isLoading, hasError: Boolean(debugDashboardFailure || applicationQuery.error) });
   const currentIndex = useMemo(() => PROOFLOAN_STATES.indexOf(app?.state ?? "Intake"), [app?.state]);
