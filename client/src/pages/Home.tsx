@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, CircleDot, Copy, ExternalLink, FileCheck2, Loader2, LockKeyhole, RotateCcw, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
 import { clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "@/lib/applicationSession";
+import { scheduleFeedbackReset, type FeedbackTimer } from "@/lib/transientFeedback";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
@@ -29,6 +30,7 @@ export default function Home() {
   const [debugDashboardFailure, setDebugDashboardFailure] = useState(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get("debugDashboardError") === "1");
   const [inputError, setInputError] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const copyResetTimer = useRef<FeedbackTimer | null>(null);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
   useEffect(() => {
@@ -40,6 +42,9 @@ export default function Home() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, []);
+  useEffect(() => () => {
+    if (copyResetTimer.current !== null) clearTimeout(copyResetTimer.current);
   }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -75,7 +80,10 @@ export default function Home() {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable on this device.");
       await navigator.clipboard.writeText(app.applicationId);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+      copyResetTimer.current = scheduleFeedbackReset(setTimeout, clearTimeout, copyResetTimer.current, () => {
+        setCopied(false);
+        copyResetTimer.current = null;
+      }, 1200);
     } catch (error) {
       setCopied(false);
       setCopyError(error instanceof Error ? error.message : "Clipboard access was unavailable.");
