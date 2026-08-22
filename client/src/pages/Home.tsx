@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofloan";
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
-import { clearStoredApplicationId, persistApplicationId, readStoredApplicationId } from "@/lib/applicationSession";
+import { clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "@/lib/applicationSession";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
@@ -20,7 +20,7 @@ function MobileErrorNotice({ title, error, onRetry }: { title: string; error: { 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
   const [sourceChain, setSourceChain] = useState<SourceChain>("Ethereum Sepolia");
-  const [applicationId, setApplicationId] = useState<string | null>(() => typeof window === "undefined" ? null : readStoredApplicationId(window.sessionStorage));
+  const [applicationId, setApplicationId] = useState<string | null>(() => typeof window === "undefined" ? null : readStoredApplicationId(getSafeSessionStorage(() => window.sessionStorage)));
   const [copied, setCopied] = useState(false);
   const [proofSubmitted, setProofSubmitted] = useState(false);
   const [offerSubmitted, setOfferSubmitted] = useState(false);
@@ -43,8 +43,9 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (applicationId) persistApplicationId(window.sessionStorage, applicationId);
-    else clearStoredApplicationId(window.sessionStorage);
+    const storage = getSafeSessionStorage(() => window.sessionStorage);
+    if (applicationId) persistApplicationId(storage, applicationId);
+    else clearStoredApplicationId(storage);
   }, [applicationId]);
   const proofloanUtils = trpc.useUtils();
   const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });

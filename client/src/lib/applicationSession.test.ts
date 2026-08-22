@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROOFLOAN_APPLICATION_ID_KEY, clearStoredApplicationId, persistApplicationId, readStoredApplicationId } from "./applicationSession";
+import { PROOFLOAN_APPLICATION_ID_KEY, clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "./applicationSession";
 
 function createStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial));
@@ -24,6 +24,12 @@ describe("application session storage", () => {
     expect(readStoredApplicationId(storage)).toBe("PL-456");
     expect(clearStoredApplicationId(storage)).toBe(true);
     expect(readStoredApplicationId(storage)).toBeNull();
+  });
+
+  it("returns no storage when the browser blocks sessionStorage access", () => {
+    expect(getSafeSessionStorage(() => { throw new Error("blocked"); })).toBeUndefined();
+    expect(persistApplicationId(undefined, "PL-000")).toBe(false);
+    expect(clearStoredApplicationId(undefined)).toBe(false);
   });
 
   it("fails closed when browser storage throws", () => {
