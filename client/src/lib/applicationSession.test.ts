@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROOFLOAN_APPLICATION_ID_KEY, clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "./applicationSession";
+import { PROOFLOAN_APPLICATION_ID_KEY, clearStoredApplicationId, getSafeSessionStorage, normalizeStoredApplicationId, persistApplicationId, readStoredApplicationId } from "./applicationSession";
 
 function createStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial));
@@ -18,10 +18,19 @@ describe("application session storage", () => {
     expect(readStoredApplicationId(storage)).toBeNull();
   });
 
+  it("rejects malformed or oversized IDs before they reach the query", () => {
+    expect(normalizeStoredApplicationId("PL/123")).toBeNull();
+    expect(normalizeStoredApplicationId("x".repeat(129))).toBeNull();
+    expect(normalizeStoredApplicationId(" PL-123_abc ")).toBe("PL-123_abc");
+    const storage = createStorage({ [PROOFLOAN_APPLICATION_ID_KEY]: "<script>" });
+    expect(readStoredApplicationId(storage)).toBeNull();
+  });
+
   it("persists and clears the active application ID", () => {
     const storage = createStorage();
-    expect(persistApplicationId(storage, "PL-456")).toBe(true);
+    expect(persistApplicationId(storage, " PL-456 ")).toBe(true);
     expect(readStoredApplicationId(storage)).toBe("PL-456");
+    expect(persistApplicationId(storage, "PL/invalid")).toBe(false);
     expect(clearStoredApplicationId(storage)).toBe(true);
     expect(readStoredApplicationId(storage)).toBeNull();
   });

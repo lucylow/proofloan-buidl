@@ -10,19 +10,24 @@ export function getSafeSessionStorage(getter: () => StorageLike): StorageLike | 
   }
 }
 
+export function normalizeStoredApplicationId(value: string | null | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  return /^[A-Za-z0-9_-]{1,128}$/.test(normalized) ? normalized : null;
+}
+
 export function readStoredApplicationId(storage: StorageLike | undefined): string | null {
   try {
-    const value = storage?.getItem(PROOFLOAN_APPLICATION_ID_KEY)?.trim();
-    return value || null;
+    return normalizeStoredApplicationId(storage?.getItem(PROOFLOAN_APPLICATION_ID_KEY));
   } catch {
     return null;
   }
 }
 
 export function persistApplicationId(storage: StorageLike | undefined, applicationId: string): boolean {
-  if (!storage) return false;
+  const normalized = normalizeStoredApplicationId(applicationId);
+  if (!storage || !normalized) return false;
   try {
-    storage.setItem(PROOFLOAN_APPLICATION_ID_KEY, applicationId);
+    storage.setItem(PROOFLOAN_APPLICATION_ID_KEY, normalized);
     return true;
   } catch {
     return false;
