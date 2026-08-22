@@ -1,3 +1,5 @@
+import { isProofLoanApplicationId } from "@shared/proofloan";
+
 export const PROOFLOAN_APPLICATION_ID_KEY = "proofloan.applicationId";
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -12,7 +14,7 @@ export function getSafeSessionStorage(getter: () => StorageLike): StorageLike | 
 
 export function normalizeStoredApplicationId(value: string | null | undefined): string | null {
   const normalized = value?.trim() ?? "";
-  return /^[A-Za-z0-9_-]{1,128}$/.test(normalized) ? normalized : null;
+  return isProofLoanApplicationId(normalized) ? normalized : null;
 }
 
 export function readStoredApplicationId(storage: StorageLike | undefined): string | null {

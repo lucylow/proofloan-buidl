@@ -6,13 +6,14 @@ import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
-import { PROOFLOAN_ERROR_CODES, isLiveTxHash, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
+import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
 import { TRPCError } from "@trpc/server";
 
 const applications = new Map<string, LoanSnapshot>();
 
 const now = () => new Date().toISOString();
 const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${message}` });
+const applicationIdInput = z.string().trim().refine(isProofLoanApplicationId, "Invalid ProofLoan application ID.");
 const audit = (state: ProofLoanState, detail: string) => ({ state, label: state, timestamp: now(), detail, hash: hashValue({ state, detail, at: Date.now() }) });
 async function transitionLiveState(snapshot: LoanSnapshot, from: ProofLoanState, to: ProofLoanState, live: boolean) {
   if (!live) { snapshot.state = to; return; }
@@ -94,8 +95,8 @@ export const appRouter = router({
       if (previewMode) applications.set(snapshot.applicationId, snapshot);
       return snapshot;
     }),
-    getApplication: publicProcedure.input(z.object({ applicationId: z.string() })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
-    acceptOffer: publicProcedure.input(z.object({ applicationId: z.string() })).mutation(async ({ input }) => {
+    getApplication: publicProcedure.input(z.object({ applicationId: applicationIdInput })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
+    acceptOffer: publicProcedure.input(z.object({ applicationId: applicationIdInput })).mutation(async ({ input }) => {
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
       const previewMode = !!snapshot && !isLiveTxHash(snapshot.walletAddress);

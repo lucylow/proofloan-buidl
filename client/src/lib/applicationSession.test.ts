@@ -12,8 +12,9 @@ function createStorage(initial: Record<string, string> = {}) {
 
 describe("application session storage", () => {
   it("restores a trimmed application ID and treats blank values as absent", () => {
-    const storage = createStorage({ [PROOFLOAN_APPLICATION_ID_KEY]: "  PL-123  " });
-    expect(readStoredApplicationId(storage)).toBe("PL-123");
+    const validId = `PL-${"A".repeat(64)}`;
+    const storage = createStorage({ [PROOFLOAN_APPLICATION_ID_KEY]: `  ${validId}  ` });
+    expect(readStoredApplicationId(storage)).toBe(validId);
     storage.setItem(PROOFLOAN_APPLICATION_ID_KEY, "   ");
     expect(readStoredApplicationId(storage)).toBeNull();
   });
@@ -21,15 +22,17 @@ describe("application session storage", () => {
   it("rejects malformed or oversized IDs before they reach the query", () => {
     expect(normalizeStoredApplicationId("PL/123")).toBeNull();
     expect(normalizeStoredApplicationId("x".repeat(129))).toBeNull();
-    expect(normalizeStoredApplicationId(" PL-123_abc ")).toBe("PL-123_abc");
+    const validId = `PL-${"B".repeat(32)}_ABC`;
+    expect(normalizeStoredApplicationId(` ${validId} `)).toBe(validId);
     const storage = createStorage({ [PROOFLOAN_APPLICATION_ID_KEY]: "<script>" });
     expect(readStoredApplicationId(storage)).toBeNull();
   });
 
   it("persists and clears the active application ID", () => {
     const storage = createStorage();
-    expect(persistApplicationId(storage, " PL-456 ")).toBe(true);
-    expect(readStoredApplicationId(storage)).toBe("PL-456");
+    const validId = `PL-${"C".repeat(64)}`;
+    expect(persistApplicationId(storage, ` ${validId} `)).toBe(true);
+    expect(readStoredApplicationId(storage)).toBe(validId);
     expect(persistApplicationId(storage, "PL/invalid")).toBe(false);
     expect(clearStoredApplicationId(storage)).toBe(true);
     expect(readStoredApplicationId(storage)).toBeNull();
@@ -48,7 +51,7 @@ describe("application session storage", () => {
       removeItem: () => { throw new Error("blocked"); },
     };
     expect(readStoredApplicationId(brokenStorage)).toBeNull();
-    expect(persistApplicationId(brokenStorage, "PL-789")).toBe(false);
+    expect(persistApplicationId(brokenStorage, `PL-${"D".repeat(64)}`)).toBe(false);
     expect(clearStoredApplicationId(brokenStorage)).toBe(false);
   });
 });

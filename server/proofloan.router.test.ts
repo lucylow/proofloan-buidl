@@ -21,6 +21,12 @@ describe("proofloan API flow", () => {
     expect(snapshot.decision?.reasonCodes.length).toBeGreaterThan(0);
   }, 30_000);
 
+  it("rejects malformed application IDs at the API boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.proofloan.getApplication({ applicationId: "not-an-application-id" })).rejects.toThrow();
+    await expect(caller.proofloan.acceptOffer({ applicationId: "PL/<invalid>" })).rejects.toThrow();
+  });
+
   it("accepts an offer once and rejects a replay at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());
     const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xreplay-test-wallet", sourceChain: "Polygon Amoy" });

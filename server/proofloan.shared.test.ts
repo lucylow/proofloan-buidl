@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
+  it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
+    expect(isProofLoanApplicationId(`PL-${"A".repeat(64)}`)).toBe(true);
+    expect(isProofLoanApplicationId("PL-short")).toBe(false);
+    expect(isProofLoanApplicationId(`PL-${"A".repeat(3)}/12345678`)).toBe(false);
+    expect(isProofLoanApplicationId(`application-${"A".repeat(64)}`)).toBe(false);
+  });
+
   it("accepts a canonical 32-byte hexadecimal transaction hash", () => {
     expect(isLiveTxHash(`0x${"a".repeat(64)}`)).toBe(true);
   });
