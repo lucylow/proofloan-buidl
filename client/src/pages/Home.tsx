@@ -9,6 +9,7 @@ import { isLiveTxHash, PROOFLOAN_STATES, type SourceChain } from "@shared/proofl
 import { getMobileErrorNoticeModel } from "@/lib/mobileErrorNotice";
 import { clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, readStoredApplicationId } from "@/lib/applicationSession";
 import { scheduleFeedbackReset, type FeedbackTimer } from "@/lib/transientFeedback";
+import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 
 const demoWallet = "0x71C7...9A2F";
@@ -27,7 +28,7 @@ export default function Home() {
   const [offerSubmitted, setOfferSubmitted] = useState(false);
   const [activeSection, setActiveSection] = useState("apply");
   const [activeTab, setActiveTab] = useState("evidence");
-  const [debugDashboardFailure, setDebugDashboardFailure] = useState(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get("debugDashboardError") === "1");
+  const [debugDashboardFailure, setDebugDashboardFailure] = useState(() => isDashboardFailureDebugEnabled(import.meta.env.DEV, typeof window === "undefined" ? "" : window.location.search));
   const [inputError, setInputError] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
   const copyResetTimer = useRef<FeedbackTimer | null>(null);
