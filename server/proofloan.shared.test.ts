@@ -58,6 +58,8 @@ describe("ProofLoan shared validation", () => {
     expect(parsePersistedReasonCodes(42)).toBeUndefined();
     expect(parsePersistedReasonCodes("[" + " ".repeat(512) + "]")).toBeUndefined();
     expect(parsePersistedReasonCodes(JSON.stringify(["NOT_A_REASON"]))).toBeUndefined();
+    expect(parsePersistedReasonCodes(JSON.stringify(["HIGH_LEVERAGE", "HIGH_LEVERAGE"]))).toBeUndefined();
+    expect(parsePersistedReasonCodes(JSON.stringify(["STRONG_REPAYMENT_HISTORY", "RECENT_LATE_PAYMENT", "HIGH_LEVERAGE", "SPARSE_EVIDENCE", "HIGH_LEVERAGE"]))).toBeUndefined();
     expect(parsePersistedReasonCodes(JSON.stringify(["STRONG_REPAYMENT_HISTORY"]))).toEqual(["STRONG_REPAYMENT_HISTORY"]);
     expect(isProofLoanState("Executed")).toBe(true);
     expect(isProofLoanState("Unknown")).toBe(false);

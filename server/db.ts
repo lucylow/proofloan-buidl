@@ -150,7 +150,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 
 
 import { buildFeatureVector } from "./underwriting";
-import { isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
+import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
 
@@ -178,7 +178,7 @@ export function parsePersistedReasonCodes(raw: unknown): Decision["reasonCodes"]
   if (typeof raw !== "string" || raw.length > MAX_PERSISTED_REASON_CODES_LENGTH) return undefined;
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.every(code => typeof code === "string" && isReasonCode(code)) ? parsed : undefined;
+    return Array.isArray(parsed) && parsed.length > 0 && parsed.length <= REASON_CODES.length && parsed.every(code => typeof code === "string" && isReasonCode(code)) && new Set(parsed).size === parsed.length ? parsed : undefined;
   } catch {
     return undefined;
   }
