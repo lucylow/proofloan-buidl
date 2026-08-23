@@ -112,7 +112,11 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
   if (typeof event.detail !== "string" || event.detail.length > MAX_PERSISTED_AUDIT_DETAIL_LENGTH) {
     throw new Error("Invalid persisted audit detail.");
   }
+  if (!isProofLoanState(event.state) || event.label !== event.state || typeof event.hash !== "string" || event.hash.trim().length === 0 || event.hash.length > MAX_PERSISTED_AUDIT_HASH_LENGTH || typeof event.timestamp !== "string") {
+    throw new Error("Invalid persisted audit event.");
+  }
   const createdAt = new Date(event.timestamp);
+  if (Number.isNaN(createdAt.getTime())) throw new Error("Invalid persisted audit event.");
   return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
 }
 

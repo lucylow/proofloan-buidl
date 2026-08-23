@@ -114,6 +114,10 @@ describe("ProofLoan shared validation", () => {
     expect(buildAuditUpsertValues(baseEvent).values.detail).toBe("short detail");
     expect(() => buildAuditUpsertValues({ ...baseEvent, detail: "x".repeat(513) })).toThrow("Invalid persisted audit detail.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, detail: 42 } as never)).toThrow("Invalid persisted audit detail.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, state: "Unknown", label: "Unknown" } as never)).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
