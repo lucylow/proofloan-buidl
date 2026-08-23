@@ -104,6 +104,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, txHash: "" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, sourceBlock: 12, verificationBlock: 11 }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: "  " }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: " fact-1" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: "fact-1 " }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, proofRoot: "x".repeat(129) }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact, { ...fact, txHash: "0xdef" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], { ...valid.audit[0], label: "Review" }] })).toBe(false);
