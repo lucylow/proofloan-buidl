@@ -128,6 +128,21 @@ export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
   return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
 }
 
+export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["decision"]>) {
+  if (!isBoundedNonEmptyText(decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(JSON.stringify(decision.reasonCodes)) || !isRiskTier(decision.riskTier) || !isFiniteInRange(decision.pd30, 0, 1) || !isFiniteInRange(decision.pd90, 0, 1) || !isFiniteInRange(decision.confidence, 0, 1)) {
+    throw new Error("Invalid persisted decision.");
+  }
+  return { pd30: String(decision.pd30), pd90: String(decision.pd90), confidence: String(decision.confidence), riskTier: decision.riskTier, reasonCodes: JSON.stringify(decision.reasonCodes), featureVersion: decision.featureVersion, modelVersion: decision.modelVersion, policyHash: decision.policyHash, evidenceRoot: decision.evidenceRoot, decisionHash: decision.decisionHash };
+}
+
+export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>, applicationState: ProofLoanState, requestedAmount: number, now = Date.now()) {
+  const expiresAt = new Date(offer.expiresAt);
+  if (!isOfferStatus(offer.status) || !isOfferStateConsistent(applicationState, offer.status) || !isFiniteInRange(offer.amount, 0.01, 2500) || offer.amount !== requestedAmount || !isFiniteInRange(offer.apr, 0, 24) || !isFiniteInRange(offer.ltv, 0, 1) || !isFiniteInRange(offer.termDays, 1, 3650) || !isValidDate(expiresAt) || (offer.status === "Ready" && expiresAt.getTime() <= now)) {
+    throw new Error("Invalid persisted offer.");
+  }
+  return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), termDays: offer.termDays, status: offer.status, expiresAt };
+}
+
 export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
   const verifiedAt = new Date(fact.verifiedAt);
   if (!isCanonicalNonEmptyText(fact.id, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isBoundedNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isBoundedNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isBoundedNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || fact.verificationBlock < fact.sourceBlock || !isValidDate(verifiedAt)) {
@@ -151,14 +166,14 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
         await tx.insert(verifiedFacts).values({ applicationId: snapshot.applicationId, ...factValues.values }).onDuplicateKeyUpdate({ set: factValues.updateSet });
       }
       if (snapshot.decision) {
-        const decisionValues = { pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash };
+        const decisionValues = buildDecisionUpsertValues(snapshot.decision);
         const existingDecision = await tx.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).orderBy(desc(decisions.id)).limit(1);
         if (existingDecision[0]) await tx.update(decisions).set(decisionValues).where(eq(decisions.id, existingDecision[0].id));
         else await tx.insert(decisions).values({ applicationId: snapshot.applicationId, ...decisionValues });
       }
       if (snapshot.offer) {
         const existingOffer = await tx.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).orderBy(desc(offers.id)).limit(1);
-        const offerValues = { amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) };
+        const offerValues = buildOfferUpsertValues(snapshot.offer, snapshot.state, snapshot.offer.amount, Date.now());
         if (existingOffer[0]) await tx.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
         else await tx.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
       }

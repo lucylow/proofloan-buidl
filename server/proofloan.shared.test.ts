@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { buildApplicationUpsertValues, buildAuditUpsertValues, buildFactUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -120,6 +120,17 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
+  });
+
+  it("rejects malformed decisions and offers before database writes", () => {
+    const decision = { pd30: 0.1, pd90: 0.2, confidence: 0.9, freshnessScore: 0.9, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "model", featureVersion: "features", evidenceRoot: "root", policyHash: "policy", decisionHash: "decision" };
+    expect(buildDecisionUpsertValues(decision).riskTier).toBe("B");
+    expect(() => buildDecisionUpsertValues({ ...decision, confidence: Number.NaN })).toThrow("Invalid persisted decision.");
+    expect(() => buildDecisionUpsertValues({ ...decision, reasonCodes: ["UNKNOWN"] as never })).toThrow("Invalid persisted decision.");
+    const offer = { amount: 1500, apr: 11.5, ltv: 0.42, termDays: 90, expiresAt: new Date(20_000).toISOString(), poolLiquidity: 100_000, status: "Ready" as const };
+    expect(buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, 10_000).amount).toBe("1500");
+    expect(() => buildOfferUpsertValues({ ...offer, amount: 1_501 }, "AwaitingAcceptance", 1500, 10_000)).toThrow("Invalid persisted offer.");
+    expect(() => buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, 20_000)).toThrow("Invalid persisted offer.");
   });
 
   it("rejects malformed applications before database writes", () => {
