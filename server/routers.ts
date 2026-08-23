@@ -10,6 +10,15 @@ import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type Loa
 import { TRPCError } from "@trpc/server";
 
 const applications = new Map<string, LoanSnapshot>();
+const MAX_PREVIEW_APPLICATIONS = 100;
+
+export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapshot: LoanSnapshot, maxEntries = MAX_PREVIEW_APPLICATIONS): void {
+  if (!store.has(snapshot.applicationId) && store.size >= maxEntries) {
+    const oldestApplicationId = store.keys().next().value;
+    if (typeof oldestApplicationId === "string") store.delete(oldestApplicationId);
+  }
+  store.set(snapshot.applicationId, snapshot);
+}
 
 const now = () => new Date().toISOString();
 const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${message}` });
@@ -92,7 +101,7 @@ export const appRouter = router({
       snapshot.audit.push(audit(snapshot.state, snapshot.offer.status === "Blocked" ? snapshot.offer.rejectionReason ?? "RiskGuard rejected the offer." : "RiskGuard approved a bounded offer; awaiting borrower acceptance."));
       if (snapshot.offer.status === "Ready") await transitionLiveState(snapshot, "OfferPrepared", "AwaitingAcceptance", !previewMode);
       await persistLiveSnapshot(snapshot, !previewMode);
-      if (previewMode) applications.set(snapshot.applicationId, snapshot);
+      if (previewMode) storePreviewApplication(applications, snapshot);
       return snapshot;
     }),
     getApplication: publicProcedure.input(z.object({ applicationId: applicationIdInput })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
@@ -105,7 +114,7 @@ export const appRouter = router({
       await transitionLiveState(snapshot, "AwaitingAcceptance", "Executed", !previewMode);
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
       await persistLiveSnapshot(snapshot, !previewMode);
-      if (previewMode) applications.set(snapshot.applicationId, snapshot);
+      if (previewMode) storePreviewApplication(applications, snapshot);
       return { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, at: Date.now() })}` };
     }),
   }),

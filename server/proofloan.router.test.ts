@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { appRouter } from "./routers";
+import { appRouter, storePreviewApplication } from "./routers";
+import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 
 function createContext(): TrpcContext {
@@ -10,7 +11,23 @@ function createContext(): TrpcContext {
   };
 }
 
+function previewSnapshot(applicationId: string): LoanSnapshot {
+  return { applicationId, walletAddress: "0xpreview", sourceChain: "Ethereum Sepolia", state: "Intake", facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
+}
+
 describe("proofloan API flow", () => {
+  it("bounds preview storage and preserves updates for existing applications", () => {
+    const store = new Map<string, LoanSnapshot>();
+    storePreviewApplication(store, previewSnapshot("PL-ONE1234"), 2);
+    storePreviewApplication(store, previewSnapshot("PL-TWO1234"), 2);
+    storePreviewApplication(store, { ...previewSnapshot("PL-TWO1234"), state: "Executed" }, 2);
+    storePreviewApplication(store, previewSnapshot("PL-THREE1234"), 2);
+
+    expect(store.size).toBe(2);
+    expect(store.has("PL-ONE1234")).toBe(false);
+    expect(store.get("PL-TWO1234")?.state).toBe("Executed");
+    expect(store.has("PL-THREE1234")).toBe(true);
+  });
   it("moves a preview application through the exact auditable state sequence", async () => {
     const caller = appRouter.createCaller(createContext());
     const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xrouter-flow-wallet", sourceChain: "Ethereum Sepolia" });
