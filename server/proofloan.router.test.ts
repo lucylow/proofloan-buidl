@@ -21,6 +21,17 @@ describe("proofloan API flow", () => {
     expect(snapshot.decision?.reasonCodes.length).toBeGreaterThan(0);
   }, 30_000);
 
+  it("rejects whitespace-only proof requests at the API boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.proofloan.createApplication({ walletAddress: "        ", sourceChain: "Ethereum Sepolia" })).rejects.toThrow();
+  });
+
+  it("trims proof-request input before creating the snapshot", async () => {
+    const caller = appRouter.createCaller(createContext());
+    const snapshot = await caller.proofloan.createApplication({ walletAddress: "  0xtrimmed-wallet  ", sourceChain: "Ethereum Sepolia" });
+    expect(snapshot.walletAddress).toBe("0xtrimmed-wallet");
+  }, 30_000);
+
   it("rejects malformed application IDs at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.proofloan.getApplication({ applicationId: "not-an-application-id" })).rejects.toThrow();

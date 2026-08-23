@@ -56,7 +56,7 @@ export const appRouter = router({
     }),
   }),
   proofloan: router({
-    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().min(8), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
+    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
       const previewMode = !isLiveTxHash(input.walletAddress);
       const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
       if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence before state transitions.");
