@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildAuditUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -57,6 +57,13 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: [null] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: "x".repeat(513) }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: 42 }] as never })).toBe(false);
+  });
+
+  it("rejects malformed audit details before database writes", () => {
+    const baseEvent = { state: "Intake" as const, label: "Intake", timestamp: new Date().toISOString(), detail: "short detail", hash: "abc123" };
+    expect(buildAuditUpsertValues(baseEvent).values.detail).toBe("short detail");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, detail: "x".repeat(513) })).toThrow("Invalid persisted audit detail.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, detail: 42 } as never)).toThrow("Invalid persisted audit detail.");
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {

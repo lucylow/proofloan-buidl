@@ -99,6 +99,9 @@ import { loanApplications, verifiedFacts, decisions, offers, auditEvents } from 
 import type { LoanSnapshot } from "@shared/proofloan";
 
 export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
+  if (typeof event.detail !== "string" || event.detail.length > MAX_PERSISTED_AUDIT_DETAIL_LENGTH) {
+    throw new Error("Invalid persisted audit detail.");
+  }
   const createdAt = new Date(event.timestamp);
   return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
 }

@@ -474,3 +474,8 @@
 - [x] Add targeted validation for the improvement
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
 
+## Code improvement pass 49
+- [x] Reject malformed or oversized audit details before database writes
+- [x] Add focused write-boundary coverage
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
+
