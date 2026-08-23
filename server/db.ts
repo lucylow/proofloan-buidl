@@ -217,6 +217,7 @@ const isValidDate = (value: unknown): value is Date => value instanceof Date && 
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
 const isBoundedNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedText(value, maxLength) && value.trim().length > 0;
 const isOfferStateConsistent = (state: string, status: string) => (status === "Ready" && state === "AwaitingAcceptance") || (status === "Blocked" && state === "Rejected") || (status === "Executed" && state === "Executed");
+const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;
 
 function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput): boolean {
   if (!Array.isArray(input.facts) || !Array.isArray(input.audit)) return false;
@@ -233,9 +234,11 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   return new Set(auditHashes).size === auditHashes.length;
 }
 
-export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput, expectedApplicationId?: string): boolean {
+export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): boolean {
   try {
+    if (!Number.isFinite(now)) return false;
     if (expectedApplicationId !== undefined && input.application.applicationId !== expectedApplicationId) return false;
+    if (input.offer && input.offer.expiresAt instanceof Date && isOfferStatus(input.offer.status) && !isOfferExpiryConsistent(input.offer.status, input.offer.expiresAt, now)) return false;
     return isPersistedSnapshotValidUnsafe(input);
   } catch {
     return false;
