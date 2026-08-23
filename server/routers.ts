@@ -25,10 +25,14 @@ export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapsh
 
 const MAX_AUDIT_DETAIL_LENGTH = 512;
 const now = () => new Date().toISOString();
-const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${message}` });
+const normalizeBoundedText = (text: string, maxLength: number) => text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+export function normalizeProofLoanErrorMessage(message: string): string {
+  return normalizeBoundedText(message, MAX_AUDIT_DETAIL_LENGTH);
+}
+const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${normalizeProofLoanErrorMessage(message)}` });
 const applicationIdInput = z.string().trim().refine(isProofLoanApplicationId, "Invalid ProofLoan application ID.");
 export function normalizeAuditDetail(detail: string): string {
-  return detail.length <= MAX_AUDIT_DETAIL_LENGTH ? detail : `${detail.slice(0, MAX_AUDIT_DETAIL_LENGTH - 1)}…`;
+  return normalizeBoundedText(detail, MAX_AUDIT_DETAIL_LENGTH);
 }
 const audit = (state: ProofLoanState, detail: string) => {
   const normalizedDetail = normalizeAuditDetail(detail);
