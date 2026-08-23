@@ -75,6 +75,9 @@ describe("ProofLoan shared validation", () => {
     const laterAudit = { ...valid.audit[0], eventHash: "hash-2", createdAt: new Date(valid.audit[0].createdAt.getTime() + 1_000) };
     expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], laterAudit] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, audit: [laterAudit, valid.audit[0]] })).toBe(false);
+    const scoredAudit = { ...valid.audit[0], state: "Scored", label: "Scored", eventHash: "hash-scored", createdAt: new Date(valid.audit[0].createdAt.getTime() - 1_000) };
+    expect(isPersistedSnapshotValid({ ...valid, audit: [scoredAudit, { ...valid.audit[0], state: "EvidenceVerified", label: "EvidenceVerified", eventHash: "hash-evidence" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], { ...valid.audit[0], state: "Rejected", label: "Rejected", eventHash: "hash-rejected", createdAt: new Date(valid.audit[0].createdAt.getTime() + 1_000) }] })).toBe(false);
     const fact = { factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date() };
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);

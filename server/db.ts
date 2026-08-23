@@ -221,6 +221,14 @@ const isOfferStateConsistent = (state: string, status: string) => (status === "R
 const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;
 const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDecision ? ["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) : !["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state);
 const isFactStateConsistent = (state: string, factCount: number) => !["EvidenceVerified", "Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) || factCount > 0;
+const AUDIT_STATE_ORDER: Record<ProofLoanState, number> = { Intake: 0, EvidencePending: 1, EvidenceVerified: 2, Scored: 3, OfferPrepared: 4, AwaitingAcceptance: 5, Executed: 6, Rejected: 7 };
+const isAuditStateProgressionConsistent = (audit: Array<{ state: string }>) => audit.every((event, index) => {
+  if (index === 0) return true;
+  const previous = audit[index - 1].state as ProofLoanState;
+  const current = event.state as ProofLoanState;
+  if (previous === "Executed" || previous === "Rejected") return current === previous;
+  return AUDIT_STATE_ORDER[current] >= AUDIT_STATE_ORDER[previous];
+});
 
 function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput): boolean {
   if (!Array.isArray(input.facts) || !Array.isArray(input.audit)) return false;
@@ -235,6 +243,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (input.decision && (!isRecord(input.decision) || !isBoundedNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
   if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && event.label === event.state && isBoundedNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
+  if (!isAuditStateProgressionConsistent(input.audit)) return false;
   const lastAuditState = input.audit.length ? (input.audit[input.audit.length - 1] as { state?: unknown }).state : undefined;
   if ((input.application.state === "Executed" || input.application.state === "Rejected") && lastAuditState !== input.application.state) return false;
   const auditHashes = input.audit.map(event => event.eventHash);
