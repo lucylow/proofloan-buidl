@@ -232,8 +232,9 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   return new Set(auditHashes).size === auditHashes.length;
 }
 
-export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput): boolean {
+export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput, expectedApplicationId?: string): boolean {
   try {
+    if (expectedApplicationId !== undefined && input.application.applicationId !== expectedApplicationId) return false;
     return isPersistedSnapshotValidUnsafe(input);
   } catch {
     return false;
@@ -251,7 +252,7 @@ export async function getPersistedLoanSnapshot(applicationId: string): Promise<L
     const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).orderBy(desc(decisions.id)).limit(1);
     const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).orderBy(desc(offers.id)).limit(1);
     const auditRows = await db.select().from(auditEvents).where(eq(auditEvents.applicationId, applicationId)).orderBy(asc(auditEvents.id));
-    if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows })) return undefined;
+    if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows }, applicationId)) return undefined;
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
     const facts: VerifiedFact[] = factRows.map(fact => {
       if (!isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness)) throw new Error(`Invalid persisted fact enum for ${fact.factId}.`);
