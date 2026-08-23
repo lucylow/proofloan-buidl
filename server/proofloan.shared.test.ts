@@ -51,6 +51,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, reasonCodes: "not-json" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: "NaN" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, pd30: "0.30", pd90: "0.20" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, modelVersion: " model-v1" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, policyHash: "policy-1 " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, ltv: "1.5" } })).toBe(false);
@@ -134,6 +135,7 @@ describe("ProofLoan shared validation", () => {
     const decision = { pd30: 0.1, pd90: 0.2, confidence: 0.9, freshnessScore: 0.9, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "model", featureVersion: "features", evidenceRoot: "root", policyHash: "policy", decisionHash: "decision" };
     expect(buildDecisionUpsertValues(decision).riskTier).toBe("B");
     expect(() => buildDecisionUpsertValues({ ...decision, confidence: Number.NaN })).toThrow("Invalid persisted decision.");
+    expect(() => buildDecisionUpsertValues({ ...decision, pd30: 0.3, pd90: 0.2 })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, reasonCodes: ["UNKNOWN"] as never })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, modelVersion: " model" })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, policyHash: "policy " })).toThrow("Invalid persisted decision.");
