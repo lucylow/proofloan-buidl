@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -124,12 +124,12 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
       }
       if (snapshot.decision) {
         const decisionValues = { pd30: String(snapshot.decision.pd30), pd90: String(snapshot.decision.pd90), confidence: String(snapshot.decision.confidence), riskTier: snapshot.decision.riskTier, reasonCodes: JSON.stringify(snapshot.decision.reasonCodes), featureVersion: snapshot.decision.featureVersion, modelVersion: snapshot.decision.modelVersion, policyHash: snapshot.decision.policyHash, evidenceRoot: snapshot.decision.evidenceRoot, decisionHash: snapshot.decision.decisionHash };
-        const existingDecision = await tx.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).limit(1);
+        const existingDecision = await tx.select({ id: decisions.id }).from(decisions).where(eq(decisions.applicationId, snapshot.applicationId)).orderBy(desc(decisions.id)).limit(1);
         if (existingDecision[0]) await tx.update(decisions).set(decisionValues).where(eq(decisions.id, existingDecision[0].id));
         else await tx.insert(decisions).values({ applicationId: snapshot.applicationId, ...decisionValues });
       }
       if (snapshot.offer) {
-        const existingOffer = await tx.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).limit(1);
+        const existingOffer = await tx.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).orderBy(desc(offers.id)).limit(1);
         const offerValues = { amount: String(snapshot.offer.amount), apr: String(snapshot.offer.apr), ltv: String(snapshot.offer.ltv), termDays: snapshot.offer.termDays, status: snapshot.offer.status, expiresAt: new Date(snapshot.offer.expiresAt) };
         if (existingOffer[0]) await tx.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
         else await tx.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
@@ -208,8 +208,8 @@ export async function getPersistedLoanSnapshot(applicationId: string): Promise<L
     const application = applicationRows[0];
     if (!application) return undefined;
     const factRows = await db.select().from(verifiedFacts).where(eq(verifiedFacts.applicationId, applicationId));
-    const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).limit(1);
-    const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).limit(1);
+    const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).orderBy(desc(decisions.id)).limit(1);
+    const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).orderBy(desc(offers.id)).limit(1);
     const auditRows = await db.select().from(auditEvents).where(eq(auditEvents.applicationId, applicationId));
     if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows })) return undefined;
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
