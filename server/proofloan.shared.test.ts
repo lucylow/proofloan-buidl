@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { buildAuditUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildAuditUpsertValues, buildFactUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -120,6 +120,14 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
+  });
+
+  it("rejects malformed verified facts before database writes", () => {
+    const baseFact = { id: "fact-1", chain: "Ethereum Sepolia" as const, sourceBlock: 10, txHash: "0xabc", eventType: "REPAYMENT" as const, amount: "1,250 USDC", asset: "USDC", verificationBlock: 11, verifiedAt: new Date().toISOString(), observedAt: new Date().toISOString(), freshness: "Fresh" as const, proofRoot: "root-1", proofWorker: "Attestcoin proof worker" as const };
+    expect(buildFactUpsertValues(baseFact).values.factId).toBe("fact-1");
+    expect(() => buildFactUpsertValues({ ...baseFact, id: " fact-1" })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, verificationBlock: 9 })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, verifiedAt: "invalid" })).toThrow("Invalid persisted verified fact.");
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
