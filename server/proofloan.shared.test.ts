@@ -51,6 +51,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, reasonCodes: "not-json" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: "NaN" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, ltv: "1.5" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, amount: "1499" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "-1" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: " 1500" } })).toBe(false);
