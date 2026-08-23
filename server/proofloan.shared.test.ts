@@ -36,7 +36,7 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {
-    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake", createdAt: new Date() }] };
+    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] };
     expect(isPersistedSnapshotValid(valid)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
@@ -61,7 +61,9 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: [null] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: "x".repeat(513) }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: 42, createdAt: new Date() }] as never })).toBe(false);
-    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", createdAt: new Date("invalid") }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "hash-1", createdAt: new Date("invalid") }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "x".repeat(65), detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date("invalid") }] })).toBe(false);
   });
 
