@@ -23,10 +23,17 @@ export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapsh
   store.set(snapshot.applicationId, snapshot);
 }
 
+const MAX_AUDIT_DETAIL_LENGTH = 512;
 const now = () => new Date().toISOString();
 const proofLoanError = (code: ProofLoanErrorCode, message: string) => new TRPCError({ code: "BAD_REQUEST", message: `[${code}] ${message}` });
 const applicationIdInput = z.string().trim().refine(isProofLoanApplicationId, "Invalid ProofLoan application ID.");
-const audit = (state: ProofLoanState, detail: string) => ({ state, label: state, timestamp: now(), detail, hash: hashValue({ state, detail, at: Date.now() }) });
+export function normalizeAuditDetail(detail: string): string {
+  return detail.length <= MAX_AUDIT_DETAIL_LENGTH ? detail : `${detail.slice(0, MAX_AUDIT_DETAIL_LENGTH - 1)}…`;
+}
+const audit = (state: ProofLoanState, detail: string) => {
+  const normalizedDetail = normalizeAuditDetail(detail);
+  return { state, label: state, timestamp: now(), detail: normalizedDetail, hash: hashValue({ state, detail: normalizedDetail, at: Date.now() }) };
+};
 async function transitionLiveState(snapshot: LoanSnapshot, from: ProofLoanState, to: ProofLoanState, live: boolean) {
   if (!live) { snapshot.state = to; return; }
   const transitionResult = await transitionLoanState(snapshot.applicationId, from, to);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRouter, storePreviewApplication } from "./routers";
+import { appRouter, normalizeAuditDetail, storePreviewApplication } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 
@@ -16,6 +16,13 @@ function previewSnapshot(applicationId: string): LoanSnapshot {
 }
 
 describe("proofloan API flow", () => {
+  it("bounds audit detail without changing short messages", () => {
+    expect(normalizeAuditDetail("short detail")).toBe("short detail");
+    const normalized = normalizeAuditDetail("x".repeat(600));
+    expect(normalized).toHaveLength(512);
+    expect(normalized.endsWith("…")).toBe(true);
+  });
+
   it("bounds preview storage and preserves updates for existing applications", () => {
     const store = new Map<string, LoanSnapshot>();
     storePreviewApplication(store, previewSnapshot("PL-ONE1234"), 2);
