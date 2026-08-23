@@ -51,6 +51,7 @@ describe("ProofLoan shared validation", () => {
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
     expect(parsePersistedReasonCodes("not-json")).toBeUndefined();
+    expect(parsePersistedReasonCodes("[" + " ".repeat(512) + "]")).toBeUndefined();
     expect(parsePersistedReasonCodes(JSON.stringify(["NOT_A_REASON"]))).toBeUndefined();
     expect(parsePersistedReasonCodes(JSON.stringify(["STRONG_REPAYMENT_HISTORY"]))).toEqual(["STRONG_REPAYMENT_HISTORY"]);
     expect(isProofLoanState("Executed")).toBe(true);

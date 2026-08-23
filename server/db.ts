@@ -172,7 +172,10 @@ export async function transitionLoanState(applicationId: string, expectedState: 
   }
 }
 
+const MAX_PERSISTED_REASON_CODES_LENGTH = 512;
+
 export function parsePersistedReasonCodes(raw: string): Decision["reasonCodes"] | undefined {
+  if (raw.length > MAX_PERSISTED_REASON_CODES_LENGTH) return undefined;
   try {
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) && parsed.every(code => typeof code === "string" && isReasonCode(code)) ? parsed : undefined;
