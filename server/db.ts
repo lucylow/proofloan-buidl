@@ -201,6 +201,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput): boolean {
   if (!Array.isArray(input.facts) || !Array.isArray(input.audit)) return false;
+  if (!isRecord(input.application)) return false;
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER))) return false;

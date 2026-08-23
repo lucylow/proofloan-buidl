@@ -49,6 +49,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, facts: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [null] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: null as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: [] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: [] as never })).toBe(false);
     expect(isPersistedSnapshotValid(null as never)).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: Array.from({ length: 129 }, () => ({ state: "Intake" })) })).toBe(false);
