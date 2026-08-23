@@ -46,19 +46,22 @@ export async function withApplicationMutation<T>(applicationId: string, operatio
 }
 
 export function allowProofRequest(key: string, nowMs = Date.now(), limit = MAX_PROOF_REQUESTS_PER_WINDOW, windowMs = PROOF_REQUEST_WINDOW_MS): boolean {
+  if (typeof key !== "string" || key.trim().length === 0) return false;
+  const normalizedKey = key.trim();
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
   const boundedLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : MAX_PROOF_REQUESTS_PER_WINDOW;
   const boundedWindowMs = Number.isFinite(windowMs) ? Math.max(1, windowMs) : PROOF_REQUEST_WINDOW_MS;
-  const cutoff = nowMs - boundedWindowMs;
-  const recent = (proofRequestWindows.get(key) ?? []).filter(timestamp => timestamp > cutoff);
+  const cutoff = safeNowMs - boundedWindowMs;
+  const recent = (proofRequestWindows.get(normalizedKey) ?? []).filter(timestamp => timestamp > cutoff);
   if (recent.length >= boundedLimit) {
-    proofRequestWindows.set(key, recent);
+    proofRequestWindows.set(normalizedKey, recent);
     return false;
   }
-  if (!proofRequestWindows.has(key) && proofRequestWindows.size >= MAX_THROTTLE_KEYS) {
+  if (!proofRequestWindows.has(normalizedKey) && proofRequestWindows.size >= MAX_THROTTLE_KEYS) {
     const oldestKey = proofRequestWindows.keys().next().value;
     if (typeof oldestKey === "string") proofRequestWindows.delete(oldestKey);
   }
-  proofRequestWindows.set(key, [...recent, nowMs]);
+  proofRequestWindows.set(normalizedKey, [...recent, safeNowMs]);
   return true;
 }
 

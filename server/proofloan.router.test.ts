@@ -41,6 +41,16 @@ describe("proofloan API flow", () => {
     await expect(withApplicationMutation("PL-LOCK001", async () => "released")).resolves.toBe("released");
   });
 
+  it("rejects malformed throttle keys and normalizes whitespace", () => {
+    expect(allowProofRequest("", 3_000, 2, 100)).toBe(false);
+    expect(allowProofRequest("   ", 3_000, 2, 100)).toBe(false);
+    const key = `throttle-whitespace-${Date.now()}-${Math.random()}`;
+    expect(allowProofRequest(`  ${key}  `, 3_000, 1, 100)).toBe(true);
+    expect(allowProofRequest(key, 3_001, 1, 100)).toBe(false);
+    const nonFiniteKey = `throttle-time-${Date.now()}-${Math.random()}`;
+    expect(allowProofRequest(nonFiniteKey, Number.NaN, 1, 100)).toBe(true);
+  });
+
   it("normalizes invalid throttle bounds to safe defaults", () => {
     const key = `throttle-bounds-${Date.now()}-${Math.random()}`;
     expect(allowProofRequest(key, 2_000, 0, 100)).toBe(true);
