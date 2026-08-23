@@ -86,6 +86,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, facts: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [null] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: null as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: " 0xwallet" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: [] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: [] as never })).toBe(false);
     expect(isPersistedSnapshotValid(null as never)).toBe(false);
@@ -139,6 +140,8 @@ describe("ProofLoan shared validation", () => {
     const baseSnapshot = { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", sourceChain: "Ethereum Sepolia" as const, state: "Intake" as const, facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
     expect(buildApplicationUpsertValues(baseSnapshot).requestedAmount).toBe("1500");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, applicationId: " PL-APPTEST1" })).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: " 0xborrower" })).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower " })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, state: "Unknown" } as never)).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, offer: { amount: Number.NaN } } as never)).toThrow("Invalid persisted application.");
   });
