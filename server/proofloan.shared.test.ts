@@ -98,6 +98,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "hash-1", createdAt: new Date("invalid") }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "x".repeat(65), detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "", createdAt: new Date() }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: " hash-1", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "   ", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date("invalid") }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date(2_000) }] }, undefined, 1_000)).toBe(false);
@@ -122,6 +123,8 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildAuditUpsertValues({ ...baseEvent, state: "Unknown", label: "Unknown" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, hash: " hash-1" })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "hash-1 " })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
   });
 
