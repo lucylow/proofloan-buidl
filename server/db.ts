@@ -259,6 +259,7 @@ export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput
     if (expectedApplicationId !== undefined && input.application.applicationId !== expectedApplicationId) return false;
     if (input.offer && input.offer.expiresAt instanceof Date && isOfferStatus(input.offer.status) && !isOfferExpiryConsistent(input.offer.status, input.offer.expiresAt, now)) return false;
     if (Array.isArray(input.facts) && input.facts.some(fact => fact.verifiedAt instanceof Date && fact.verifiedAt.getTime() > now)) return false;
+    if (Array.isArray(input.audit) && input.audit.some(event => event.createdAt instanceof Date && event.createdAt.getTime() > now)) return false;
     return isPersistedSnapshotValidUnsafe(input);
   } catch {
     return false;
