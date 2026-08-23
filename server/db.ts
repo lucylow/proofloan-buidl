@@ -207,7 +207,7 @@ type PersistedSnapshotValidationInput = {
 
 const isFiniteInRange = (value: unknown, min: number, max: number) => {
   if (typeof value !== "number" && typeof value !== "string") return false;
-  if (typeof value === "string" && value.trim().length === 0) return false;
+  if (typeof value === "string" && (value.trim().length === 0 || value !== value.trim())) return false;
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= min && numeric <= max;
 };

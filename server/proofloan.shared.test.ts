@@ -45,15 +45,18 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, ltv: "1.5" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "-1" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: " 1500" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: null } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, applicationId: "" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "   " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "x".repeat(129) } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: " " } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, pd30: "0.08 " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, modelVersion: "" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, policyHash: "   " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, policyHash: "x".repeat(129) } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, termDays: true } as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, apr: " 11.5" } })).toBe(false);
     const fact = { factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date() };
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);
