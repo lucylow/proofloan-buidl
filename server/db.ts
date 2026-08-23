@@ -246,7 +246,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && event.label === event.state && isBoundedNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(input.audit)) return false;
   const lastAuditState = input.audit.length ? (input.audit[input.audit.length - 1] as { state?: unknown }).state : undefined;
-  if ((input.application.state === "Executed" || input.application.state === "Rejected") && lastAuditState !== input.application.state) return false;
+  if (lastAuditState !== input.application.state) return false;
   const auditHashes = input.audit.map(event => event.eventHash);
   if (new Set(auditHashes).size !== auditHashes.length) return false;
   const auditTimes = input.audit.map(event => event.createdAt instanceof Date ? event.createdAt.getTime() : Number.NaN);
