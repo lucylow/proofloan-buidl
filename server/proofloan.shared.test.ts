@@ -36,7 +36,7 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {
-    const valid = { application: { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Executed", label: "Executed", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] };
+    const valid = { application: { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [{ factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date() }], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Executed", label: "Executed", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] };
     expect(isPersistedSnapshotValid(valid)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], state: "OfferPrepared", label: "OfferPrepared" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], label: "Intake" }] })).toBe(false);
@@ -44,7 +44,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid(valid, "PL-DIFFERENT1")).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-APPTEST1")).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
-    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "EvidenceVerified" }, decision: undefined, offer: undefined })).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "EvidencePending" }, decision: undefined, offer: undefined })).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "EvidenceVerified" }, facts: [], decision: undefined, offer: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Intake" }, decision: valid.decision, offer: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
