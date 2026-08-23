@@ -27,6 +27,27 @@ describe("proofloan API flow", () => {
     expect(store.has("PL-ONE1234")).toBe(false);
     expect(store.get("PL-TWO1234")?.state).toBe("Executed");
     expect(store.has("PL-THREE1234")).toBe(true);
+
+    const zeroCapacityStore = new Map<string, LoanSnapshot>();
+    storePreviewApplication(zeroCapacityStore, previewSnapshot("PL-CAP001"), 0);
+    storePreviewApplication(zeroCapacityStore, previewSnapshot("PL-CAP002"), 0);
+    expect(zeroCapacityStore.size).toBe(1);
+    expect(zeroCapacityStore.has("PL-CAP001")).toBe(false);
+    expect(zeroCapacityStore.has("PL-CAP002")).toBe(true);
+
+    const fractionalCapacityStore = new Map<string, LoanSnapshot>();
+    storePreviewApplication(fractionalCapacityStore, previewSnapshot("PL-CAP003"), 2.9);
+    storePreviewApplication(fractionalCapacityStore, previewSnapshot("PL-CAP004"), 2.9);
+    storePreviewApplication(fractionalCapacityStore, previewSnapshot("PL-CAP005"), 2.9);
+    expect(fractionalCapacityStore.size).toBe(2);
+    expect(fractionalCapacityStore.has("PL-CAP003")).toBe(false);
+    expect(fractionalCapacityStore.has("PL-CAP004")).toBe(true);
+    expect(fractionalCapacityStore.has("PL-CAP005")).toBe(true);
+
+    const invalidCapacityStore = new Map<string, LoanSnapshot>();
+    storePreviewApplication(invalidCapacityStore, previewSnapshot("PL-CAP006"), Number.NaN);
+    storePreviewApplication(invalidCapacityStore, previewSnapshot("PL-CAP007"), Number.POSITIVE_INFINITY);
+    expect(invalidCapacityStore.size).toBe(2);
   });
   it("moves a preview application through the exact auditable state sequence", async () => {
     const caller = appRouter.createCaller(createContext());

@@ -13,7 +13,8 @@ const applications = new Map<string, LoanSnapshot>();
 const MAX_PREVIEW_APPLICATIONS = 100;
 
 export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapshot: LoanSnapshot, maxEntries = MAX_PREVIEW_APPLICATIONS): void {
-  if (!store.has(snapshot.applicationId) && store.size >= maxEntries) {
+  const boundedMaxEntries = Number.isFinite(maxEntries) ? Math.max(1, Math.floor(maxEntries)) : MAX_PREVIEW_APPLICATIONS;
+  if (!store.has(snapshot.applicationId) && store.size >= boundedMaxEntries) {
     const oldestApplicationId = store.keys().next().value;
     if (typeof oldestApplicationId === "string") store.delete(oldestApplicationId);
   }
