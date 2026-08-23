@@ -40,6 +40,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid(valid)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], state: "OfferPrepared", label: "OfferPrepared" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], label: "Intake" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [] })).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-DIFFERENT1")).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-APPTEST1")).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
