@@ -24,6 +24,28 @@ export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapsh
 }
 
 const MAX_AUDIT_DETAIL_LENGTH = 512;
+const MAX_PROOF_REQUESTS_PER_WINDOW = 5;
+const PROOF_REQUEST_WINDOW_MS = 60_000;
+const MAX_THROTTLE_KEYS = 1_000;
+const proofRequestWindows = new Map<string, number[]>();
+
+export function allowProofRequest(key: string, nowMs = Date.now(), limit = MAX_PROOF_REQUESTS_PER_WINDOW, windowMs = PROOF_REQUEST_WINDOW_MS): boolean {
+  const boundedLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : MAX_PROOF_REQUESTS_PER_WINDOW;
+  const boundedWindowMs = Number.isFinite(windowMs) ? Math.max(1, windowMs) : PROOF_REQUEST_WINDOW_MS;
+  const cutoff = nowMs - boundedWindowMs;
+  const recent = (proofRequestWindows.get(key) ?? []).filter(timestamp => timestamp > cutoff);
+  if (recent.length >= boundedLimit) {
+    proofRequestWindows.set(key, recent);
+    return false;
+  }
+  if (!proofRequestWindows.has(key) && proofRequestWindows.size >= MAX_THROTTLE_KEYS) {
+    const oldestKey = proofRequestWindows.keys().next().value;
+    if (typeof oldestKey === "string") proofRequestWindows.delete(oldestKey);
+  }
+  proofRequestWindows.set(key, [...recent, nowMs]);
+  return true;
+}
+
 const now = () => new Date().toISOString();
 const normalizeBoundedText = (text: string, maxLength: number) => text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
 export function normalizeProofLoanErrorMessage(message: string): string {
@@ -80,6 +102,7 @@ export const appRouter = router({
   }),
   proofloan: router({
     createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
+      if (!allowProofRequest(input.walletAddress)) throw proofLoanError(PROOFLOAN_ERROR_CODES.RATE_LIMITED, "Too many proof requests. Please retry shortly.");
       const previewMode = !isLiveTxHash(input.walletAddress);
       const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
       if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence before state transitions.");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRouter, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication } from "./routers";
+import { appRouter, allowProofRequest, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 
@@ -16,6 +16,22 @@ function previewSnapshot(applicationId: string): LoanSnapshot {
 }
 
 describe("proofloan API flow", () => {
+  it("throttles repeated proof requests and allows requests after the window", () => {
+    const key = `throttle-${Date.now()}-${Math.random()}`;
+    expect(allowProofRequest(key, 1_000, 2, 100)).toBe(true);
+    expect(allowProofRequest(key, 1_050, 2, 100)).toBe(true);
+    expect(allowProofRequest(key, 1_060, 2, 100)).toBe(false);
+    expect(allowProofRequest(key, 1_101, 2, 100)).toBe(true);
+  });
+
+  it("normalizes invalid throttle bounds to safe defaults", () => {
+    const key = `throttle-bounds-${Date.now()}-${Math.random()}`;
+    expect(allowProofRequest(key, 2_000, 0, 100)).toBe(true);
+    expect(allowProofRequest(key, 2_001, 0, 100)).toBe(false);
+    const fallbackKey = `throttle-fallback-${Date.now()}-${Math.random()}`;
+    expect(allowProofRequest(fallbackKey, 2_000, Number.NaN, Number.POSITIVE_INFINITY)).toBe(true);
+  });
+
   it("bounds audit detail and error messages without changing short messages", () => {
     expect(normalizeAuditDetail("short detail")).toBe("short detail");
     const normalized = normalizeAuditDetail("x".repeat(600));

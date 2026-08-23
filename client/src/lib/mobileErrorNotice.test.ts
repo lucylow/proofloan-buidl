@@ -22,6 +22,16 @@ describe("mobile error notice model", () => {
     });
   });
 
+  it("maps rate-limited requests to retry guidance", () => {
+    expect(getMobileErrorNoticeModel("[PROOFLOAN_RATE_LIMITED] Too many proof requests. Please retry shortly.", true)).toEqual({
+      code: "PROOFLOAN_RATE_LIMITED",
+      message: "Too many proof requests. Please retry shortly.",
+      guidance: "Too many proof requests arrived in a short period. Wait briefly, then retry.",
+      actionLabel: "Retry shortly",
+      canRetry: true,
+    });
+  });
+
   it("uses a safe retry fallback for unclassified mobile failures", () => {
     expect(getMobileErrorNoticeModel("Clipboard access is unavailable on this device.", true)).toEqual({
       code: "UNCLASSIFIED_ERROR",

@@ -14,6 +14,7 @@ const RECOVERY_BY_CODE: Record<ProofLoanErrorCode, { guidance: string; actionLab
   [PROOFLOAN_ERROR_CODES.PROOF_WORKER]: { guidance: "Confirm the transaction is mined on the selected testnet, then retry verification.", actionLabel: "Retry verification" },
   [PROOFLOAN_ERROR_CODES.POLICY]: { guidance: "RiskGuard blocked this offer. Review the decision details and contact support if you believe the policy result is incorrect.", actionLabel: "Review decision" },
   [PROOFLOAN_ERROR_CODES.STATE_CONFLICT]: { guidance: "This action is no longer available because the offer state changed. Refresh status before trying another action.", actionLabel: "Refresh status" },
+  [PROOFLOAN_ERROR_CODES.RATE_LIMITED]: { guidance: "Too many proof requests arrived in a short period. Wait briefly, then retry.", actionLabel: "Retry shortly" },
 };
 
 export function getMobileErrorNoticeModel(message: string, canRetry = false): MobileErrorNoticeModel {
