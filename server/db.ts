@@ -179,7 +179,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
       }
       if (snapshot.offer) {
         const existingOffer = await tx.select({ id: offers.id }).from(offers).where(eq(offers.applicationId, snapshot.applicationId)).orderBy(desc(offers.id)).limit(1);
-        const offerValues = buildOfferUpsertValues(snapshot.offer, snapshot.state, snapshot.offer.amount, Date.now());
+        const offerValues = buildOfferUpsertValues(snapshot.offer, snapshot.state, Number(applicationValues.requestedAmount), Date.now());
         if (existingOffer[0]) await tx.update(offers).set(offerValues).where(eq(offers.id, existingOffer[0].id));
         else await tx.insert(offers).values({ applicationId: snapshot.applicationId, ...offerValues });
       }
