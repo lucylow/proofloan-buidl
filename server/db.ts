@@ -15,6 +15,7 @@ const MAX_PERSISTED_AMOUNT_LENGTH = 64;
 const MAX_PERSISTED_PROOF_ROOT_LENGTH = 128;
 const MAX_PERSISTED_APPLICATION_ID_LENGTH = 64;
 const MAX_PERSISTED_WALLET_LENGTH = 128;
+const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -199,7 +200,7 @@ export function parsePersistedReasonCodes(raw: unknown): Decision["reasonCodes"]
 type PersistedSnapshotValidationInput = {
   application: { applicationId?: unknown; walletAddress?: unknown; state: string; sourceChain: string; requestedAmount: unknown };
   facts: Array<{ factId?: unknown; chain: string; sourceBlock: unknown; txHash?: unknown; eventType: string; amount?: unknown; verificationBlock: unknown; freshness: string; proofRoot?: unknown; verifiedAt: unknown }>;
-  decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown };
+  decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown; featureVersion?: unknown; modelVersion?: unknown; policyHash?: unknown; evidenceRoot?: unknown; decisionHash?: unknown };
   offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; termDays: unknown; expiresAt: unknown };
   audit: Array<{ state: string; label?: unknown; detail?: unknown; eventHash?: unknown; createdAt: unknown }>;
 };
@@ -221,7 +222,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isBoundedNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isBoundedNonEmptyText(input.application.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isBoundedNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isBoundedNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isBoundedNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isBoundedNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || !isValidDate(fact.verifiedAt))) return false;
-  if (input.decision && (!isRecord(input.decision) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
+  if (input.decision && (!isRecord(input.decision) || !isBoundedNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isBoundedNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
   if (input.offer && (!isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || !isFiniteInRange(input.offer.apr, 0, 24) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   return input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && isBoundedNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedNonEmptyText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH));
 }
