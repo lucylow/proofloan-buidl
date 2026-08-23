@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
+import { previewAttestcoinFacts } from "./attestcoin";
 
 function createContext(): TrpcContext {
   return {
@@ -22,6 +23,13 @@ describe("proofloan API flow", () => {
     expect(first).toMatch(/^PL-[A-F0-9]{32}$/);
     expect(second).toMatch(/^PL-[A-F0-9]{32}$/);
     expect(second).not.toBe(first);
+  });
+
+  it("keeps preview evidence block chronology physically consistent", () => {
+    for (const sourceChain of ["Ethereum Sepolia", "Polygon Amoy"] as const) {
+      const facts = previewAttestcoinFacts("0xpreview-chronology", sourceChain);
+      expect(facts.every(fact => fact.verificationBlock >= fact.sourceBlock)).toBe(true);
+    }
   });
 
   it("throttles repeated proof requests and allows requests after the window", () => {
