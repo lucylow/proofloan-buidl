@@ -80,7 +80,7 @@ export function isLiveTxHash(value: string): boolean {
 }
 
 export function isProofLoanApplicationId(value: string): boolean {
-  return /^PL-[A-Z0-9_-]{8,128}$/.test(value);
+  return /^PL-[A-Z0-9_-]{8,128}$/.test(value.trim());
 }
 
 export type VerifiedFact = {
