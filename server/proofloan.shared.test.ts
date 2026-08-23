@@ -36,8 +36,9 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {
-    const valid = { application: { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] };
+    const valid = { application: { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Executed", label: "Executed", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] };
     expect(isPersistedSnapshotValid(valid)).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], state: "OfferPrepared", label: "OfferPrepared" }] })).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-DIFFERENT1")).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-APPTEST1")).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
@@ -60,7 +61,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, termDays: true } as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, apr: " 11.5" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, status: "Ready" } })).toBe(false);
-    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Rejected" }, offer: { ...valid.offer, status: "Blocked" } })).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Rejected" }, offer: { ...valid.offer, status: "Blocked" }, audit: [{ ...valid.audit[0], state: "Rejected", label: "Rejected" }] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(2_000) } }, undefined, 1_000)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(1_000) } }, undefined, 2_000)).toBe(false);
     expect(isPersistedSnapshotValid(valid, undefined, Infinity)).toBe(false);
