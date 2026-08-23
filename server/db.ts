@@ -120,6 +120,14 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
   return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
 }
 
+export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
+  const requestedAmount = snapshot.offer?.amount ?? 1500;
+  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isBoundedNonEmptyText(snapshot.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
+    throw new Error("Invalid persisted application.");
+  }
+  return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
+}
+
 export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
   const verifiedAt = new Date(fact.verifiedAt);
   if (!isCanonicalNonEmptyText(fact.id, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isBoundedNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isBoundedNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isBoundedNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || fact.verificationBlock < fact.sourceBlock || !isValidDate(verifiedAt)) {
@@ -135,17 +143,8 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
   if (!db) return false;
   try {
     await db.transaction(async tx => {
-      await tx.insert(loanApplications).values({
-        applicationId: snapshot.applicationId,
-        walletAddress: snapshot.walletAddress,
-        sourceChain: snapshot.sourceChain,
-        state: snapshot.state,
-        requestedAmount: String(snapshot.offer?.amount ?? 1500),
-        evidenceRoot: snapshot.decision?.evidenceRoot,
-        policyHash: snapshot.decision?.policyHash,
-        modelVersion: snapshot.decision?.modelVersion,
-        decisionHash: snapshot.decision?.decisionHash,
-      }).onDuplicateKeyUpdate({ set: { state: snapshot.state, evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash } });
+      const applicationValues = buildApplicationUpsertValues(snapshot);
+      await tx.insert(loanApplications).values(applicationValues).onDuplicateKeyUpdate({ set: { state: applicationValues.state, evidenceRoot: applicationValues.evidenceRoot, policyHash: applicationValues.policyHash, modelVersion: applicationValues.modelVersion, decisionHash: applicationValues.decisionHash } });
 
       for (const fact of snapshot.facts) {
         const factValues = buildFactUpsertValues(fact);

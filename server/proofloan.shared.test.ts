@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { buildAuditUpsertValues, buildFactUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildFactUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -120,6 +120,14 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
+  });
+
+  it("rejects malformed applications before database writes", () => {
+    const baseSnapshot = { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", sourceChain: "Ethereum Sepolia" as const, state: "Intake" as const, facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
+    expect(buildApplicationUpsertValues(baseSnapshot).requestedAmount).toBe("1500");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, applicationId: " PL-APPTEST1" })).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, state: "Unknown" } as never)).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, offer: { amount: Number.NaN } } as never)).toThrow("Invalid persisted application.");
   });
 
   it("rejects malformed verified facts before database writes", () => {
