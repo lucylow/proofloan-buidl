@@ -1,7 +1,7 @@
 import { reportClientError } from "@/lib/clientErrorReporter";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import { Component, Fragment, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -10,6 +10,11 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  retryKey: number;
+}
+
+export function getNextRetryKey(currentKey: number): number {
+  return Number.isSafeInteger(currentKey) && currentKey < Number.MAX_SAFE_INTEGER ? currentKey + 1 : 0;
 }
 
 export function getRuntimeErrorMessage(error: Error | null): string {
@@ -20,10 +25,10 @@ export function getRuntimeErrorMessage(error: Error | null): string {
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, retryKey: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -46,7 +51,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <p className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-slate-500">{getRuntimeErrorMessage(this.state.error)}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => this.setState({ hasError: false, error: null })} className={cn("min-h-11 rounded-xl border border-cyan-300/30 px-4 text-sm font-semibold text-cyan-200", "hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300")}>Try again</button>
+              <button type="button" onClick={() => this.setState(previous => ({ hasError: false, error: null, retryKey: getNextRetryKey(previous.retryKey) }))} className={cn("min-h-11 rounded-xl border border-cyan-300/30 px-4 text-sm font-semibold text-cyan-200", "hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300")}>Try again</button>
               <button type="button" onClick={() => window.location.reload()} className={cn("flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950", "hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300")}><RotateCcw size={16} /> Reload page</button>
             </div>
           </section>
@@ -54,7 +59,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return <Fragment key={this.state.retryKey}>{this.props.children}</Fragment>;
   }
 }
 
