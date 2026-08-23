@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRouter, allowProofRequest, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, withApplicationMutation } from "./routers";
+import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 
@@ -16,6 +16,14 @@ function previewSnapshot(applicationId: string): LoanSnapshot {
 }
 
 describe("proofloan API flow", () => {
+  it("generates canonical non-colliding application IDs without relying on wall-clock precision", () => {
+    const first = createProofLoanApplicationId();
+    const second = createProofLoanApplicationId();
+    expect(first).toMatch(/^PL-[A-F0-9]{32}$/);
+    expect(second).toMatch(/^PL-[A-F0-9]{32}$/);
+    expect(second).not.toBe(first);
+  });
+
   it("throttles repeated proof requests and allows requests after the window", () => {
     const key = `throttle-${Date.now()}-${Math.random()}`;
     expect(allowProofRequest(key, 1_000, 2, 100)).toBe(true);

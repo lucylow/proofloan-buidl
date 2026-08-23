@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -96,8 +97,12 @@ async function persistLiveSnapshot(snapshot: LoanSnapshot, live: boolean) {
   if (!persisted || persisted.state !== snapshot.state) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, `Database state transition was not committed as ${snapshot.state}.`);
 }
 
+export function createProofLoanApplicationId(): string {
+  return `PL-${randomUUID().replaceAll("-", "").toUpperCase()}`;
+}
+
 function seedSnapshot(walletAddress: string, sourceChain: SourceChain): LoanSnapshot {
-  const applicationId = `PL-${hashValue({ walletAddress, sourceChain, time: Date.now() }).toUpperCase()}`;
+  const applicationId = createProofLoanApplicationId();
   return {
     applicationId,
     walletAddress,
