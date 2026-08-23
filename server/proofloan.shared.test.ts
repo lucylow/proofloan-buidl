@@ -46,7 +46,9 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "-1" } })).toBe(false);
     const fact = { chain: "Ethereum Sepolia", eventType: "REPAYMENT", freshness: "Fresh", sourceBlock: 1, verificationBlock: 1 };
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: Array.from({ length: 129 }, () => ({ state: "Intake" })) })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: null as never })).toBe(false);
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
