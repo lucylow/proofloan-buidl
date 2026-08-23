@@ -36,7 +36,7 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("fails closed for invalid persisted snapshot rows", () => {
-    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake" }] };
+    const valid = { application: { state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], decision: { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92" }, offer: { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date(Date.now() + 86_400_000) }, audit: [{ state: "Intake", createdAt: new Date() }] };
     expect(isPersistedSnapshotValid(valid)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
@@ -48,7 +48,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: null } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: " " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, termDays: true } as never })).toBe(false);
-    const fact = { chain: "Ethereum Sepolia", eventType: "REPAYMENT", freshness: "Fresh", sourceBlock: 1, verificationBlock: 1 };
+    const fact = { chain: "Ethereum Sepolia", eventType: "REPAYMENT", freshness: "Fresh", sourceBlock: 1, verificationBlock: 1, verifiedAt: new Date() };
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [null] as never })).toBe(false);
@@ -60,7 +60,9 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [null] as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: "x".repeat(513) }] })).toBe(false);
-    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: 42 }] as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: 42, createdAt: new Date() }] as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", createdAt: new Date("invalid") }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date("invalid") }] })).toBe(false);
   });
 
   it("rejects malformed audit details before database writes", () => {
