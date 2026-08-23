@@ -275,6 +275,12 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (new Set(factIds).size !== factIds.length) return false;
   if (!isDecisionStateConsistent(input.application.state, Boolean(input.decision))) return false;
   if (input.decision && (!isRecord(input.decision) || !isCanonicalNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
+  if (input.decision) {
+    const mirroredDecisionFields = ["featureVersion", "modelVersion", "policyHash", "evidenceRoot", "decisionHash"] as const;
+    const applicationRecord = input.application as Record<string, unknown>;
+    const decisionRecord = input.decision as Record<string, unknown>;
+    if (mirroredDecisionFields.some(field => applicationRecord[field] !== undefined && applicationRecord[field] !== decisionRecord[field])) return false;
+  }
   if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && event.label === event.state && isCanonicalNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(input.audit)) return false;
