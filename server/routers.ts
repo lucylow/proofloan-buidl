@@ -28,6 +28,22 @@ const MAX_PROOF_REQUESTS_PER_WINDOW = 5;
 const PROOF_REQUEST_WINDOW_MS = 60_000;
 const MAX_THROTTLE_KEYS = 1_000;
 const proofRequestWindows = new Map<string, number[]>();
+const applicationMutationLocks = new Map<string, Promise<void>>();
+
+export async function withApplicationMutation<T>(applicationId: string, operation: () => Promise<T>): Promise<T> {
+  const previous = applicationMutationLocks.get(applicationId);
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const queued = previous ? previous.then(() => gate) : gate;
+  applicationMutationLocks.set(applicationId, queued);
+  if (previous) await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (applicationMutationLocks.get(applicationId) === queued) applicationMutationLocks.delete(applicationId);
+  }
+}
 
 export function allowProofRequest(key: string, nowMs = Date.now(), limit = MAX_PROOF_REQUESTS_PER_WINDOW, windowMs = PROOF_REQUEST_WINDOW_MS): boolean {
   const boundedLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : MAX_PROOF_REQUESTS_PER_WINDOW;
@@ -142,7 +158,7 @@ export const appRouter = router({
       return snapshot;
     }),
     getApplication: publicProcedure.input(z.object({ applicationId: applicationIdInput })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),
-    acceptOffer: publicProcedure.input(z.object({ applicationId: applicationIdInput })).mutation(async ({ input }) => {
+    acceptOffer: publicProcedure.input(z.object({ applicationId: applicationIdInput })).mutation(async ({ input }) => withApplicationMutation(input.applicationId, async () => {
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
       const previewMode = !!snapshot && !isLiveTxHash(snapshot.walletAddress);
@@ -153,7 +169,7 @@ export const appRouter = router({
       await persistLiveSnapshot(snapshot, !previewMode);
       if (previewMode) storePreviewApplication(applications, snapshot);
       return { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, at: Date.now() })}` };
-    }),
+    })),
   }),
 });
 

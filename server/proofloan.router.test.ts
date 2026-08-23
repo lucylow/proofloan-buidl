@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRouter, allowProofRequest, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication } from "./routers";
+import { appRouter, allowProofRequest, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 
@@ -22,6 +22,23 @@ describe("proofloan API flow", () => {
     expect(allowProofRequest(key, 1_050, 2, 100)).toBe(true);
     expect(allowProofRequest(key, 1_060, 2, 100)).toBe(false);
     expect(allowProofRequest(key, 1_101, 2, 100)).toBe(true);
+  });
+
+  it("serializes concurrent mutations for one application and releases the lock", async () => {
+    const events: string[] = [];
+    const first = withApplicationMutation("PL-LOCK001", async () => {
+      events.push("first-start");
+      await Promise.resolve();
+      events.push("first-end");
+      return 1;
+    });
+    const second = withApplicationMutation("PL-LOCK001", async () => {
+      events.push("second-start");
+      return 2;
+    });
+    expect(await Promise.all([first, second])).toEqual([1, 2]);
+    expect(events).toEqual(["first-start", "first-end", "second-start"]);
+    await expect(withApplicationMutation("PL-LOCK001", async () => "released")).resolves.toBe("released");
   });
 
   it("normalizes invalid throttle bounds to safe defaults", () => {
