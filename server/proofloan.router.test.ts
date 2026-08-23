@@ -48,6 +48,15 @@ describe("proofloan API flow", () => {
     storePreviewApplication(invalidCapacityStore, previewSnapshot("PL-CAP006"), Number.NaN);
     storePreviewApplication(invalidCapacityStore, previewSnapshot("PL-CAP007"), Number.POSITIVE_INFINITY);
     expect(invalidCapacityStore.size).toBe(2);
+
+    const overCapacityStore = new Map<string, LoanSnapshot>([
+      ["PL-OLD001", previewSnapshot("PL-OLD001")],
+      ["PL-OLD002", previewSnapshot("PL-OLD002")],
+      ["PL-OLD003", previewSnapshot("PL-OLD003")],
+    ]);
+    storePreviewApplication(overCapacityStore, previewSnapshot("PL-NEW001"), 1);
+    expect(overCapacityStore.size).toBe(1);
+    expect(overCapacityStore.has("PL-NEW001")).toBe(true);
   });
   it("moves a preview application through the exact auditable state sequence", async () => {
     const caller = appRouter.createCaller(createContext());
