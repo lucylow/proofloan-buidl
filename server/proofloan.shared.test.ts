@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -146,6 +146,11 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower " })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, state: "Unknown" } as never)).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, offer: { amount: Number.NaN } } as never)).toThrow("Invalid persisted application.");
+    const consistentSnapshot = { ...baseSnapshot, audit: [{ state: "Intake", label: "Intake", timestamp: new Date().toISOString(), detail: "", hash: "hash-intake" }] };
+    expect(isLoanSnapshotWriteConsistent(consistentSnapshot as never)).toBe(true);
+    expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, audit: [] } as never)).toBe(false);
+    expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "EvidencePending" } as never)).toBe(false);
+    expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "Scored", decision: undefined } as never)).toBe(false);
   });
 
   it("rejects malformed verified facts before database writes", () => {

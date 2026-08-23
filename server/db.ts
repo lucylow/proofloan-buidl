@@ -143,6 +143,11 @@ export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>
   return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), termDays: offer.termDays, status: offer.status, expiresAt };
 }
 
+export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {
+  if (!Array.isArray(snapshot.audit) || snapshot.audit.length === 0) return false;
+  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
+}
+
 export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
   const verifiedAt = new Date(fact.verifiedAt);
   if (!isCanonicalNonEmptyText(fact.id, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || fact.verificationBlock < fact.sourceBlock || !isValidDate(verifiedAt)) {
@@ -154,6 +159,7 @@ export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
 type DatabaseClient = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: DatabaseClient): Promise<boolean> {
+  if (!isLoanSnapshotWriteConsistent(snapshot)) return false;
   const db = dbOverride ?? await getDb();
   if (!db) return false;
   try {
