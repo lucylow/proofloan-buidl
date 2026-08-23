@@ -232,7 +232,9 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (input.offer && (!isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || !isFiniteInRange(input.offer.apr, 0, 24) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && isBoundedNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   const auditHashes = input.audit.map(event => event.eventHash);
-  return new Set(auditHashes).size === auditHashes.length;
+  if (new Set(auditHashes).size !== auditHashes.length) return false;
+  const auditTimes = input.audit.map(event => event.createdAt instanceof Date ? event.createdAt.getTime() : Number.NaN);
+  return auditTimes.every((time, index) => Number.isFinite(time) && (index === 0 || time >= auditTimes[index - 1]));
 }
 
 export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): boolean {

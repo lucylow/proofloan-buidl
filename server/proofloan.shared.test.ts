@@ -64,6 +64,9 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(2_000) } }, undefined, 1_000)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(1_000) } }, undefined, 2_000)).toBe(false);
     expect(isPersistedSnapshotValid(valid, undefined, Infinity)).toBe(false);
+    const laterAudit = { ...valid.audit[0], eventHash: "hash-2", createdAt: new Date(valid.audit[0].createdAt.getTime() + 1_000) };
+    expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], laterAudit] })).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [laterAudit, valid.audit[0]] })).toBe(false);
     const fact = { factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date() };
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);
