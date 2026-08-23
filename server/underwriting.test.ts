@@ -9,6 +9,8 @@ describe("ProofLoan underwriting primitives", () => {
     expect(facts.every(fact => fact.proofWorker === "Attestcoin proof worker")).toBe(true);
     expect(facts[0]).toMatchObject({ chain: "Ethereum Sepolia", eventType: "REPAYMENT", freshness: "Fresh" });
     expect(facts[0]?.proofRoot).toMatch(/^0xproof_/);
+    expect(facts.every(fact => fact.verificationBlock >= fact.sourceBlock)).toBe(true);
+    expect(buildVerifiedFacts("0x71C7...9A2F", "Polygon Amoy").every(fact => fact.verificationBlock >= fact.sourceBlock)).toBe(true);
   });
 
   it("builds a deterministic FeatureVector with fixed time windows", () => {

@@ -19,6 +19,7 @@ export const hashValue = (value: unknown) =>
 
 export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceChain): VerifiedFact[] {
   const chainPrefix = sourceChain === "Ethereum Sepolia" ? "0x7a" : "0x9b";
+  const verificationBlock = sourceChain === "Ethereum Sepolia" ? 7_000_000 : 13_000_000;
   const now = new Date().toISOString();
   return [
     {
@@ -29,7 +30,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       eventType: "REPAYMENT",
       amount: "1,250 USDC",
       asset: "USDC",
-      verificationBlock: 3_204_118,
+      verificationBlock,
       verifiedAt: now,
       observedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       freshness: "Fresh",
@@ -44,7 +45,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       eventType: "COLLATERAL_DEPOSIT",
       amount: "2,800 USDC",
       asset: "USDC",
-      verificationBlock: 3_204_123,
+      verificationBlock: verificationBlock + 5,
       verifiedAt: now,
       observedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       freshness: "Fresh",
@@ -59,7 +60,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       eventType: "REPAYMENT",
       amount: "850 USDC",
       asset: "USDC",
-      verificationBlock: 3_204_127,
+      verificationBlock: verificationBlock + 9,
       verifiedAt: now,
       observedAt: new Date(Date.now() - 90 * 86_400_000).toISOString(),
       freshness: "Aging",
