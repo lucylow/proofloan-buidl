@@ -174,8 +174,8 @@ export async function transitionLoanState(applicationId: string, expectedState: 
 
 const MAX_PERSISTED_REASON_CODES_LENGTH = 512;
 
-export function parsePersistedReasonCodes(raw: string): Decision["reasonCodes"] | undefined {
-  if (raw.length > MAX_PERSISTED_REASON_CODES_LENGTH) return undefined;
+export function parsePersistedReasonCodes(raw: unknown): Decision["reasonCodes"] | undefined {
+  if (typeof raw !== "string" || raw.length > MAX_PERSISTED_REASON_CODES_LENGTH) return undefined;
   try {
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) && parsed.every(code => typeof code === "string" && isReasonCode(code)) ? parsed : undefined;
@@ -187,7 +187,7 @@ export function parsePersistedReasonCodes(raw: string): Decision["reasonCodes"] 
 type PersistedSnapshotValidationInput = {
   application: { state: string; sourceChain: string; requestedAmount: unknown };
   facts: Array<{ chain: string; eventType: string; freshness: string; sourceBlock: unknown; verificationBlock: unknown }>;
-  decision?: { reasonCodes: string; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown };
+  decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown };
   offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; termDays: unknown; expiresAt: unknown };
   audit: Array<{ state: string }>;
 };
