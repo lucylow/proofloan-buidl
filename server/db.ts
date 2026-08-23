@@ -217,6 +217,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isValidDate = (value: unknown): value is Date => value instanceof Date && !Number.isNaN(value.getTime());
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
 const isBoundedNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedText(value, maxLength) && value.trim().length > 0;
+const isCanonicalNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedNonEmptyText(value, maxLength) && value === value.trim();
 const isOfferStateConsistent = (state: string, status: string) => (status === "Ready" && state === "AwaitingAcceptance") || (status === "Blocked" && state === "Rejected") || (status === "Executed" && state === "Executed");
 const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;
 const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDecision ? ["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) : !["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state);
@@ -235,7 +236,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!isRecord(input.application)) return false;
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length === 0 || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isFactStateConsistent(input.application.state as string, input.facts.length)) return false;
-  if (!isBoundedNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isBoundedNonEmptyText(input.application.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
+  if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isBoundedNonEmptyText(input.application.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isBoundedNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isBoundedNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isBoundedNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isBoundedNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || !isValidDate(fact.verifiedAt))) return false;
   const factIds = input.facts.map(fact => fact.factId);
   if (new Set(factIds).size !== factIds.length) return false;
