@@ -76,7 +76,7 @@ export function isOfferStatus(value: string): value is OfferStatus {
 }
 
 export function isLiveTxHash(value: string): boolean {
-  return /^0x[a-fA-F0-9]{64}$/.test(value);
+  return /^0x[a-fA-F0-9]{64}$/.test(value.trim());
 }
 
 export function isProofLoanApplicationId(value: string): boolean {

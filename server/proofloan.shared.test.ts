@@ -12,6 +12,7 @@ describe("ProofLoan shared validation", () => {
 
   it("accepts a canonical 32-byte hexadecimal transaction hash", () => {
     expect(isLiveTxHash(`0x${"a".repeat(64)}`)).toBe(true);
+    expect(isLiveTxHash(`  0x${"a".repeat(64)}  `)).toBe(true);
   });
 
   it("rejects malformed, short, and non-hex transaction values", () => {
