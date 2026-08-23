@@ -103,6 +103,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date(2_000) }] }, undefined, 1_000)).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], createdAt: new Date(2_000) }] }, undefined, 1_000)).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, txHash: "" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, txHash: " 0xabc" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, proofRoot: " root-1" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, sourceBlock: 12, verificationBlock: 11 }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: "  " }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: " fact-1" }] })).toBe(false);
@@ -150,6 +152,8 @@ describe("ProofLoan shared validation", () => {
     const baseFact = { id: "fact-1", chain: "Ethereum Sepolia" as const, sourceBlock: 10, txHash: "0xabc", eventType: "REPAYMENT" as const, amount: "1,250 USDC", asset: "USDC", verificationBlock: 11, verifiedAt: new Date().toISOString(), observedAt: new Date().toISOString(), freshness: "Fresh" as const, proofRoot: "root-1", proofWorker: "Attestcoin proof worker" as const };
     expect(buildFactUpsertValues(baseFact).values.factId).toBe("fact-1");
     expect(() => buildFactUpsertValues({ ...baseFact, id: " fact-1" })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, txHash: " 0xabc" })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, proofRoot: "root-1 " })).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, verificationBlock: 9 })).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, verifiedAt: "invalid" })).toThrow("Invalid persisted verified fact.");
   });
