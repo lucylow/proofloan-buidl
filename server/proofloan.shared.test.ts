@@ -71,7 +71,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, apr: " 11.5" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, status: "Ready" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Rejected" }, offer: { ...valid.offer, status: "Blocked" }, audit: [{ ...valid.audit[0], state: "Rejected", label: "Rejected" }] })).toBe(true);
-    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(2_000) } }, undefined, 1_000)).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(2_000) }, facts: valid.facts.map(fact => ({ ...fact, verifiedAt: new Date(500) })) }, undefined, 1_000)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(1_000) } }, undefined, 2_000)).toBe(false);
     expect(isPersistedSnapshotValid(valid, undefined, Infinity)).toBe(false);
     const laterAudit = { ...valid.audit[0], eventHash: "hash-2", createdAt: new Date(valid.audit[0].createdAt.getTime() + 1_000) };
@@ -99,6 +99,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "Intake", detail: "short detail", eventHash: "", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", label: "   ", detail: "short detail", eventHash: "hash-1", createdAt: new Date() }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date("invalid") }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, verifiedAt: new Date(2_000) }] }, undefined, 1_000)).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, txHash: "" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, sourceBlock: 12, verificationBlock: 11 }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [{ ...fact, factId: "  " }] })).toBe(false);
