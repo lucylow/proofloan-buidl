@@ -55,6 +55,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: Array.from({ length: 129 }, () => ({ state: "Intake" })) })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: null as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [null] as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: "x".repeat(513) }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ state: "Intake", detail: 42 }] as never })).toBe(false);
   });
 
   it("fails closed for malformed persisted reason codes and accepts domain enums", () => {
