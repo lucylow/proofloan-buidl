@@ -493,7 +493,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, aprForRiskTier, isFeatureVectorFiniteAndBounded, isProbabilityOrderConsistent, POLICY_HASH, riskTierForPd30 } from "./underwriting";
+import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, aprForRiskTier, isFeatureVectorFiniteAndBounded, ltvForOfferAmount, isProbabilityOrderConsistent, POLICY_HASH, riskTierForPd30 } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -583,7 +583,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
     const decisionRecord = input.decision as Record<string, unknown>;
     if (mirroredDecisionFields.some(field => applicationRecord[field] !== undefined && applicationRecord[field] !== decisionRecord[field])) return false;
   }
-  if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !input.decision || Number(input.offer.apr) !== aprForRiskTier(input.decision.riskTier as Decision["riskTier"]) || !isFiniteInRange(input.offer.ltv, 0, 1) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
+  if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !input.decision || Number(input.offer.apr) !== aprForRiskTier(input.decision.riskTier as Decision["riskTier"]) || !isFiniteInRange(input.offer.ltv, 0, 1) || Number(input.offer.ltv) !== ltvForOfferAmount(Number(input.application.requestedAmount)) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && event.label === event.state && isCanonicalNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(input.audit)) return false;
   const lastAuditState = input.audit.length ? (input.audit[input.audit.length - 1] as { state?: unknown }).state : undefined;

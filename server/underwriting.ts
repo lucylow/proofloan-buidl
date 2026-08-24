@@ -202,12 +202,17 @@ export function isOfferAcceptable(state: string, status: Offer["status"], expire
   return Number.isFinite(expiryMs) && expiryMs > nowMs;
 }
 
+export function ltvForOfferAmount(amount: number, collateralValue = 2800): number {
+  return Number((amount / collateralValue).toFixed(2));
+}
+
 export function aprForRiskTier(riskTier: Decision["riskTier"]): number {
   return riskTier === "A" ? 8.5 : riskTier === "B" ? 11.5 : riskTier === "C" ? 16.5 : 24;
 }
 
 export function evaluateRiskGuard(decision: Decision, requestedAmount: number, collateralValue = 2800, poolLiquidity = 250_000): Offer {
   const ltv = requestedAmount / collateralValue;
+  const canonicalLtv = ltvForOfferAmount(requestedAmount, collateralValue);
   const apr = aprForRiskTier(decision.riskTier);
   const checks = [
     requestedAmount > 0 && requestedAmount <= 2500,
@@ -222,7 +227,7 @@ export function evaluateRiskGuard(decision: Decision, requestedAmount: number, c
   return {
     amount: requestedAmount,
     apr,
-    ltv: Number(ltv.toFixed(2)),
+    ltv: canonicalLtv,
     termDays: 90,
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     poolLiquidity,
