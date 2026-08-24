@@ -4,6 +4,8 @@ export type ReplayDiagnosticsInput = {
   proofRequest: { pending: number; stale: number };
 };
 
+export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
+
 export type ReplayDiagnosticsRow = {
   label: string;
   pending: number;
@@ -31,10 +33,17 @@ export function normalizeReplayDiagnostics(value: unknown): ReplayDiagnosticsInp
   return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale } };
 }
 
-export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput): ReplayDiagnosticsRow[] {
+export function getReplayDiagnosticsFreshness(timestamp: string, now = Date.now(), maxAgeMs = 90_000): ReplayDiagnosticsFreshness {
+  const parsed = new Date(timestamp).getTime();
+  if (!Number.isFinite(parsed)) return "invalid";
+  if (parsed > now + 120_000) return "future";
+  return now - parsed > maxAgeMs ? "stale" : "fresh";
+}
+
+export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshness: ReplayDiagnosticsFreshness = "fresh"): ReplayDiagnosticsRow[] {
   return [
-    { label: "Acceptance", pending: input.acceptance.pending, stale: input.acceptance.stale, tone: input.acceptance.stale > 0 ? "attention" : "clear" },
-    { label: "Proof requests", pending: input.proofRequest.pending, stale: input.proofRequest.stale, tone: input.proofRequest.stale > 0 ? "attention" : "clear" },
+    { label: "Acceptance", pending: input.acceptance.pending, stale: input.acceptance.stale, tone: input.acceptance.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
+    { label: "Proof requests", pending: input.proofRequest.pending, stale: input.proofRequest.stale, tone: input.proofRequest.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
   ];
 }
 

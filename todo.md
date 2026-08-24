@@ -819,3 +819,8 @@
 - [x] Normalize malformed replay diagnostics safely
 - [x] Show unavailable diagnostics as attention-required, not clear
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 118
+- [x] Classify replay diagnostics freshness explicitly
+- [x] Prevent stale or future timestamps from appearing healthy
+- [x] Add focused freshness tests and revalidate the full project

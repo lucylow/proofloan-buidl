@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -7,6 +7,18 @@ describe("replay diagnostics view model", () => {
       { label: "Acceptance", pending: 3, stale: 1, tone: "attention" },
       { label: "Proof requests", pending: 2, stale: 0, tone: "clear" },
     ]);
+  });
+
+  it("classifies fresh, stale, future, and invalid diagnostics timestamps", () => {
+    const now = Date.parse("2026-08-24T00:00:00.000Z");
+    expect(getReplayDiagnosticsFreshness("2026-08-23T23:59:30.000Z", now)).toBe("fresh");
+    expect(getReplayDiagnosticsFreshness("2026-08-23T23:55:00.000Z", now)).toBe("stale");
+    expect(getReplayDiagnosticsFreshness("2026-08-24T00:03:00.000Z", now)).toBe("future");
+    expect(getReplayDiagnosticsFreshness("not-a-date", now)).toBe("invalid");
+  });
+
+  it("marks rows for attention when diagnostics are not fresh", () => {
+    expect(getReplayDiagnosticsRows({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 } }, "stale").every(row => row.tone === "attention")).toBe(true);
   });
 
   it("handles invalid timestamps without throwing", () => {
