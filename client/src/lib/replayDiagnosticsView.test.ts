@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -105,6 +105,11 @@ describe("replay diagnostics view model", () => {
       { category: "request_error", direction: "rising", severity: "attention", recentCount: 1, priorCount: 0 },
     ]);
     expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", severity: "neutral", recentCount: 1, priorCount: 0 }]);
+  });
+
+  it("uses safe threshold feedback text without exposing values", () => {
+    expect(getReplayRefreshSeverityNotice("saved")).toBe("Thresholds saved for this session");
+    expect(getReplayRefreshSeverityNotice("restored")).toBe("Default thresholds restored");
   });
 
   it("restores only valid session thresholds and fails safely when storage is blocked", () => {

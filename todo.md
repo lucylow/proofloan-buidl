@@ -939,3 +939,8 @@
 - [x] Add admin-only threshold settings controls
 - [x] Persist validated bounded settings safely for the session
 - [x] Add settings tests and revalidate the full project
+
+## Threshold save confirmation and defaults
+- [x] Add a visible threshold-save confirmation
+- [x] Add a one-click restore-defaults action
+- [x] Add feedback tests and revalidate the full project
