@@ -6,6 +6,11 @@ type TxLike = {
   insert: (table: unknown) => { values: (values: unknown) => { onDuplicateKeyUpdate: (config: unknown) => Promise<void> } };
 };
 
+function createSnapshotReadDb(rowSets: unknown[][]) {
+  let index = 0;
+  return { select: () => ({ from: () => ({ where: () => { const current = index++; return current === 0 ? { limit: async () => rowSets[0] } : { orderBy: () => current === 2 || current === 3 ? { limit: async () => rowSets[current] } : rowSets[current] }; } }) }) };
+}
+
 const snapshot: LoanSnapshot = {
   applicationId: "PL-PERSISTENCE-TEST",
   walletAddress: "0xpersist-test-wallet",
@@ -44,6 +49,19 @@ describe("transactional snapshot persistence", () => {
     let index = 0;
     const db = { select: () => ({ from: () => ({ where: () => { const current = index++; return current === 0 ? { limit: async () => rows[0] } : { orderBy: () => current === 2 || current === 3 ? { limit: async () => rows[current] } : rows[current] }; } }) }) };
     expect(await getPersistedLoanSnapshot("PL-READMALFORMED", db as never)).toBeUndefined();
+  });
+
+  it("fails closed for malformed persisted facts, decisions, and offers at read time", async () => {
+    const application = { applicationId: "PL-READROWS", walletAddress: "0xread-rows", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
+    const fact = { factId: "fact-rows-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xrows", eventType: "REPAYMENT", amount: "1 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-rows", verifiedAt: new Date("2026-08-24T20:00:00.000Z") };
+    const decision = { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" };
+    const offer = { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date("2026-08-25T20:00:00.000Z") };
+    const audit = [{ state: "Executed", label: "Executed", detail: "executed", eventHash: "audit-rows-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
+    const rows = (factRow = fact, decisionRow = decision, offerRow = offer) => [ [application], [factRow], [decisionRow], [offerRow], audit ];
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows()) as never)).toMatchObject({ applicationId: "PL-READROWS", state: "Executed" });
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows({ ...fact, txHash: "" })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, reasonCodes: "not-json" })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, expiresAt: new Date("invalid") })) as never)).toBeUndefined();
   });
 
   it("keeps audit insert and update payloads synchronized", () => {

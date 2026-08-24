@@ -1034,3 +1034,8 @@
 - [x] Add a mocked database read harness for snapshot reconstruction
 - [x] Verify valid snapshots reconstruct and malformed rows fail closed
 - [x] Add read-path tests and revalidate the full project
+
+## Persisted underwriting row hardening
+- [x] Add malformed fact, decision, and offer database-row fixtures
+- [x] Verify reconstruction fails closed for each malformed underwriting row
+- [x] Add read-path regression tests and revalidate the full project
