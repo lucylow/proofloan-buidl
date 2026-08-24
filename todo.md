@@ -1019,3 +1019,8 @@
 - [x] Add malformed and partially populated snapshot fixtures
 - [x] Verify acceptance fails closed without executing incomplete offers
 - [x] Add malformed-state tests and revalidate the full project
+
+## Audit-history robustness hardening
+- [x] Normalize malformed audit entries into bounded coarse timeline events
+- [x] Handle invalid timestamps without breaking newest-first ordering
+- [x] Add audit-history regression tests and revalidate the full project

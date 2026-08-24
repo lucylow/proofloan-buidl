@@ -1,8 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, shouldApplyReplayRefreshPersistenceUpdate, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, shouldApplyReplayRefreshPersistenceUpdate, normalizeReplayRefreshTimeline, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
+  it("normalizes malformed timeline entries without exposing raw values", () => {
+    const normalized = normalizeReplayRefreshTimeline([
+      { id: 1, occurredAt: "not-a-date", outcome: "error", category: "unknown", raw: "secret" },
+      { id: -4, occurredAt: "2026-08-24T12:00:00.000Z", outcome: "success", category: "malformed" },
+      null,
+      { id: 2, occurredAt: "2026-08-24T12:01:00.000Z", outcome: "error", category: "unavailable" },
+    ]);
+    expect(normalized).toHaveLength(3);
+    expect(normalized[0]).toMatchObject({ id: 1, outcome: "error", category: "request_error", occurredAt: "1970-01-01T00:00:00.000Z" });
+    expect(normalized[1]).toMatchObject({ id: 1, outcome: "success" });
+    expect(normalized[1]).not.toHaveProperty("category");
+    expect(JSON.stringify(normalized)).not.toContain("secret");
+    expect(normalizeReplayRefreshTimeline("invalid")).toEqual([]);
+  });
+
   it("maps every supported filter to a safe operator label", () => {
     expect(["all", "failures", "unavailable", "malformed", "request_error"].map(filter => getReplayRefreshFilterLabel(filter as any))).toEqual(["All attempts", "Failures only", "Service unavailable", "Invalid response", "Request error"]);
   });

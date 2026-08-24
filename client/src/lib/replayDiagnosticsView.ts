@@ -117,8 +117,19 @@ export function categorizeReplayRefreshFailure(error: unknown): ReplayRefreshFai
   return "request_error";
 }
 
+export function normalizeReplayRefreshTimeline(events: unknown): ReplayRefreshTimelineEvent[] {
+  if (!Array.isArray(events)) return [];
+  return events.filter((event): event is Record<string, unknown> => !!event && typeof event === "object").map((event, index) => {
+    const outcome: ReplayRefreshTimelineOutcome = event.outcome === "success" ? "success" : "error";
+    const category: ReplayRefreshFailureCategory | undefined = event.category === "unavailable" || event.category === "malformed" || event.category === "request_error" ? event.category as ReplayRefreshFailureCategory : outcome === "error" ? "request_error" : undefined;
+    const id = typeof event.id === "number" && Number.isFinite(event.id) && event.id >= 0 ? Math.floor(event.id) : index;
+    const occurredAt = typeof event.occurredAt === "string" && Number.isFinite(new Date(event.occurredAt).getTime()) ? event.occurredAt : new Date(0).toISOString();
+    return { id, occurredAt, outcome, ...(outcome === "error" ? { category } : {}) };
+  }).slice(-6);
+}
+
 export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[], filter: ReplayRefreshTimelineFilter): ReplayRefreshTimelineEvent[] {
-  const recent = events.slice(-6);
+  const recent = normalizeReplayRefreshTimeline(events).slice(-6);
   if (filter === "all") return recent;
   if (filter === "failures") return recent.filter(event => event.outcome === "error");
   return recent.filter(event => event.outcome === "error" && event.category === filter);
@@ -226,7 +237,7 @@ export function shouldApplyReplayRefreshPersistenceUpdate(input: { isMounted: bo
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
   const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);
-  const bounded = events.slice(-6);
+  const bounded = normalizeReplayRefreshTimeline(events).slice(-6);
   const midpoint = Math.floor(bounded.length / 2);
   const prior = bounded.slice(0, midpoint);
   const recent = bounded.slice(midpoint);
@@ -240,7 +251,7 @@ export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEven
 }
 
 export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEvent[]): ReplayRefreshCategoryCount[] {
-  const recent = events.slice(-6);
+  const recent = normalizeReplayRefreshTimeline(events).slice(-6);
   return (["unavailable", "malformed", "request_error"] as const).map(category => ({
     category,
     label: getReplayRefreshFailureLabel(category),
@@ -249,7 +260,7 @@ export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEven
 }
 
 export function getReplayRefreshTrend(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTrend {
-  const recent = events.slice(-6);
+  const recent = normalizeReplayRefreshTimeline(events).slice(-6);
   if (recent.length < 4) return { direction: "insufficient", confidence: "low", recentSampleSize: 0, priorSampleSize: 0, recentFailureRatePercent: 0, priorFailureRatePercent: 0 };
   const split = Math.ceil(recent.length / 2);
   const prior = recent.slice(0, split);
