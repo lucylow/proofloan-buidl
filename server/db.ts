@@ -307,6 +307,7 @@ export async function commitAcceptanceReplay(applicationId: string, requestKey: 
     recordReplayProtectionEvent({ operation: "acceptance", outcome: committed ? "committed" : "unavailable", requestKey, applicationId, reason: committed ? undefined : "write_failed" });
     return committed;
   } catch (error) {
+    recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "write_failed" });
     console.warn("[ProofLoan] Acceptance idempotency commit unavailable", error instanceof Error ? error.message : error);
     return false;
   }
@@ -385,6 +386,7 @@ export async function commitProofRequestReplay(requestKey: string, applicationId
     recordReplayProtectionEvent({ operation: "proof_request", outcome: committed ? "committed" : "unavailable", requestKey, applicationId, reason: committed ? undefined : "write_failed" });
     return committed;
   } catch (error) {
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, applicationId, reason: "write_failed" });
     console.warn("[ProofLoan] Proof-request idempotency commit unavailable", error instanceof Error ? error.message : error);
     return false;
   }

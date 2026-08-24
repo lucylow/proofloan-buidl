@@ -774,3 +774,8 @@
 - [x] Add direct mocked-database tests for acceptance replay commits
 - [x] Add direct mocked-database tests for proof-request replay commits
 - [x] Revalidate the full project and responsive rendering
+
+## Code improvement pass 109
+- [x] Add direct exception-path tests for acceptance replay commits
+- [x] Add direct exception-path tests for proof-request replay commits
+- [x] Verify privacy-safe failure diagnostics and revalidate the full project

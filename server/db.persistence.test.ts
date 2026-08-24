@@ -73,6 +73,28 @@ describe("transactional snapshot persistence", () => {
     expect(await commitProofRequestReplay("proof-key-123", "PL-PERSISTENCE-TEST", valid, update(0) as never)).toBe(false);
   });
 
+  it("fails closed and records a redacted write failure when acceptance commit throws", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const throwingDb = { update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: acceptance-key-throw"); } }) }) };
+    const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "Executed", transactionHash: "0xcreditcoin_result", audit: [{ state: "Executed" }] };
+    expect(await commitAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-key-throw", valid, throwingDb as never)).toBe(false);
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("write_failed");
+    expect(JSON.stringify(payload)).not.toContain("acceptance-key-throw");
+    info.mockRestore();
+  });
+
+  it("fails closed and records a redacted write failure when proof-request commit throws", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const throwingDb = { update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-key-throw"); } }) }) };
+    const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "AwaitingAcceptance", facts: [], audit: [{ state: "Intake" }] };
+    expect(await commitProofRequestReplay("proof-key-throw", "PL-PERSISTENCE-TEST", valid, throwingDb as never)).toBe(false);
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("write_failed");
+    expect(JSON.stringify(payload)).not.toContain("proof-key-throw");
+    info.mockRestore();
+  });
+
   it("requires exactly one affected replay row before reporting commit success", () => {
     expect(hasExactlyOneReplayCommit({ affectedRows: 1 })).toBe(true);
     expect(hasExactlyOneReplayCommit({ affectedRows: 0 })).toBe(false);
