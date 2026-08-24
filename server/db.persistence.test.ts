@@ -383,6 +383,23 @@ describe("transactional snapshot persistence", () => {
     })).toBe(false);
   });
 
+  it("rejects receipt-bearing replays with out-of-order audit timestamps", () => {
+    const decisionBase = { pd30: 0.12, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["HIGH_LEVERAGE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "placeholder" };
+    const decision = { ...decisionBase, decisionHash: fingerprintDecision(decisionBase) };
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", {
+      applicationId: "PL-PERSISTENCE-TEST",
+      state: "Executed",
+      transactionHash: `0xcreditcoin_${"a".repeat(18)}`,
+      receiptHash: "a".repeat(18),
+      offer: { status: "Executed" },
+      decision,
+      audit: [
+        { state: "Scored", hash: "scored-audit-hash", timestamp: "2026-08-24T20:00:01.000Z" },
+        { state: "Executed", hash: "executed-audit-hash", timestamp: "2026-08-24T20:00:00.000Z" },
+      ],
+    })).toBe(false);
+  });
+
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {
     let rollbackObserved = false;
     const failingTx = {

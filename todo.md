@@ -1204,3 +1204,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent execution state
 - [x] Add focused regression coverage for replay state drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 40
+- [x] Harden receipt-bearing replay validation against inconsistent audit chronology
+- [x] Add focused regression coverage for terminal audit drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

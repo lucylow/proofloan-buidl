@@ -220,13 +220,20 @@ export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
 
 export function isDurableAcceptanceReplayResult(applicationId: string, result: unknown): result is LoanSnapshot & { transactionHash: string; receiptHash?: string } {
   if (!result || typeof result !== "object") return false;
-  const candidate = result as { applicationId?: unknown; state?: unknown; transactionHash?: unknown; receiptHash?: unknown; offer?: Offer; decision?: Decision; audit?: Array<{ hash?: unknown; state?: unknown }> };
+  const candidate = result as { applicationId?: unknown; state?: unknown; transactionHash?: unknown; receiptHash?: unknown; offer?: Offer; decision?: Decision; audit?: Array<{ hash?: unknown; state?: unknown; timestamp?: unknown }> };
   if (candidate.applicationId !== applicationId || candidate.state !== "Executed" || typeof candidate.transactionHash !== "string" || candidate.transactionHash !== candidate.transactionHash.trim() || candidate.transactionHash.length === 0 || candidate.transactionHash.length > MAX_PERSISTED_TX_HASH_LENGTH || !Array.isArray(candidate.audit) || candidate.audit.length === 0) return false;
   if (candidate.offer !== undefined && candidate.decision !== undefined && candidate.receiptHash === undefined) return false;
   if (candidate.receiptHash === undefined) return true;
   if (typeof candidate.receiptHash !== "string" || !/^[a-f0-9]{18}$/.test(candidate.receiptHash) || !/^0xcreditcoin_[a-f0-9]{18}$/.test(candidate.transactionHash)) return false;
   if (!candidate.offer || typeof candidate.offer !== "object" || candidate.offer.status !== "Executed" || !candidate.decision || typeof candidate.decision !== "object" || typeof candidate.decision.decisionHash !== "string") return false;
   if (candidate.decision.decisionHash !== fingerprintDecision(candidate.decision)) return false;
+  const auditTimestamps = candidate.audit.map(event => event.timestamp);
+  if (auditTimestamps.some(timestamp => timestamp !== undefined)) {
+    if (!auditTimestamps.every(timestamp => isCanonicalUtcIsoTimestamp(timestamp))) return false;
+    for (let index = 1; index < auditTimestamps.length; index += 1) {
+      if (Date.parse(auditTimestamps[index] as string) < Date.parse(auditTimestamps[index - 1] as string)) return false;
+    }
+  }
   const terminalAudit = candidate.audit.at(-1);
   if (terminalAudit?.state !== "Executed") return false;
   const auditHash = terminalAudit.hash;
