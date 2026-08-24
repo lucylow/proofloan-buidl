@@ -844,3 +844,8 @@
 - [x] Add a bounded privacy-safe refresh event history model
 - [x] Render a responsive operator timeline for recent refresh attempts
 - [x] Add timeline regression tests and revalidate the full project
+
+## Privacy-safe refresh failure categories
+- [x] Categorize refresh errors without retaining raw messages
+- [x] Render category labels in the operator timeline
+- [x] Add category and redaction tests and revalidate the full project

@@ -7,7 +7,8 @@ export type ReplayDiagnosticsInput = {
 export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
 export type ReplayDiagnosticsRefreshOutcome = "idle" | "refreshing" | "success" | "error";
 export type ReplayRefreshTimelineOutcome = "success" | "error";
-export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome };
+export type ReplayRefreshFailureCategory = "unavailable" | "malformed" | "request_error";
+export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome; category?: ReplayRefreshFailureCategory };
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -50,8 +51,21 @@ export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshnes
   ];
 }
 
-export function appendReplayRefreshTimelineEvent(events: ReplayRefreshTimelineEvent[], outcome: ReplayRefreshTimelineOutcome, occurredAt = new Date().toISOString(), id = Date.now()): ReplayRefreshTimelineEvent[] {
-  const next = [...events, { id, occurredAt, outcome }];
+export function categorizeReplayRefreshFailure(error: unknown): ReplayRefreshFailureCategory {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
+  if (message.includes("invalid") || message.includes("malformed") || message.includes("payload")) return "malformed";
+  if (message.includes("unavailable") || message.includes("network") || message.includes("timeout")) return "unavailable";
+  return "request_error";
+}
+
+export function getReplayRefreshFailureLabel(category: ReplayRefreshFailureCategory | undefined): string {
+  if (category === "unavailable") return "Service unavailable";
+  if (category === "malformed") return "Invalid response";
+  return "Request error";
+}
+
+export function appendReplayRefreshTimelineEvent(events: ReplayRefreshTimelineEvent[], outcome: ReplayRefreshTimelineOutcome, occurredAt = new Date().toISOString(), id = Date.now(), category?: ReplayRefreshFailureCategory): ReplayRefreshTimelineEvent[] {
+  const next = [...events, { id, occurredAt, outcome, ...(outcome === "error" ? { category: category ?? "request_error" } : {}) }];
   return next.slice(-6);
 }
 

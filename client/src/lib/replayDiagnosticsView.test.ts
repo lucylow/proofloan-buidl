@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -27,12 +27,19 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
   });
 
+  it("maps raw failures to coarse categories without retaining raw text", () => {
+    expect(categorizeReplayRefreshFailure(new Error("database unavailable for wallet 0xabc"))).toBe("unavailable");
+    expect(categorizeReplayRefreshFailure(new Error("invalid payload: secret"))).toBe("malformed");
+    expect(categorizeReplayRefreshFailure(new Error("unexpected upstream detail"))).toBe("request_error");
+  });
+
   it("keeps only the six newest privacy-safe timeline events", () => {
     const events = Array.from({ length: 7 }, (_, index) => ({ id: index, occurredAt: `2026-08-24T00:0${index}:00.000Z`, outcome: "error" as const }));
     const next = appendReplayRefreshTimelineEvent(events, "success", "2026-08-24T00:07:00.000Z", 7);
     expect(next).toHaveLength(6);
     expect(next[0].id).toBe(2);
     expect(next.at(-1)).toEqual({ id: 7, occurredAt: "2026-08-24T00:07:00.000Z", outcome: "success" });
+    expect(appendReplayRefreshTimelineEvent([], "error", "2026-08-24T00:08:00.000Z", 8, "unavailable")).toEqual([{ id: 8, occurredAt: "2026-08-24T00:08:00.000Z", outcome: "error", category: "unavailable" }]);
     expect(JSON.stringify(next)).not.toContain("wallet");
   });
 
