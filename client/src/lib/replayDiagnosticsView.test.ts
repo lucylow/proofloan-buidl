@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -39,6 +39,9 @@ describe("replay diagnostics view model", () => {
     expect(filterReplayRefreshTimeline(events, "failures").every(event => event.outcome === "error")).toBe(true);
     expect(filterReplayRefreshTimeline(events, "malformed").map(event => event.id)).toEqual([4]);
     expect(filterReplayRefreshTimeline(events, "request_error")).toEqual([]);
+    expect(shouldShowReplayRefreshFilterReset({ filter: "request_error", visibleCount: 0 })).toBe(true);
+    expect(shouldShowReplayRefreshFilterReset({ filter: "request_error", visibleCount: 1 })).toBe(false);
+    expect(shouldShowReplayRefreshFilterReset({ filter: "all", visibleCount: 0 })).toBe(false);
   });
 
   it("classifies bounded failure trends without exposing event details", () => {

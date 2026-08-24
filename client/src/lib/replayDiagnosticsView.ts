@@ -14,6 +14,10 @@ export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategor
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
+export function shouldShowReplayRefreshFilterReset(input: { filter: ReplayRefreshTimelineFilter; visibleCount: number }): boolean {
+  return input.filter !== "all" && input.visibleCount === 0;
+}
+
 export type ReplayDiagnosticsRow = {
   label: string;
   pending: number;

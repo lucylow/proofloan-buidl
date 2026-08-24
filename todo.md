@@ -879,3 +879,8 @@
 - [x] Add bounded category-aware filter state
 - [x] Render accessible category controls and empty states
 - [x] Add category-filter tests and revalidate the full project
+
+## Empty-filter recovery
+- [x] Add an explicit reset to the full timeline
+- [x] Make the empty state explain and recover from no matches
+- [x] Add recovery tests and revalidate the full project
