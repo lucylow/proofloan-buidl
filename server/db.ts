@@ -31,6 +31,7 @@ export type ReplayProtectionEvent = {
   requestKey?: string;
   applicationId?: string;
   removed?: number;
+  reason?: "storage_unavailable" | "missing_record" | "invalid_result" | "cleanup_failed" | "write_failed";
 };
 
 function replayFingerprint(value: string): string {
@@ -45,6 +46,7 @@ export function recordReplayProtectionEvent(event: ReplayProtectionEvent): void 
     requestFingerprint: event.requestKey ? replayFingerprint(event.requestKey) : undefined,
     applicationFingerprint: event.applicationId ? replayFingerprint(event.applicationId) : undefined,
     removed: event.removed,
+    reason: event.reason,
     timestamp: new Date().toISOString(),
   }));
 }
@@ -245,7 +247,10 @@ export type AcceptanceReplayClaim =
 
 export async function claimAcceptanceReplay(applicationId: string, requestKey: string): Promise<AcceptanceReplayClaim> {
   const db = await getDb();
-  if (!db) return { status: "unavailable" };
+  if (!db) {
+    recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
+    return { status: "unavailable" };
+  }
   try {
     await cleanupReplayProtectionRecords();
     await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
@@ -263,8 +268,10 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
           return { status: "committed", result };
         }
       } catch {
+        recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "invalid_result" });
         return { status: "unavailable" };
       }
+      recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "invalid_result" });
       return { status: "unavailable" };
     }
     if (row[0].status === "Pending") {

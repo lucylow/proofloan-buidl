@@ -61,11 +61,12 @@ describe("transactional snapshot persistence", () => {
 
   it("records privacy-safe structured replay events", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
-    recordReplayProtectionEvent({ operation: "proof_request", outcome: "conflict", requestKey: "proof-secret-key", applicationId: "PL-PERSISTENCE-TEST" });
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", reason: "invalid_result", requestKey: "proof-secret-key", applicationId: "PL-PERSISTENCE-TEST" });
     const payload = JSON.parse(info.mock.calls[0]?.[0] as string) as Record<string, unknown>;
     expect(payload.event).toBe("proofloan.replay_protection");
     expect(payload.operation).toBe("proof_request");
-    expect(payload.outcome).toBe("conflict");
+    expect(payload.outcome).toBe("unavailable");
+    expect(payload.reason).toBe("invalid_result");
     expect(payload.requestFingerprint).toMatch(/^[a-f0-9]{16}$/);
     expect(payload.applicationFingerprint).toMatch(/^[a-f0-9]{16}$/);
     expect(JSON.stringify(payload)).not.toContain("proof-secret-key");

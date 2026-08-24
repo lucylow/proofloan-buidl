@@ -749,3 +749,8 @@
 - [x] Add privacy-safe structured events for replay-protection outcomes
 - [x] Instrument claim, replay, conflict, cleanup, and stale-recovery branches
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 104
+- [x] Classify replay storage failures separately from request conflicts
+- [x] Preserve fail-closed execution and diagnostic behavior
+- [x] Add focused tests and revalidate the full project
