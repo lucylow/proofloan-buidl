@@ -37,6 +37,8 @@ describe("replay diagnostics view model", () => {
     expect(filterReplayRefreshTimeline(events, "failures").map(event => event.id)).toEqual([2, 4]);
     expect(filterReplayRefreshTimeline(events, "all")).toHaveLength(4);
     expect(filterReplayRefreshTimeline(events, "failures").every(event => event.outcome === "error")).toBe(true);
+    expect(filterReplayRefreshTimeline(events, "malformed").map(event => event.id)).toEqual([4]);
+    expect(filterReplayRefreshTimeline(events, "request_error")).toEqual([]);
   });
 
   it("classifies bounded failure trends without exposing event details", () => {

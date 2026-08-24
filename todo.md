@@ -874,3 +874,8 @@
 - [x] Add bounded failures-only filter state
 - [x] Render accessible filter and empty states
 - [x] Add filter tests and revalidate the full project
+
+## Refresh failure category filter
+- [x] Add bounded category-aware filter state
+- [x] Render accessible category controls and empty states
+- [x] Add category-filter tests and revalidate the full project

@@ -12,7 +12,7 @@ export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outco
 export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
-export type ReplayRefreshTimelineFilter = "all" | "failures";
+export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -64,7 +64,9 @@ export function categorizeReplayRefreshFailure(error: unknown): ReplayRefreshFai
 
 export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[], filter: ReplayRefreshTimelineFilter): ReplayRefreshTimelineEvent[] {
   const recent = events.slice(-6);
-  return filter === "failures" ? recent.filter(event => event.outcome === "error") : recent;
+  if (filter === "all") return recent;
+  if (filter === "failures") return recent.filter(event => event.outcome === "error");
+  return recent.filter(event => event.outcome === "error" && event.category === filter);
 }
 
 export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEvent[]): ReplayRefreshCategoryCount[] {
