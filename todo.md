@@ -894,3 +894,8 @@
 - [x] Detect when a validated filter was restored from session storage
 - [x] Render a transient accessible restoration cue
 - [x] Add restoration-feedback tests and revalidate the full project
+
+## Header-level filter reset
+- [x] Add a visible reset-filter control to the timeline header
+- [x] Keep reset behavior accessible and session-safe
+- [x] Add reset-control tests and revalidate the full project
