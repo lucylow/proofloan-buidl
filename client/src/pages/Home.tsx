@@ -13,7 +13,7 @@ import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "@/lib/replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, type ReplayDiagnosticsRefreshOutcome } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -39,6 +39,7 @@ export default function Home() {
   const proofRequestIdempotencyRef = useRef<ReturnType<typeof getProofRequestIdempotencyKey> | null>(null);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
+  const [replayRefreshOutcome, setReplayRefreshOutcome] = useState<ReplayDiagnosticsRefreshOutcome>("idle");
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -64,9 +65,11 @@ export default function Home() {
   const safeReplayDiagnostics = normalizeReplayDiagnostics(replayDiagnostics.data);
   const replayDiagnosticsFreshness = safeReplayDiagnostics ? getReplayDiagnosticsFreshness(safeReplayDiagnostics.generatedAt) : "invalid";
   const replayDiagnosticsRefresh = getReplayDiagnosticsRefreshState({ isFetching: replayDiagnostics.isFetching, isOnline });
+  const replayRefreshFeedback = getReplayDiagnosticsRefreshFeedback(replayRefreshOutcome);
   const refreshReplayDiagnostics = () => {
     if (!replayDiagnosticsRefresh.enabled) return;
-    void replayDiagnostics.refetch().catch(() => undefined);
+    setReplayRefreshOutcome("refreshing");
+    void replayDiagnostics.refetch().then(result => setReplayRefreshOutcome(result.isError ? "error" : "success")).catch(() => setReplayRefreshOutcome("error"));
   };
   const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { acceptanceIdempotencyRef.current = null; setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true), onError: (_error, variables) => { const recovery = getAcceptanceFailureRecovery({ hasApplication: Boolean(variables.applicationId), isOnline, pollingPaused }); if (recovery.shouldInvalidateCreditFile) { if (recovery.shouldResumePolling) setPollingPaused(false); void proofloanUtils.proofloan.getApplication.invalidate({ applicationId: variables.applicationId }).catch(() => undefined); } } });
@@ -149,7 +152,9 @@ export default function Home() {
                 <Button type="button" variant="outline" aria-label={replayDiagnosticsRefresh.label} disabled={!replayDiagnosticsRefresh.enabled} onClick={refreshReplayDiagnostics} className="min-h-9 rounded-lg border-white/15 px-3 text-xs text-slate-200 hover:bg-white/5 disabled:opacity-60"><RefreshCw size={13} className={replayDiagnostics.isFetching ? "animate-spin" : undefined} /> {replayDiagnosticsRefresh.label}</Button>
               </div>
             </div>
+            {replayRefreshFeedback.label && replayRefreshOutcome !== "refreshing" && <p role={replayRefreshOutcome === "error" ? "alert" : "status"} className={`mt-4 text-xs ${replayRefreshFeedback.tone === "negative" ? "text-rose-200" : replayRefreshFeedback.tone === "positive" ? "text-emerald-200" : "text-slate-400"}`}>{replayRefreshFeedback.label}</p>}
             {replayDiagnostics.isLoading && <p className="mt-4 text-xs text-slate-400">Loading protected diagnostics…</p>}
+            {replayRefreshOutcome === "refreshing" && <p role="status" className="mt-4 text-xs text-slate-400">Refreshing protected diagnostics… Last trustworthy snapshot remains visible.</p>}
             {replayDiagnostics.error && <p role="alert" className="mt-4 text-xs text-rose-200">Replay diagnostics are temporarily unavailable.</p>}
             {replayDiagnostics.data && !safeReplayDiagnostics && <p role="alert" className="mt-4 text-xs text-amber-100">Replay diagnostics returned an invalid payload and are being withheld.</p>}
             {safeReplayDiagnostics && <div className="mt-4 grid gap-3 sm:grid-cols-2">{getReplayDiagnosticsRows(safeReplayDiagnostics, replayDiagnosticsFreshness).map(row => <div key={row.label} className="rounded-xl border border-white/10 bg-[#0d1622] p-3"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-slate-200">{row.label}</span><span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${row.tone === "attention" ? "text-amber-200" : "text-emerald-300"}`}>{row.tone === "attention" ? "Attention" : "Clear"}</span></div><div className="mt-3 flex items-end justify-between"><div><div className="text-2xl font-black text-white">{row.pending}</div><div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Pending</div></div><div className="text-right"><div className="text-lg font-bold text-cyan-200">{row.stale}</div><div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Stale</div></div></div></div>)}</div>}

@@ -829,3 +829,8 @@
 - [x] Add an explicit admin replay-diagnostics refresh action
 - [x] Show request-level refreshing and refresh-failure feedback
 - [x] Add focused interaction tests and revalidate the full project
+
+## Code improvement pass 120
+- [x] Track manual replay-diagnostics refresh outcomes explicitly
+- [x] Preserve trustworthy snapshots while surfacing refresh failures
+- [x] Add focused outcome tests and revalidate the full project

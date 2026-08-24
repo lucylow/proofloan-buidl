@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,13 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("describes refresh outcomes without hiding the last snapshot", () => {
+    expect(getReplayDiagnosticsRefreshFeedback("idle").label).toBe("");
+    expect(getReplayDiagnosticsRefreshFeedback("refreshing").label).toContain("Refreshing");
+    expect(getReplayDiagnosticsRefreshFeedback("success")).toEqual({ label: "Refresh completed", tone: "positive" });
+    expect(getReplayDiagnosticsRefreshFeedback("error")).toEqual({ label: "Refresh failed; showing last snapshot", tone: "negative" });
   });
 
   it("handles invalid timestamps without throwing", () => {

@@ -5,6 +5,7 @@ export type ReplayDiagnosticsInput = {
 };
 
 export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
+export type ReplayDiagnosticsRefreshOutcome = "idle" | "refreshing" | "success" | "error";
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -45,6 +46,13 @@ export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshnes
     { label: "Acceptance", pending: input.acceptance.pending, stale: input.acceptance.stale, tone: input.acceptance.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
     { label: "Proof requests", pending: input.proofRequest.pending, stale: input.proofRequest.stale, tone: input.proofRequest.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
   ];
+}
+
+export function getReplayDiagnosticsRefreshFeedback(outcome: ReplayDiagnosticsRefreshOutcome): { label: string; tone: "muted" | "positive" | "negative" } {
+  if (outcome === "refreshing") return { label: "Refreshing protected diagnostics…", tone: "muted" };
+  if (outcome === "success") return { label: "Refresh completed", tone: "positive" };
+  if (outcome === "error") return { label: "Refresh failed; showing last snapshot", tone: "negative" };
+  return { label: "", tone: "muted" };
 }
 
 export function getReplayDiagnosticsRefreshState(input: { isFetching: boolean; isOnline: boolean }): { enabled: boolean; label: string } {
