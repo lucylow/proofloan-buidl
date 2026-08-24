@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshTimelineSummary, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,16 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("summarizes bounded failure rates without exposing event details", () => {
+    const events = [
+      { id: 1, occurredAt: "2026-08-24T00:00:00.000Z", outcome: "error" as const, category: "unavailable" as const },
+      { id: 2, occurredAt: "2026-08-24T00:01:00.000Z", outcome: "success" as const },
+      { id: 3, occurredAt: "2026-08-24T00:02:00.000Z", outcome: "error" as const, category: "malformed" as const },
+    ];
+    expect(getReplayRefreshTimelineSummary(events)).toEqual({ attempts: 3, failures: 2, failureRatePercent: 67, status: "critical" });
+    expect(getReplayRefreshTimelineSummary([])).toEqual({ attempts: 0, failures: 0, failureRatePercent: 0, status: "clear" });
   });
 
   it("maps raw failures to coarse categories without retaining raw text", () => {

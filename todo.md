@@ -849,3 +849,8 @@
 - [x] Categorize refresh errors without retaining raw messages
 - [x] Render category labels in the operator timeline
 - [x] Add category and redaction tests and revalidate the full project
+
+## Refresh failure-rate summary
+- [x] Calculate a bounded privacy-safe failure-rate summary
+- [x] Render the summary beside the recent refresh timeline
+- [x] Add summary math tests and revalidate the full project

@@ -9,6 +9,7 @@ export type ReplayDiagnosticsRefreshOutcome = "idle" | "refreshing" | "success" 
 export type ReplayRefreshTimelineOutcome = "success" | "error";
 export type ReplayRefreshFailureCategory = "unavailable" | "malformed" | "request_error";
 export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome; category?: ReplayRefreshFailureCategory };
+export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -56,6 +57,13 @@ export function categorizeReplayRefreshFailure(error: unknown): ReplayRefreshFai
   if (message.includes("invalid") || message.includes("malformed") || message.includes("payload")) return "malformed";
   if (message.includes("unavailable") || message.includes("network") || message.includes("timeout")) return "unavailable";
   return "request_error";
+}
+
+export function getReplayRefreshTimelineSummary(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTimelineSummary {
+  const attempts = Math.min(events.length, 6);
+  const failures = Math.min(events.slice(-6).filter(event => event.outcome === "error").length, attempts);
+  const failureRatePercent = attempts === 0 ? 0 : Math.round((failures / attempts) * 100);
+  return { attempts, failures, failureRatePercent, status: failures === 0 ? "clear" : failures >= 3 || failureRatePercent >= 67 ? "critical" : "watch" };
 }
 
 export function getReplayRefreshFailureLabel(category: ReplayRefreshFailureCategory | undefined): string {
