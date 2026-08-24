@@ -146,7 +146,7 @@ describe("transactional snapshot persistence", () => {
     };
     await expect(claimAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-exception-key", replayDb as never)).resolves.toEqual({ status: "unavailable" });
     const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
-    expect(payload.reason).toBe("storage_unavailable");
+    expect(payload.reason).toBe("write_failed");
     expect(JSON.stringify(payload)).not.toContain("acceptance-exception-key");
     info.mockRestore();
   });
@@ -160,7 +160,7 @@ describe("transactional snapshot persistence", () => {
     };
     await expect(claimProofRequestReplay("proof-exception-key", "0xproof-exception-wallet", "Ethereum Sepolia", replayDb as never)).resolves.toEqual({ status: "unavailable" });
     const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
-    expect(payload.reason).toBe("storage_unavailable");
+    expect(payload.reason).toBe("write_failed");
     expect(JSON.stringify(payload)).not.toContain("proof-exception-key");
     info.mockRestore();
   });

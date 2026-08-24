@@ -238,6 +238,29 @@ export async function cleanupReplayProtectionRecords(now = Date.now()): Promise<
   }
 }
 
+export type ReplayRecoveryTarget = "acceptance" | "proof_request";
+
+export async function refreshStaleReplayClaim(target: ReplayRecoveryTarget, requestKey: string, applicationId?: string, dbOverride?: DatabaseClient): Promise<boolean> {
+  const db = dbOverride ?? await getDb();
+  if (!db) {
+    recordReplayProtectionEvent({ operation: target, outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
+    return false;
+  }
+  const staleBefore = new Date(Date.now() - REPLAY_PENDING_LEASE_MS);
+  try {
+    const updateResult = target === "acceptance"
+      ? await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId ?? ""), eq(acceptanceIdempotencyRecords.requestKey, requestKey), eq(acceptanceIdempotencyRecords.status, "Pending"), lt(acceptanceIdempotencyRecords.createdAt, staleBefore)))
+      : await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(proofRequestIdempotency.requestKey, requestKey), eq(proofRequestIdempotency.status, "Pending"), lt(proofRequestIdempotency.createdAt, staleBefore)));
+    const recovered = hasExactlyOneReplayCommit(updateResult[0] ?? {});
+    recordReplayProtectionEvent({ operation: target, outcome: recovered ? "reclaimed" : "unavailable", requestKey, applicationId, reason: recovered ? undefined : "write_failed" });
+    return recovered;
+  } catch (error) {
+    recordReplayProtectionEvent({ operation: target, outcome: "unavailable", requestKey, applicationId, reason: "write_failed" });
+    console.warn(`[ProofLoan] ${target} stale replay recovery unavailable`, error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
 export type AcceptanceReplayClaim =
   | { status: "claimed" }
   | { status: "pending" }
@@ -279,12 +302,7 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     }
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
-        const recoveryResult = await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey), eq(acceptanceIdempotencyRecords.status, "Pending")));
-        if (!hasExactlyOneReplayCommit(recoveryResult[0] ?? {})) {
-          recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "write_failed" });
-          return { status: "unavailable" };
-        }
-        recordReplayProtectionEvent({ operation: "acceptance", outcome: "reclaimed", requestKey, applicationId });
+        if (!(await refreshStaleReplayClaim("acceptance", requestKey, applicationId, db))) return { status: "unavailable" };
         return { status: "claimed" };
       }
       recordReplayProtectionEvent({ operation: "acceptance", outcome: "pending", requestKey, applicationId });
@@ -367,12 +385,7 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
     }
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
-        const recoveryResult = await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(proofRequestIdempotency.requestKey, requestKey), eq(proofRequestIdempotency.status, "Pending")));
-        if (!hasExactlyOneReplayCommit(recoveryResult[0] ?? {})) {
-          recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "write_failed" });
-          return { status: "unavailable" };
-        }
-        recordReplayProtectionEvent({ operation: "proof_request", outcome: "reclaimed", requestKey });
+        if (!(await refreshStaleReplayClaim("proof_request", requestKey, undefined, db))) return { status: "unavailable" };
         return { status: "claimed" };
       }
       recordReplayProtectionEvent({ operation: "proof_request", outcome: "pending", requestKey });

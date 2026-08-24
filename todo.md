@@ -799,3 +799,8 @@
 - [x] Classify missing acceptance replay records explicitly
 - [x] Preserve fail-closed missing proof-request record behavior
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 114
+- [x] Add a narrowly scoped recovery helper for stale orphaned replay claims
+- [x] Prevent arbitrary result mutation or state bypass during recovery
+- [x] Add focused tests and revalidate the full project
