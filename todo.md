@@ -714,3 +714,13 @@
 - [x] Add focused coverage for the improvement
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
 
+## Code improvement pass 97
+- [ ] Identify and fix the next high-impact reliability or abuse-resistance issue
+- [ ] Add focused coverage for the improvement
+- [ ] Revalidate typecheck, tests, production build, and responsive rendering
+
+
+## Code improvement pass 98
+- [x] Identify and fix the next high-impact reliability or abuse-resistance issue
+- [x] Add focused coverage for the improvement
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
