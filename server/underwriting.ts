@@ -202,9 +202,13 @@ export function isOfferAcceptable(state: string, status: Offer["status"], expire
   return Number.isFinite(expiryMs) && expiryMs > nowMs;
 }
 
+export function aprForRiskTier(riskTier: Decision["riskTier"]): number {
+  return riskTier === "A" ? 8.5 : riskTier === "B" ? 11.5 : riskTier === "C" ? 16.5 : 24;
+}
+
 export function evaluateRiskGuard(decision: Decision, requestedAmount: number, collateralValue = 2800, poolLiquidity = 250_000): Offer {
   const ltv = requestedAmount / collateralValue;
-  const apr = decision.riskTier === "A" ? 8.5 : decision.riskTier === "B" ? 11.5 : decision.riskTier === "C" ? 16.5 : 24;
+  const apr = aprForRiskTier(decision.riskTier);
   const checks = [
     requestedAmount > 0 && requestedAmount <= 2500,
     ltv <= 0.7,

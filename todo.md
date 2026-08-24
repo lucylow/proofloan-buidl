@@ -1139,3 +1139,8 @@
 - [x] Enforce decision PD90 monotonicity and risk-tier consistency across all modern persistence paths
 - [x] Add regression coverage for probability-order drift and fail-closed reconstruction
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 27
+- [x] Enforce canonical offer consistency with decision and requested-amount metadata
+- [x] Add regression coverage for offer drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
