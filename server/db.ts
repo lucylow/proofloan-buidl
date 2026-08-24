@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, and, asc, desc, lt } from "drizzle-orm";
+import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -239,6 +239,34 @@ export async function cleanupReplayProtectionRecords(now = Date.now()): Promise<
 }
 
 export type ReplayRecoveryTarget = "acceptance" | "proof_request";
+
+export type ReplayProtectionDiagnostics = {
+  generatedAt: string;
+  acceptance: { pending: number; stale: number };
+  proofRequest: { pending: number; stale: number };
+};
+
+function boundedReplayCount(value: unknown): number {
+  const count = Number(value);
+  return Number.isFinite(count) ? Math.min(1_000_000, Math.max(0, Math.floor(count))) : 0;
+}
+
+export async function getReplayProtectionDiagnostics(dbOverride?: DatabaseClient): Promise<ReplayProtectionDiagnostics | null> {
+  const db = dbOverride ?? await getDb();
+  if (!db) return null;
+  const staleBefore = new Date(Date.now() - REPLAY_PENDING_LEASE_MS);
+  const [acceptancePending, acceptanceStale, proofPending, proofStale] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.status, "Pending")),
+    db.select({ count: sql<number>`count(*)` }).from(acceptanceIdempotencyRecords).where(and(eq(acceptanceIdempotencyRecords.status, "Pending"), lt(acceptanceIdempotencyRecords.createdAt, staleBefore))),
+    db.select({ count: sql<number>`count(*)` }).from(proofRequestIdempotency).where(eq(proofRequestIdempotency.status, "Pending")),
+    db.select({ count: sql<number>`count(*)` }).from(proofRequestIdempotency).where(and(eq(proofRequestIdempotency.status, "Pending"), lt(proofRequestIdempotency.createdAt, staleBefore))),
+  ]);
+  return {
+    generatedAt: new Date().toISOString(),
+    acceptance: { pending: boundedReplayCount(acceptancePending[0]?.count), stale: boundedReplayCount(acceptanceStale[0]?.count) },
+    proofRequest: { pending: boundedReplayCount(proofPending[0]?.count), stale: boundedReplayCount(proofStale[0]?.count) },
+  };
+}
 
 export async function refreshStaleReplayClaim(target: ReplayRecoveryTarget, requestKey: string, applicationId?: string, dbOverride?: DatabaseClient): Promise<boolean> {
   const db = dbOverride ?? await getDb();

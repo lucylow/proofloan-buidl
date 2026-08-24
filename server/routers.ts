@@ -3,10 +3,10 @@ import { randomUUID } from "node:crypto";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
-import { claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
+import { claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, persistLoanSnapshot, transitionLoanState } from "./db";
 import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
 import { TRPCError } from "@trpc/server";
 
@@ -128,6 +128,11 @@ export const appRouter = router({
     }),
   }),
   proofloan: router({
+    replayDiagnostics: adminProcedure.query(async () => {
+      const diagnostics = await getReplayProtectionDiagnostics();
+      if (!diagnostics) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Replay diagnostics are unavailable while the database is offline.");
+      return diagnostics;
+    }),
     createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]), idempotencyKey: z.string().trim().min(16).max(128).optional() })).mutation(async ({ input }) => {
       const previewMode = !isLiveTxHash(input.walletAddress);
       if (!previewMode && input.idempotencyKey) {

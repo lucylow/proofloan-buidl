@@ -17,6 +17,11 @@ function previewSnapshot(applicationId: string): LoanSnapshot {
 }
 
 describe("proofloan API flow", () => {
+  it("restricts replay diagnostics to admin callers", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.proofloan.replayDiagnostics()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("generates canonical non-colliding application IDs without relying on wall-clock precision", () => {
     const first = createProofLoanApplicationId();
     const second = createProofLoanApplicationId();

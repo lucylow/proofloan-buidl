@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -163,6 +163,13 @@ describe("transactional snapshot persistence", () => {
     expect(payload.reason).toBe("write_failed");
     expect(JSON.stringify(payload)).not.toContain("proof-exception-key");
     info.mockRestore();
+  });
+
+  it("returns bounded replay diagnostics without exposing identifiers", async () => {
+    const replayDb = {
+      select: () => ({ from: () => ({ where: async () => [{ count: 1_000_001 }] }) }),
+    };
+    await expect(getReplayProtectionDiagnostics(replayDb as never)).resolves.toMatchObject({ acceptance: { pending: 1_000_000, stale: 1_000_000 }, proofRequest: { pending: 1_000_000, stale: 1_000_000 } });
   });
 
   it("classifies a missing acceptance replay record without proceeding", async () => {

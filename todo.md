@@ -804,3 +804,8 @@
 - [x] Add a narrowly scoped recovery helper for stale orphaned replay claims
 - [x] Prevent arbitrary result mutation or state bypass during recovery
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 115
+- [x] Add an admin-only read-only replay diagnostics query
+- [x] Expose bounded counts and stale status without raw identifiers
+- [x] Add authorization/privacy tests and revalidate the full project
