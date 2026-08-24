@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,15 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("keeps only the six newest privacy-safe timeline events", () => {
+    const events = Array.from({ length: 7 }, (_, index) => ({ id: index, occurredAt: `2026-08-24T00:0${index}:00.000Z`, outcome: "error" as const }));
+    const next = appendReplayRefreshTimelineEvent(events, "success", "2026-08-24T00:07:00.000Z", 7);
+    expect(next).toHaveLength(6);
+    expect(next[0].id).toBe(2);
+    expect(next.at(-1)).toEqual({ id: 7, occurredAt: "2026-08-24T00:07:00.000Z", outcome: "success" });
+    expect(JSON.stringify(next)).not.toContain("wallet");
   });
 
   it("ignores outcomes from superseded or unmounted refresh requests", () => {

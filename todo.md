@@ -839,3 +839,8 @@
 - [x] Prevent stale refresh outcomes from updating the panel
 - [x] Guard refresh feedback against component teardown
 - [x] Add focused lifecycle tests and revalidate the full project
+
+## Visual refresh-failure timeline
+- [x] Add a bounded privacy-safe refresh event history model
+- [x] Render a responsive operator timeline for recent refresh attempts
+- [x] Add timeline regression tests and revalidate the full project

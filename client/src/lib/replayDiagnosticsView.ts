@@ -6,6 +6,8 @@ export type ReplayDiagnosticsInput = {
 
 export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
 export type ReplayDiagnosticsRefreshOutcome = "idle" | "refreshing" | "success" | "error";
+export type ReplayRefreshTimelineOutcome = "success" | "error";
+export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome };
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -46,6 +48,11 @@ export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshnes
     { label: "Acceptance", pending: input.acceptance.pending, stale: input.acceptance.stale, tone: input.acceptance.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
     { label: "Proof requests", pending: input.proofRequest.pending, stale: input.proofRequest.stale, tone: input.proofRequest.stale > 0 || freshness !== "fresh" ? "attention" : "clear" },
   ];
+}
+
+export function appendReplayRefreshTimelineEvent(events: ReplayRefreshTimelineEvent[], outcome: ReplayRefreshTimelineOutcome, occurredAt = new Date().toISOString(), id = Date.now()): ReplayRefreshTimelineEvent[] {
+  const next = [...events, { id, occurredAt, outcome }];
+  return next.slice(-6);
 }
 
 export function shouldApplyReplayRefreshOutcome(input: { requestId: number; currentRequestId: number; isMounted: boolean }): boolean {
