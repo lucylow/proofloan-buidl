@@ -123,6 +123,11 @@ export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[]
   return recent.filter(event => event.outcome === "error" && event.category === filter);
 }
 
+export function getReplayRefreshSeverityExplanation(input?: Partial<ReplayRefreshSeverityThresholds>): string {
+  const thresholds = normalizeReplayRefreshSeverityThresholds(input);
+  return `Attention at ${thresholds.attentionCount} recent event${thresholds.attentionCount === 1 ? "" : "s"}; critical at ${thresholds.criticalCount}. Based on the bounded six-event window.`;
+}
+
 export function getReplayRefreshSeverityNotice(kind: "saved" | "restored"): string {
   return kind === "restored" ? "Default thresholds restored" : "Thresholds saved for this session";
 }

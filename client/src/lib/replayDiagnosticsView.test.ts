@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -105,6 +105,11 @@ describe("replay diagnostics view model", () => {
       { category: "request_error", direction: "rising", severity: "attention", recentCount: 1, priorCount: 0 },
     ]);
     expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", severity: "neutral", recentCount: 1, priorCount: 0 }]);
+  });
+
+  it("explains normalized threshold semantics without raw diagnostics", () => {
+    expect(getReplayRefreshSeverityExplanation({ attentionCount: 1, criticalCount: 3 })).toBe("Attention at 1 recent event; critical at 3. Based on the bounded six-event window.");
+    expect(getReplayRefreshSeverityExplanation({ attentionCount: 9, criticalCount: -2 })).toBe("Attention at 2 recent events; critical at 3. Based on the bounded six-event window.");
   });
 
   it("uses safe threshold feedback text without exposing values", () => {

@@ -944,3 +944,8 @@
 - [x] Add a visible threshold-save confirmation
 - [x] Add a one-click restore-defaults action
 - [x] Add feedback tests and revalidate the full project
+
+## Threshold explanation guidance
+- [x] Add a safe explanation of Attention and Critical derivation
+- [x] Render concise accessible guidance beside the threshold controls
+- [x] Add explanation tests and revalidate the full project
