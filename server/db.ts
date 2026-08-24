@@ -223,7 +223,7 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   const candidate = result as { applicationId?: unknown; state?: unknown; transactionHash?: unknown; receiptHash?: unknown; offer?: unknown; decision?: { decisionHash?: unknown }; audit?: Array<{ hash?: unknown }> };
   if (candidate.applicationId !== applicationId || candidate.state !== "Executed" || typeof candidate.transactionHash !== "string" || candidate.transactionHash !== candidate.transactionHash.trim() || candidate.transactionHash.length === 0 || candidate.transactionHash.length > MAX_PERSISTED_TX_HASH_LENGTH || !Array.isArray(candidate.audit) || candidate.audit.length === 0) return false;
   if (candidate.receiptHash === undefined) return true;
-  if (typeof candidate.receiptHash !== "string" || !/^[a-f0-9]{18}$/.test(candidate.receiptHash)) return false;
+  if (typeof candidate.receiptHash !== "string" || !/^[a-f0-9]{18}$/.test(candidate.receiptHash) || !/^0xcreditcoin_[a-f0-9]{18}$/.test(candidate.transactionHash)) return false;
   const auditHash = candidate.audit.at(-1)?.hash;
   return candidate.receiptHash === hashValue({ applicationId, offer: candidate.offer, decisionHash: candidate.decision?.decisionHash, auditHash }) && candidate.transactionHash === `0xcreditcoin_${candidate.receiptHash}`;
 }

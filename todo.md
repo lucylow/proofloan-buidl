@@ -1174,3 +1174,8 @@
 - [x] Bind the execution transaction receipt to the canonical final offer and audit event
 - [x] Add regression coverage for transaction-receipt tampering and fail-closed acceptance results
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 34
+- [x] Enforce transaction-hash format and receipt binding at the durable replay boundary
+- [x] Add regression coverage for malformed or mismatched execution receipts
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

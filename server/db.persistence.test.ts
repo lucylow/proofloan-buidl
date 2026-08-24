@@ -182,6 +182,9 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+    const modern = { ...valid, receiptHash: "a".repeat(18), offer: { amount: 1500 }, decision: { decisionHash: "decision" }, audit: [{ state: "Executed", hash: "audit" }] };
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", modern)).toBe(false);
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...modern, transactionHash: "0xcreditcoin_notcanonical" })).toBe(false);
   });
 
   it("commits acceptance replay only when the mocked database updates one pending row", async () => {
