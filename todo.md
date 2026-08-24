@@ -899,3 +899,8 @@
 - [x] Add a visible reset-filter control to the timeline header
 - [x] Keep reset behavior accessible and session-safe
 - [x] Add reset-control tests and revalidate the full project
+
+## Active-filter operator label
+- [x] Add a safe label for the current timeline filter
+- [x] Keep label and reset control responsive and accessible
+- [x] Add label tests and revalidate the full project

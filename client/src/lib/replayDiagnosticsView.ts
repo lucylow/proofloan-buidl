@@ -33,6 +33,12 @@ export function writeReplayRefreshTimelineFilter(storage: Pick<Storage, "setItem
   }
 }
 
+export function getReplayRefreshFilterLabel(filter: ReplayRefreshTimelineFilter): string {
+  if (filter === "all") return "All attempts";
+  if (filter === "failures") return "Failures only";
+  return getReplayRefreshFailureLabel(filter);
+}
+
 export function getReplayRefreshFilterRestorationNotice(filter: ReplayRefreshTimelineFilter, restored: boolean): string | null {
   if (!restored) return null;
   if (filter === "all") return "Restored the full refresh timeline";

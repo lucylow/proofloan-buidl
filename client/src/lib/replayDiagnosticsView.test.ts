@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshFilterRestorationNotice, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
+  it("maps every supported filter to a safe operator label", () => {
+    expect(["all", "failures", "unavailable", "malformed", "request_error"].map(filter => getReplayRefreshFilterLabel(filter as any))).toEqual(["All attempts", "Failures only", "Service unavailable", "Invalid response", "Request error"]);
+  });
+
   it("describes restored filters without exposing storage values", () => {
     expect(getReplayRefreshFilterRestorationNotice("failures", true)).toBe("Restored the failures view");
     expect(getReplayRefreshFilterRestorationNotice("malformed", true)).toBe("Restored the invalid response view");
