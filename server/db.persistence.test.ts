@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
+import { hashValue } from "./underwriting";
 
 type TxLike = {
   insert: (table: unknown) => { values: (values: unknown) => { onDuplicateKeyUpdate: (config: unknown) => Promise<void> } };
@@ -54,7 +55,7 @@ describe("transactional snapshot persistence", () => {
   it("fails closed for malformed persisted facts, decisions, and offers at read time", async () => {
     const application = { applicationId: "PL-READROWS", walletAddress: "0xread-rows", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
     const fact = { factId: "fact-rows-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xrows", eventType: "REPAYMENT", amount: "1 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-rows", verifiedAt: new Date("2026-08-24T20:00:00.000Z") };
-    const decision = { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1" };
+    const decision = { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: hashValue(["root-rows"]), decisionHash: "decision-1" };
     const offer = { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date("2026-08-25T20:00:00.000Z") };
     const audit = [{ state: "Executed", label: "Executed", detail: "executed", eventHash: "audit-rows-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
     const rows = (factRow = fact, decisionRow = decision, offerRow = offer) => [ [application], [factRow], [decisionRow], [offerRow], audit ];
@@ -101,6 +102,15 @@ describe("transactional snapshot persistence", () => {
     const decision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
     expect(buildDecisionUpsertValues(decision).featureFingerprint).toBe("a".repeat(18));
     expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: "not-a-fingerprint" })).toThrow("Invalid persisted decision.");
+  });
+
+  it("rejects persisted decision evidence-root drift", async () => {
+    const application = { applicationId: "PL-ROOT-DRIFT", walletAddress: "0xroot-drift", state: "Executed", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
+    const fact = { factId: "fact-root-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xroot-1", eventType: "REPAYMENT", amount: "1 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date("2026-08-24T20:00:00.000Z") };
+    const decision = { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.08", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "wrong-root", decisionHash: "decision-1" };
+    const offer = { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date("2026-08-25T20:00:00.000Z") };
+    const audit = [{ state: "Executed", label: "Executed", detail: "executed", eventHash: "root-audit-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
+    expect(await getPersistedLoanSnapshot("PL-ROOT-DRIFT", createSnapshotReadDb([[application], [fact], [decision], [offer], audit]) as never)).toBeUndefined();
   });
 
   it("validates decision metadata before emitting application metadata", () => {

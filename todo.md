@@ -1104,3 +1104,8 @@
 - [x] Enforce source-block and verification-block chronology at the write boundary
 - [x] Add regression coverage for block-order drift and fail-closed writes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 20
+- [x] Enforce evidence-root consistency between persisted facts and decision metadata
+- [x] Add regression coverage for evidence-root drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
