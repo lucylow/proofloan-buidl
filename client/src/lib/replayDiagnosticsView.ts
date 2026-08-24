@@ -12,7 +12,7 @@ export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outco
 export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
-export type ReplayRefreshCategoryTrend = { category: ReplayRefreshFailureCategory; direction: "rising" | "falling" | "flat" | "insufficient"; recentCount: number; priorCount: number };
+export type ReplayRefreshCategoryTrend = { category: ReplayRefreshFailureCategory; direction: "rising" | "falling" | "flat" | "insufficient"; severity: "neutral" | "attention" | "critical"; recentCount: number; priorCount: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
 const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
@@ -131,7 +131,8 @@ export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEven
     const recentCount = recent.filter(event => event.outcome === "error" && event.category === category).length;
     const priorCount = prior.filter(event => event.outcome === "error" && event.category === category).length;
     const direction: ReplayRefreshCategoryTrend["direction"] = recent.length < 2 || prior.length < 2 ? "insufficient" : recentCount > priorCount ? "rising" : recentCount < priorCount ? "falling" : "flat";
-    return { category, direction, recentCount, priorCount };
+    const severity: ReplayRefreshCategoryTrend["severity"] = direction !== "rising" ? "neutral" : recentCount >= 2 && recentCount > priorCount ? "critical" : "attention";
+    return { category, direction, severity, recentCount, priorCount };
   }).filter((trend: ReplayRefreshCategoryTrend) => trend.recentCount > 0 || trend.priorCount > 0);
 }
 

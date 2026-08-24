@@ -924,3 +924,8 @@
 - [x] Compare coarse failure categories across bounded timeline windows
 - [x] Render privacy-safe category trend cues
 - [x] Add category-trend tests and revalidate the full project
+
+## Per-category trend severity
+- [x] Classify bounded category trends into safe severity levels
+- [x] Render accessible severity cues beside category trends
+- [x] Add severity boundary tests and revalidate the full project

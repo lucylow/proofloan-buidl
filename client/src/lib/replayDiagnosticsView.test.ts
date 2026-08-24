@@ -100,11 +100,16 @@ describe("replay diagnostics view model", () => {
     const event = (id: number, category: "unavailable" | "malformed" | "request_error") => ({ id, occurredAt: `2026-08-24T00:0${id}:00.000Z`, outcome: "error" as const, category });
     const trends = getReplayRefreshCategoryTrends([event(1, "unavailable"), event(2, "malformed"), event(3, "unavailable"), event(4, "unavailable"), event(5, "request_error"), event(6, "unavailable")]);
     expect(trends).toEqual([
-      { category: "unavailable", direction: "flat", recentCount: 2, priorCount: 2 },
-      { category: "malformed", direction: "falling", recentCount: 0, priorCount: 1 },
-      { category: "request_error", direction: "rising", recentCount: 1, priorCount: 0 },
+      { category: "unavailable", direction: "flat", severity: "neutral", recentCount: 2, priorCount: 2 },
+      { category: "malformed", direction: "falling", severity: "neutral", recentCount: 0, priorCount: 1 },
+      { category: "request_error", direction: "rising", severity: "attention", recentCount: 1, priorCount: 0 },
     ]);
-    expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", recentCount: 1, priorCount: 0 }]);
+    expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", severity: "neutral", recentCount: 1, priorCount: 0 }]);
+  });
+
+  it("marks a rising category with two recent events as critical", () => {
+    const event = (id: number, category: "unavailable" | "malformed" | "request_error") => ({ id, occurredAt: `2026-08-24T00:0${id}:00.000Z`, outcome: "error" as const, category });
+    expect(getReplayRefreshCategoryTrends([event(1, "malformed"), event(2, "malformed"), event(3, "unavailable"), event(4, "unavailable"), event(5, "unavailable"), event(6, "unavailable")]).find(trend => trend.category === "unavailable")).toMatchObject({ direction: "rising", severity: "critical" });
   });
 
   it("counts only the six newest failures in a stable category order", () => {
