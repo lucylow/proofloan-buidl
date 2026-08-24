@@ -759,3 +759,8 @@
 - [x] Classify proof-request replay storage failures separately from conflicts
 - [x] Preserve fail-closed proof-request recovery behavior
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 106
+- [x] Verify affected-row counts for durable acceptance and proof-request commits
+- [x] Fail closed when the intended replay record was not updated
+- [x] Add focused tests and revalidate the full project

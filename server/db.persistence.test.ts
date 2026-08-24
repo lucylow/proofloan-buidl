@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -57,6 +57,13 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+  });
+
+  it("requires exactly one affected replay row before reporting commit success", () => {
+    expect(hasExactlyOneReplayCommit({ affectedRows: 1 })).toBe(true);
+    expect(hasExactlyOneReplayCommit({ affectedRows: 0 })).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: 2 })).toBe(false);
+    expect(hasExactlyOneReplayCommit({})).toBe(false);
   });
 
   it("records privacy-safe structured replay events", () => {

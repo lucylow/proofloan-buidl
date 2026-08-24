@@ -291,6 +291,10 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
   }
 }
 
+export function hasExactlyOneReplayCommit(result: { affectedRows?: unknown }): boolean {
+  return Number(result.affectedRows) === 1;
+}
+
 export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
@@ -298,8 +302,10 @@ export async function commitAcceptanceReplay(applicationId: string, requestKey: 
     if (!isDurableAcceptanceReplayResult(applicationId, result)) return false;
     const resultJson = JSON.stringify(result);
     if (resultJson.length > MAX_ACCEPTANCE_RESULT_LENGTH) return false;
-    await db.update(acceptanceIdempotencyRecords).set({ status: "Committed", resultJson }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey)));
-    return true;
+    const updateResult = await db.update(acceptanceIdempotencyRecords).set({ status: "Committed", resultJson }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey), eq(acceptanceIdempotencyRecords.status, "Pending")));
+    const committed = hasExactlyOneReplayCommit(updateResult[0] ?? {});
+    recordReplayProtectionEvent({ operation: "acceptance", outcome: committed ? "committed" : "unavailable", requestKey, applicationId, reason: committed ? undefined : "write_failed" });
+    return committed;
   } catch (error) {
     console.warn("[ProofLoan] Acceptance idempotency commit unavailable", error instanceof Error ? error.message : error);
     return false;
@@ -374,8 +380,10 @@ export async function commitProofRequestReplay(requestKey: string, applicationId
   try {
     const resultJson = JSON.stringify(result);
     if (resultJson.length > MAX_PROOF_REQUEST_RESULT_LENGTH) return false;
-    await db.update(proofRequestIdempotency).set({ applicationId, status: "Committed", resultJson }).where(eq(proofRequestIdempotency.requestKey, requestKey));
-    return true;
+    const updateResult = await db.update(proofRequestIdempotency).set({ applicationId, status: "Committed", resultJson }).where(and(eq(proofRequestIdempotency.requestKey, requestKey), eq(proofRequestIdempotency.status, "Pending")));
+    const committed = hasExactlyOneReplayCommit(updateResult[0] ?? {});
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: committed ? "committed" : "unavailable", requestKey, applicationId, reason: committed ? undefined : "write_failed" });
+    return committed;
   } catch (error) {
     console.warn("[ProofLoan] Proof-request idempotency commit unavailable", error instanceof Error ? error.message : error);
     return false;
