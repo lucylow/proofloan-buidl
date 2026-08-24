@@ -109,6 +109,10 @@ export function fingerprintFeatureVector(features: FeatureVector): string {
   return hashValue(Object.fromEntries(FEATURE_VECTOR_KEYS.map(key => [key, features[key]])));
 }
 
+export function riskTierForPd30(pd30: number): Decision["riskTier"] {
+  return pd30 < 0.1 ? "A" : pd30 < 0.18 ? "B" : pd30 < 0.3 ? "C" : "D";
+}
+
 export function fingerprintDecision(decision: Decision): string {
   const { decisionHash: _decisionHash, ...canonicalDecision } = decision;
   return hashValue(canonicalDecision);
@@ -129,7 +133,7 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   if (features.leverageRatio > 0.8) reasonCodes.push("HIGH_LEVERAGE");
   if (sparse) reasonCodes.push("SPARSE_EVIDENCE");
   if (reasonCodes.length === 0) reasonCodes.push("SPARSE_EVIDENCE");
-  const riskTier: Decision["riskTier"] = pd30 < 0.1 ? "A" : pd30 < 0.18 ? "B" : pd30 < 0.3 ? "C" : "D";
+  const riskTier = riskTierForPd30(pd30);
   const evidenceRoot = hashValue(facts.map(f => f.proofRoot));
   const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, featureFingerprint: fingerprintFeatureVector(features) };
   const decision = {
@@ -151,7 +155,7 @@ export function sanitizeAiCandidate(candidate: Partial<Decision>, baseline: Deci
   const pd90 = Math.max(pd30, clampProbability(candidate.pd90, baseline.pd90));
   const confidence = Math.min(baseline.freshnessScore, clampProbability(candidate.confidence, baseline.confidence));
   const reasonCodes = Array.isArray(candidate.reasonCodes) ? candidate.reasonCodes.filter((code): code is ReasonCode => typeof code === "string" && isReasonCode(code)) : [];
-  return { ...baseline, pd30, pd90, confidence, reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes, featureFingerprint: baseline.featureFingerprint };
+  return { ...baseline, pd30, pd90, confidence, riskTier: riskTierForPd30(pd30), reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes, featureFingerprint: baseline.featureFingerprint };
 }
 
 export async function runAiUnderwriting(features: FeatureVector, facts: VerifiedFact[]): Promise<Decision> {

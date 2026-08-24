@@ -1124,3 +1124,8 @@
 - [x] Enforce consistency between persisted decision confidence and derived freshness metrics
 - [x] Add regression coverage for confidence-freshness drift and fail-closed reconstruction
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 24
+- [x] Enforce decision risk-tier consistency with persisted probability thresholds
+- [x] Add regression coverage for risk-tier drift and fail-closed reconstruction
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

@@ -28,7 +28,7 @@ describe("ProofLoan underwriting primitives", () => {
   });
 
   it("caps advisory confidence at the evidence freshness score", () => {
-    const baseline = { pd30: 0.08, pd90: 0.16, confidence: 0.4, freshnessScore: 0.6, riskTier: "B" as const, reasonCodes: ["SPARSE_EVIDENCE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
+    const baseline = { pd30: 0.12, pd90: 0.16, confidence: 0.4, freshnessScore: 0.6, riskTier: "B" as const, reasonCodes: ["SPARSE_EVIDENCE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
     expect(sanitizeAiCandidate({ confidence: 0.99 }, baseline).confidence).toBe(0.6);
   });
 
@@ -62,7 +62,7 @@ describe("ProofLoan underwriting primitives", () => {
   it("keeps RiskGuard deterministic and rejects out-of-bounds terms", () => {
     const facts = buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia");
     const features = buildFeatureVector(facts);
-    const decision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test", featureVersion: "test", evidenceRoot: "root", policyHash: "policy", decisionHash: "decision" };
+    const decision = { pd30: 0.12, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test", featureVersion: "test", evidenceRoot: "root", policyHash: "policy", decisionHash: "decision" };
     expect(evaluateRiskGuard(decision, 1500).status).toBe("Ready");
     expect(evaluateRiskGuard(decision, 3000).status).toBe("Blocked");
     expect(evaluateRiskGuard({ ...decision, freshnessScore: 0.5 }, 1500).status).toBe("Blocked");
