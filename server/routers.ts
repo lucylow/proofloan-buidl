@@ -6,7 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
-import { claimAcceptanceReplay, commitAcceptanceReplay, getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
+import { claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
 import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
 import { TRPCError } from "@trpc/server";
 
@@ -128,9 +128,16 @@ export const appRouter = router({
     }),
   }),
   proofloan: router({
-    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]) })).mutation(async ({ input }) => {
-      if (!allowProofRequest(input.walletAddress)) throw proofLoanError(PROOFLOAN_ERROR_CODES.RATE_LIMITED, "Too many proof requests. Please retry shortly.");
+    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]), idempotencyKey: z.string().trim().min(16).max(128).optional() })).mutation(async ({ input }) => {
       const previewMode = !isLiveTxHash(input.walletAddress);
+      if (!previewMode && input.idempotencyKey) {
+        const claim = await claimProofRequestReplay(input.idempotencyKey, input.walletAddress, input.sourceChain);
+        if (claim.status === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof-request replay protection is unavailable; no verification was attempted.");
+        if (claim.status === "conflict") throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "This proof-request key is already bound to different inputs.");
+        if (claim.status === "pending") throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "This proof request is already in progress; retry with the same key shortly.");
+        if (claim.status === "committed") return claim.result as LoanSnapshot;
+      }
+      if (!allowProofRequest(input.walletAddress)) throw proofLoanError(PROOFLOAN_ERROR_CODES.RATE_LIMITED, "Too many proof requests. Please retry shortly.");
       const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
       if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence before state transitions.");
       await transitionLiveState(snapshot, "Intake", "EvidencePending", !previewMode);
@@ -166,6 +173,7 @@ export const appRouter = router({
       if (snapshot.offer.status === "Ready") await transitionLiveState(snapshot, "OfferPrepared", "AwaitingAcceptance", !previewMode);
       await persistLiveSnapshot(snapshot, !previewMode);
       if (previewMode) storePreviewApplication(applications, snapshot);
+      if (!previewMode && input.idempotencyKey && !(await commitProofRequestReplay(input.idempotencyKey, snapshot.applicationId, snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof request completed, but replay protection could not be finalized.");
       return snapshot;
     }),
     getApplication: publicProcedure.input(z.object({ applicationId: applicationIdInput })).query(async ({ input }) => (await getPersistedLoanSnapshot(input.applicationId)) ?? applications.get(input.applicationId) ?? null),

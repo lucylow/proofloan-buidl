@@ -146,6 +146,11 @@ describe("proofloan API flow", () => {
     await expect(caller.proofloan.createApplication({ walletAddress: "0x" + "a".repeat(300), sourceChain: "Ethereum Sepolia" })).rejects.toThrow();
   });
 
+  it("rejects undersized proof-request idempotency keys at the API boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.proofloan.createApplication({ walletAddress: "0xproof-request-key-wallet", sourceChain: "Ethereum Sepolia", idempotencyKey: "short" })).rejects.toThrow();
+  });
+
   it("trims proof-request input before creating the snapshot", async () => {
     const caller = appRouter.createCaller(createContext());
     const snapshot = await caller.proofloan.createApplication({ walletAddress: "  0xtrimmed-wallet  ", sourceChain: "Ethereum Sepolia" });

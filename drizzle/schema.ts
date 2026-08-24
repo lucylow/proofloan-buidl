@@ -85,6 +85,18 @@ export const acceptanceIdempotency = mysqlTable("acceptance_idempotency", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const proofRequestIdempotency = mysqlTable("proof_request_idempotency", {
+  id: int("id").autoincrement().primaryKey(),
+  requestKey: varchar("requestKey", { length: 128 }).notNull().unique(),
+  walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
+  sourceChain: varchar("sourceChain", { length: 48 }).notNull(),
+  applicationId: varchar("applicationId", { length: 64 }),
+  status: varchar("status", { length: 16 }).notNull(),
+  resultJson: text("resultJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const auditEvents = mysqlTable("audit_events", {
   id: int("id").autoincrement().primaryKey(),
   applicationId: varchar("applicationId", { length: 64 }).notNull(),

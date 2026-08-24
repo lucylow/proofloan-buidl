@@ -1,6 +1,6 @@
 import { eq, and, asc, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords } from "../drizzle/schema";
+import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { isProofLoanApplicationId } from "@shared/proofloan";
 
@@ -18,6 +18,7 @@ const MAX_PERSISTED_APPLICATION_ID_LENGTH = 64;
 const MAX_PERSISTED_WALLET_LENGTH = 128;
 const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
 const MAX_ACCEPTANCE_RESULT_LENGTH = 65_536;
+const MAX_PROOF_REQUEST_RESULT_LENGTH = 65_536;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -227,6 +228,64 @@ export async function commitAcceptanceReplay(applicationId: string, requestKey: 
     return true;
   } catch (error) {
     console.warn("[ProofLoan] Acceptance idempotency commit unavailable", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+export function isDurableProofRequestReplayResult(result: unknown): result is LoanSnapshot {
+  if (!result || typeof result !== "object") return false;
+  const candidate = result as { applicationId?: unknown; state?: unknown; facts?: unknown; audit?: unknown };
+  return typeof candidate.applicationId === "string" && isProofLoanApplicationId(candidate.applicationId) && typeof candidate.state === "string" && candidate.state.length > 0 && Array.isArray(candidate.facts) && Array.isArray(candidate.audit) && candidate.audit.length > 0;
+}
+
+export type ProofRequestReplayClaim =
+  | { status: "claimed" }
+  | { status: "pending" }
+  | { status: "committed"; result: unknown }
+  | { status: "conflict" }
+  | { status: "unavailable" };
+
+export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string): Promise<ProofRequestReplayClaim> {
+  const db = await getDb();
+  if (!db) return { status: "unavailable" };
+  try {
+    await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
+    const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
+    if (!row[0]) return { status: "unavailable" };
+    if (row[0].walletAddress !== walletAddress || row[0].sourceChain !== sourceChain) return { status: "conflict" };
+    if (row[0].status === "Committed" && typeof row[0].resultJson === "string") {
+      try {
+        const result = JSON.parse(row[0].resultJson) as unknown;
+        if (isDurableProofRequestReplayResult(result)) return { status: "committed", result };
+      } catch {
+        return { status: "unavailable" };
+      }
+      return { status: "unavailable" };
+    }
+    if (row[0].status === "Pending") {
+      if (row[0].createdAt.getTime() < Date.now() - 10 * 60_000) {
+        await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(eq(proofRequestIdempotency.requestKey, requestKey));
+        return { status: "claimed" };
+      }
+      return { status: "pending" };
+    }
+    return { status: "unavailable" };
+  } catch (error) {
+    console.warn("[ProofLoan] Proof-request idempotency claim unavailable", error instanceof Error ? error.message : error);
+    return { status: "unavailable" };
+  }
+}
+
+export async function commitProofRequestReplay(requestKey: string, applicationId: string, result: unknown): Promise<boolean> {
+  const db = await getDb();
+  if (!db || !isDurableProofRequestReplayResult(result) || result.applicationId !== applicationId) return false;
+  try {
+    const resultJson = JSON.stringify(result);
+    if (resultJson.length > MAX_PROOF_REQUEST_RESULT_LENGTH) return false;
+    await db.update(proofRequestIdempotency).set({ applicationId, status: "Committed", resultJson }).where(eq(proofRequestIdempotency.requestKey, requestKey));
+    return true;
+  } catch (error) {
+    console.warn("[ProofLoan] Proof-request idempotency commit unavailable", error instanceof Error ? error.message : error);
     return false;
   }
 }

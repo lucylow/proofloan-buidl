@@ -734,3 +734,8 @@
 - [x] Add durable idempotency storage for acceptance retries across server instances
 - [x] Add focused schema, persistence, and router coverage
 - [x] Revalidate migrations, typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 101
+- [x] Add durable idempotency storage for live proof-request creation
+- [x] Add focused persistence, router, and client retry coverage
+- [x] Revalidate migration, typecheck, tests, production build, and responsive rendering

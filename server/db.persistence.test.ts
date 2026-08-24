@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, persistLoanSnapshot } from "./db";
+import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, persistLoanSnapshot } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -57,6 +57,14 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+  });
+
+  it("validates proof-request replay results before durable commit", () => {
+    const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "AwaitingAcceptance", facts: [], audit: [{ state: "Intake" }] };
+    expect(isDurableProofRequestReplayResult(valid)).toBe(true);
+    expect(isDurableProofRequestReplayResult({ ...valid, applicationId: "not-canonical" })).toBe(false);
+    expect(isDurableProofRequestReplayResult({ ...valid, facts: null })).toBe(false);
+    expect(isDurableProofRequestReplayResult({ ...valid, audit: [] })).toBe(false);
   });
 
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {

@@ -12,6 +12,7 @@ import { scheduleFeedbackReset, type FeedbackTimer } from "@/lib/transientFeedba
 import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
+import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -34,6 +35,7 @@ export default function Home() {
   const [copyError, setCopyError] = useState<string | null>(null);
   const copyResetTimer = useRef<FeedbackTimer | null>(null);
   const acceptanceIdempotencyRef = useRef<AcceptanceIdempotencyRef | null>(null);
+  const proofRequestIdempotencyRef = useRef<ReturnType<typeof getProofRequestIdempotencyKey> | null>(null);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
   useEffect(() => {
@@ -81,7 +83,8 @@ export default function Home() {
       return;
     }
     setInputError(null);
-    createApplication.mutate({ walletAddress: walletAddress.trim(), sourceChain });
+    proofRequestIdempotencyRef.current = getProofRequestIdempotencyKey(proofRequestIdempotencyRef.current, walletAddress, sourceChain);
+    createApplication.mutate({ walletAddress: walletAddress.trim(), sourceChain, idempotencyKey: proofRequestIdempotencyRef.current.key });
   };
   const copyId = async () => {
     if (!app) return;
