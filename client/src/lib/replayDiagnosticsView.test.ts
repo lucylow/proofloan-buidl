@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshTimelineSummary, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,19 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("counts only the six newest failures in a stable category order", () => {
+    const events = [
+      { id: 1, occurredAt: "2026-08-24T00:00:00.000Z", outcome: "error" as const, category: "unavailable" as const },
+      { id: 2, occurredAt: "2026-08-24T00:01:00.000Z", outcome: "error" as const, category: "malformed" as const },
+      { id: 3, occurredAt: "2026-08-24T00:02:00.000Z", outcome: "success" as const },
+    ];
+    expect(getReplayRefreshCategoryCounts(events)).toEqual([
+      { category: "unavailable", label: "Service unavailable", count: 1 },
+      { category: "malformed", label: "Invalid response", count: 1 },
+      { category: "request_error", label: "Request error", count: 0 },
+    ]);
   });
 
   it("summarizes bounded failure rates without exposing event details", () => {

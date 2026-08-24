@@ -854,3 +854,8 @@
 - [x] Calculate a bounded privacy-safe failure-rate summary
 - [x] Render the summary beside the recent refresh timeline
 - [x] Add summary math tests and revalidate the full project
+
+## Refresh failure category breakdown
+- [x] Calculate bounded counts for each coarse failure category
+- [x] Render category counts beside the refresh-rate summary
+- [x] Add breakdown tests and revalidate the full project
