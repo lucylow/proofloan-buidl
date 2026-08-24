@@ -1114,3 +1114,8 @@
 - [x] Enforce deterministic decision-hash consistency during persisted reconstruction
 - [x] Add regression coverage for decision-hash drift and fail-closed reads
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 22
+- [x] Align persisted decision freshness with the canonical derived feature vector
+- [x] Add regression coverage for reconstructed decision-feature freshness alignment
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

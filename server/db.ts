@@ -641,6 +641,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     if (decision && decision.evidenceRoot !== hashValue(facts.map(fact => fact.proofRoot))) return undefined;
     const features = buildFeatureVector(facts, reconstructionNow);
     if (!isFeatureVectorFiniteAndBounded(features) || !isFeatureVectorConsistentWithFacts(features, facts, reconstructionNow)) return undefined;
+    if (decision) decision = { ...decision, freshnessScore: features.freshnessScore };
     if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
     if (decision?.featureFingerprint !== undefined && decision.decisionHash !== fingerprintDecision(decision)) return undefined;
     return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
