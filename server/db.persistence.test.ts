@@ -165,6 +165,32 @@ describe("transactional snapshot persistence", () => {
     info.mockRestore();
   });
 
+  it("classifies a missing acceptance replay record without proceeding", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const replayDb = {
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    };
+    await expect(claimAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-missing-key", replayDb as never)).resolves.toEqual({ status: "unavailable" });
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("missing_record");
+    expect(JSON.stringify(payload)).not.toContain("acceptance-missing-key");
+    info.mockRestore();
+  });
+
+  it("classifies a missing proof-request replay record without proceeding", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const replayDb = {
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    };
+    await expect(claimProofRequestReplay("proof-missing-key", "0xproof-missing-wallet", "Ethereum Sepolia", replayDb as never)).resolves.toEqual({ status: "unavailable" });
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("missing_record");
+    expect(JSON.stringify(payload)).not.toContain("proof-missing-key");
+    info.mockRestore();
+  });
+
   it("expires stale replay leases but preserves fresh claims", () => {
     const now = Date.parse("2026-08-24T00:30:00.000Z");
     expect(isReplayRecordExpired(new Date(now - 10 * 60_000 - 1), now)).toBe(true);

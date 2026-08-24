@@ -255,7 +255,10 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     if (!dbOverride) await cleanupReplayProtectionRecords();
     await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
     const row = await db.select().from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.applicationId, applicationId)).limit(1);
-    if (!row[0]) return { status: "unavailable" };
+    if (!row[0]) {
+      recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "missing_record" });
+      return { status: "unavailable" };
+    }
     if (row[0].requestKey !== requestKey) {
       recordReplayProtectionEvent({ operation: "acceptance", outcome: "conflict", requestKey, applicationId });
       return { status: "conflict" };

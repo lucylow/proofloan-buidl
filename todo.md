@@ -794,3 +794,8 @@
 - [x] Add database-exception tests for stale acceptance recovery
 - [x] Add database-exception tests for stale proof-request recovery
 - [x] Verify privacy-safe failure diagnostics and revalidate the full project
+
+## Code improvement pass 113
+- [x] Classify missing acceptance replay records explicitly
+- [x] Preserve fail-closed missing proof-request record behavior
+- [x] Add focused tests and revalidate the full project
