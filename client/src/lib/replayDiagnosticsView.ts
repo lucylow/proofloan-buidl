@@ -200,8 +200,17 @@ export function getReplayRefreshSeverityPersistenceNotice(available: boolean): s
   return available ? null : "Session persistence is unavailable; current thresholds remain active in memory.";
 }
 
-export function getReplayRefreshSeverityPersistenceStatus(available: boolean): string {
-  return available ? "Session persistence ready for this browser session." : "Session persistence is unavailable; current thresholds remain active in memory.";
+export type ReplayRefreshSeverityPersistenceState = "ready" | "unavailable" | "recovered";
+
+export function getReplayRefreshSeverityPersistenceTransition(previousAvailable: boolean | null, available: boolean): ReplayRefreshSeverityPersistenceState {
+  if (!available) return "unavailable";
+  return previousAvailable === false ? "recovered" : "ready";
+}
+
+export function getReplayRefreshSeverityPersistenceStatus(state: ReplayRefreshSeverityPersistenceState): string {
+  if (state === "unavailable") return "Session persistence is unavailable; current thresholds remain active in memory.";
+  if (state === "recovered") return "Session persistence restored for this browser session.";
+  return "Session persistence ready for this browser session.";
 }
 
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
