@@ -889,3 +889,8 @@
 - [x] Persist and restore only validated filter values
 - [x] Degrade safely when session storage is unavailable
 - [x] Add persistence tests and revalidate the full project
+
+## Restored-filter operator cue
+- [x] Detect when a validated filter was restored from session storage
+- [x] Render a transient accessible restoration cue
+- [x] Add restoration-feedback tests and revalidate the full project

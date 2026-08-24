@@ -33,6 +33,13 @@ export function writeReplayRefreshTimelineFilter(storage: Pick<Storage, "setItem
   }
 }
 
+export function getReplayRefreshFilterRestorationNotice(filter: ReplayRefreshTimelineFilter, restored: boolean): string | null {
+  if (!restored) return null;
+  if (filter === "all") return "Restored the full refresh timeline";
+  if (filter === "failures") return "Restored the failures view";
+  return `Restored the ${getReplayRefreshFailureLabel(filter).toLowerCase()} view`;
+}
+
 export function shouldShowReplayRefreshFilterReset(input: { filter: ReplayRefreshTimelineFilter; visibleCount: number }): boolean {
   return input.filter !== "all" && input.visibleCount === 0;
 }

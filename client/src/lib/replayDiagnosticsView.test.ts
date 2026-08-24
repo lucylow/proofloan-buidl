@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshFilterRestorationNotice, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
+  it("describes restored filters without exposing storage values", () => {
+    expect(getReplayRefreshFilterRestorationNotice("failures", true)).toBe("Restored the failures view");
+    expect(getReplayRefreshFilterRestorationNotice("malformed", true)).toBe("Restored the invalid response view");
+    expect(getReplayRefreshFilterRestorationNotice("all", true)).toBe("Restored the full refresh timeline");
+    expect(getReplayRefreshFilterRestorationNotice("failures", false)).toBeNull();
+  });
+
   it("restores only validated session filters and fails safely when storage is blocked", () => {
     const values = new Map<string, string>();
     const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } };

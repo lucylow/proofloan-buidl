@@ -13,7 +13,7 @@ import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshFailureLabel, getReplayRefreshTimelineSummary, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshFailureLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshTimelineSummary, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -41,6 +41,7 @@ export default function Home() {
   const [pollingPaused, setPollingPaused] = useState(false);
   const [replayRefreshOutcome, setReplayRefreshOutcome] = useState<ReplayDiagnosticsRefreshOutcome>("idle");
   const [replayTimelineFilter, setReplayTimelineFilter] = useState<ReplayRefreshTimelineFilter>(() => readReplayRefreshTimelineFilter(typeof window === "undefined" ? undefined : window.sessionStorage));
+  const [replayTimelineFilterRestored, setReplayTimelineFilterRestored] = useState(() => typeof window !== "undefined" && readReplayRefreshTimelineFilter(window.sessionStorage) !== "all");
   const [replayRefreshTimeline, setReplayRefreshTimeline] = useState<ReplayRefreshTimelineEvent[]>([]);
   const replayRefreshRequestRef = useRef(0);
   const replayRefreshMountedRef = useRef(true);
@@ -79,6 +80,7 @@ export default function Home() {
   const replayRefreshCategoryCounts = getReplayRefreshCategoryCounts(replayRefreshTimeline);
   const filteredReplayRefreshTimeline = filterReplayRefreshTimeline(replayRefreshTimeline, replayTimelineFilter);
   useEffect(() => { writeReplayRefreshTimelineFilter(typeof window === "undefined" ? undefined : window.sessionStorage, replayTimelineFilter); }, [replayTimelineFilter]);
+  useEffect(() => { if (!replayTimelineFilterRestored) return; const timer = window.setTimeout(() => setReplayTimelineFilterRestored(false), 4000); return () => window.clearTimeout(timer); }, [replayTimelineFilterRestored]);
   const refreshReplayDiagnostics = () => {
     if (!replayDiagnosticsRefresh.enabled) return;
     const requestId = replayRefreshRequestRef.current + 1;
@@ -187,7 +189,7 @@ export default function Home() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Recent refresh attempts</h3>
-                    <span className="text-[10px] text-slate-500">Last six · no identifiers</span>
+                    <span className="text-[10px] text-slate-500">Last six · no identifiers</span>{getReplayRefreshFilterRestorationNotice(replayTimelineFilter, replayTimelineFilterRestored) && <span role="status" className="mt-1 block text-[10px] text-cyan-200">{getReplayRefreshFilterRestorationNotice(replayTimelineFilter, replayTimelineFilterRestored)}</span>}
                   </div>
                   <div className="flex flex-wrap rounded-full border border-white/10 p-0.5" role="group" aria-label="Filter refresh attempts">{(["all", "failures", "unavailable", "malformed", "request_error"] as const).map(filter => <button key={filter} type="button" aria-pressed={replayTimelineFilter === filter} onClick={() => setReplayTimelineFilter(filter)} className={`rounded-full px-2 py-1 text-[10px] font-semibold ${replayTimelineFilter === filter ? "bg-white/10 text-white" : "text-slate-500"}`}>{filter === "all" ? "All" : filter === "failures" ? "Failures" : getReplayRefreshFailureLabel(filter)}</button>)}</div>
                   <div className="text-right">
