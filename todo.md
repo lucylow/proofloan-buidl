@@ -919,3 +919,8 @@
 - [x] Include the bounded matching count in filter-change feedback
 - [x] Keep count feedback accessible and privacy-safe
 - [x] Add count-aware cue tests and revalidate the full project
+
+## Per-category refresh trend comparison
+- [x] Compare coarse failure categories across bounded timeline windows
+- [x] Render privacy-safe category trend cues
+- [x] Add category-trend tests and revalidate the full project

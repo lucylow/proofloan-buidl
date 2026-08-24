@@ -12,6 +12,7 @@ export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outco
 export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
+export type ReplayRefreshCategoryTrend = { category: ReplayRefreshFailureCategory; direction: "rising" | "falling" | "flat" | "insufficient"; recentCount: number; priorCount: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
 const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
@@ -118,6 +119,20 @@ export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[]
   if (filter === "all") return recent;
   if (filter === "failures") return recent.filter(event => event.outcome === "error");
   return recent.filter(event => event.outcome === "error" && event.category === filter);
+}
+
+export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[]): ReplayRefreshCategoryTrend[] {
+  const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
+  const bounded = events.slice(-6);
+  const midpoint = Math.floor(bounded.length / 2);
+  const prior = bounded.slice(0, midpoint);
+  const recent = bounded.slice(midpoint);
+  return categories.map((category: ReplayRefreshFailureCategory) => {
+    const recentCount = recent.filter(event => event.outcome === "error" && event.category === category).length;
+    const priorCount = prior.filter(event => event.outcome === "error" && event.category === category).length;
+    const direction: ReplayRefreshCategoryTrend["direction"] = recent.length < 2 || prior.length < 2 ? "insufficient" : recentCount > priorCount ? "rising" : recentCount < priorCount ? "falling" : "flat";
+    return { category, direction, recentCount, priorCount };
+  }).filter((trend: ReplayRefreshCategoryTrend) => trend.recentCount > 0 || trend.priorCount > 0);
 }
 
 export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEvent[]): ReplayRefreshCategoryCount[] {

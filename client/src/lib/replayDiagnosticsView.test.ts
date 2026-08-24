@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("maps every supported filter to a safe operator label", () => {
@@ -94,6 +94,17 @@ describe("replay diagnostics view model", () => {
     expect(getReplayRefreshTrend([event(1, "error"), event(2, "success"), event(3, "error"), event(4, "success")])).toMatchObject({ direction: "flat" });
     expect(getReplayRefreshTrend([event(1, "error"), event(2, "success")])).toMatchObject({ direction: "insufficient", confidence: "low", priorSampleSize: 0, recentSampleSize: 0 });
     expect(getReplayRefreshTrend([event(1, "success"), event(2, "success"), event(3, "success"), event(4, "success"), event(5, "error"), event(6, "error")])).toMatchObject({ confidence: "high", recentSampleSize: 3, priorSampleSize: 3 });
+  });
+
+  it("compares coarse failure categories across bounded windows without raw details", () => {
+    const event = (id: number, category: "unavailable" | "malformed" | "request_error") => ({ id, occurredAt: `2026-08-24T00:0${id}:00.000Z`, outcome: "error" as const, category });
+    const trends = getReplayRefreshCategoryTrends([event(1, "unavailable"), event(2, "malformed"), event(3, "unavailable"), event(4, "unavailable"), event(5, "request_error"), event(6, "unavailable")]);
+    expect(trends).toEqual([
+      { category: "unavailable", direction: "flat", recentCount: 2, priorCount: 2 },
+      { category: "malformed", direction: "falling", recentCount: 0, priorCount: 1 },
+      { category: "request_error", direction: "rising", recentCount: 1, priorCount: 0 },
+    ]);
+    expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", recentCount: 1, priorCount: 0 }]);
   });
 
   it("counts only the six newest failures in a stable category order", () => {
