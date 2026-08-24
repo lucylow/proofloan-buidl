@@ -1024,3 +1024,8 @@
 - [x] Normalize malformed audit entries into bounded coarse timeline events
 - [x] Handle invalid timestamps without breaking newest-first ordering
 - [x] Add audit-history regression tests and revalidate the full project
+
+## Server snapshot audit-history hardening
+- [x] Normalize persisted audit histories at the server snapshot boundary
+- [x] Keep malformed audit records bounded and free of raw diagnostic details
+- [x] Add server snapshot regression tests and revalidate the full project

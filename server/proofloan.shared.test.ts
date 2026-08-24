@@ -117,6 +117,9 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact, { ...fact, txHash: "0xdef" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact, { ...fact, factId: "fact-2" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], { ...valid.audit[0], label: "Review" }] })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], detail: "raw-wallet=0xsecret" }] })).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], createdAt: "2026-08-24T12:00:00.000Z" }] as never })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, audit: [{ ...valid.audit[0], eventHash: { raw: "secret" } }] as never })).toBe(false);
   });
 
   it("rejects malformed audit details before database writes", () => {
