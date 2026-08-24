@@ -295,8 +295,8 @@ export function hasExactlyOneReplayCommit(result: { affectedRows?: unknown }): b
   return Number(result.affectedRows) === 1;
 }
 
-export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown): Promise<boolean> {
-  const db = await getDb();
+export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown, dbOverride?: DatabaseClient): Promise<boolean> {
+  const db = dbOverride ?? await getDb();
   if (!db) return false;
   try {
     if (!isDurableAcceptanceReplayResult(applicationId, result)) return false;
@@ -374,8 +374,8 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
   }
 }
 
-export async function commitProofRequestReplay(requestKey: string, applicationId: string, result: unknown): Promise<boolean> {
-  const db = await getDb();
+export async function commitProofRequestReplay(requestKey: string, applicationId: string, result: unknown, dbOverride?: DatabaseClient): Promise<boolean> {
+  const db = dbOverride ?? await getDb();
   if (!db || !isDurableProofRequestReplayResult(result) || result.applicationId !== applicationId) return false;
   try {
     const resultJson = JSON.stringify(result);

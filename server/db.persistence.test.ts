@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, commitAcceptanceReplay, commitProofRequestReplay, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -57,6 +57,20 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+  });
+
+  it("commits acceptance replay only when the mocked database updates one pending row", async () => {
+    const update = (affectedRows: number) => ({ update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }) });
+    const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "Executed", transactionHash: "0xcreditcoin_result", audit: [{ state: "Executed" }] };
+    expect(await commitAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-key-123", valid, update(1) as never)).toBe(true);
+    expect(await commitAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-key-123", valid, update(0) as never)).toBe(false);
+  });
+
+  it("commits proof-request replay only when the mocked database updates one pending row", async () => {
+    const update = (affectedRows: number) => ({ update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }) });
+    const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "AwaitingAcceptance", facts: [], audit: [{ state: "Intake" }] };
+    expect(await commitProofRequestReplay("proof-key-123", "PL-PERSISTENCE-TEST", valid, update(1) as never)).toBe(true);
+    expect(await commitProofRequestReplay("proof-key-123", "PL-PERSISTENCE-TEST", valid, update(0) as never)).toBe(false);
   });
 
   it("requires exactly one affected replay row before reporting commit success", () => {

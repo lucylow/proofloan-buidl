@@ -769,3 +769,8 @@
 - [x] Add direct mocked-database coverage for durable acceptance commits
 - [x] Add direct mocked-database coverage for durable proof-request commits
 - [x] Revalidate the full project and responsive rendering
+
+## Code improvement pass 108
+- [x] Add direct mocked-database tests for acceptance replay commits
+- [x] Add direct mocked-database tests for proof-request replay commits
+- [x] Revalidate the full project and responsive rendering
