@@ -6,7 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
-import { getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
+import { claimAcceptanceReplay, commitAcceptanceReplay, getPersistedLoanSnapshot, persistLoanSnapshot, transitionLoanState } from "./db";
 import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
 import { TRPCError } from "@trpc/server";
 
@@ -176,12 +176,20 @@ export const appRouter = router({
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
       const previewMode = !!snapshot && !isLiveTxHash(snapshot.walletAddress);
       if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status)) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "Offer is unavailable, expired, or already accepted.");
+      if (!previewMode && input.idempotencyKey) {
+        const claim = await claimAcceptanceReplay(snapshot.applicationId, input.idempotencyKey);
+        if (claim.status === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Acceptance replay protection is unavailable; no execution was attempted.");
+        if (claim.status === "conflict") throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "A different acceptance request is already associated with this application.");
+        if (claim.status === "pending") throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "An acceptance request is already in progress; retry with the same key shortly.");
+        if (claim.status === "committed") return claim.result as AcceptedOfferResult;
+      }
       snapshot.offer.status = "Executed";
       await transitionLiveState(snapshot, "AwaitingAcceptance", "Executed", !previewMode);
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
       await persistLiveSnapshot(snapshot, !previewMode);
       if (previewMode) storePreviewApplication(applications, snapshot);
       const result: AcceptedOfferResult = { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, auditHash: snapshot.audit.at(-1)?.hash })}` };
+      if (!previewMode && input.idempotencyKey && !(await commitAcceptanceReplay(input.applicationId, input.idempotencyKey, result))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Acceptance committed, but replay protection could not be finalized.");
       if (input.idempotencyKey) {
         if (!acceptanceIdempotency.has(input.applicationId) && acceptanceIdempotency.size >= MAX_ACCEPTANCE_IDEMPOTENCY_ENTRIES) {
           const oldestApplicationId = acceptanceIdempotency.keys().next().value;

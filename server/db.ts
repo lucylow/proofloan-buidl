@@ -1,6 +1,6 @@
 import { eq, and, asc, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { isProofLoanApplicationId } from "@shared/proofloan";
 
@@ -17,6 +17,7 @@ const MAX_PERSISTED_PROOF_ROOT_LENGTH = 128;
 const MAX_PERSISTED_APPLICATION_ID_LENGTH = 64;
 const MAX_PERSISTED_WALLET_LENGTH = 128;
 const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
+const MAX_ACCEPTANCE_RESULT_LENGTH = 65_536;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -172,6 +173,62 @@ export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
     throw new Error("Invalid persisted verified fact.");
   }
   return { values: { factId: fact.id, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt }, updateSet: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } };
+}
+
+export function isDurableAcceptanceReplayResult(applicationId: string, result: unknown): result is LoanSnapshot & { transactionHash: string } {
+  if (!result || typeof result !== "object") return false;
+  const candidate = result as { applicationId?: unknown; state?: unknown; transactionHash?: unknown; audit?: unknown };
+  return candidate.applicationId === applicationId && candidate.state === "Executed" && typeof candidate.transactionHash === "string" && candidate.transactionHash === candidate.transactionHash.trim() && candidate.transactionHash.length > 0 && candidate.transactionHash.length <= MAX_PERSISTED_TX_HASH_LENGTH && Array.isArray(candidate.audit) && candidate.audit.length > 0;
+}
+
+export type AcceptanceReplayClaim =
+  | { status: "claimed" }
+  | { status: "pending" }
+  | { status: "committed"; result: unknown }
+  | { status: "conflict" }
+  | { status: "unavailable" };
+
+export async function claimAcceptanceReplay(applicationId: string, requestKey: string): Promise<AcceptanceReplayClaim> {
+  const db = await getDb();
+  if (!db) return { status: "unavailable" };
+  try {
+    await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
+    const row = await db.select().from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.applicationId, applicationId)).limit(1);
+    if (!row[0]) return { status: "unavailable" };
+    if (row[0].requestKey !== requestKey) return { status: "conflict" };
+    if (row[0].status === "Committed" && typeof row[0].resultJson === "string") {
+      try {
+        const result = JSON.parse(row[0].resultJson) as unknown;
+        if (isDurableAcceptanceReplayResult(applicationId, result)) return { status: "committed", result };
+      } catch {
+        return { status: "unavailable" };
+      }
+      return { status: "unavailable" };
+    }
+    if (row[0].status === "Pending") {
+      if (row[0].createdAt.getTime() < Date.now() - 10 * 60_000) return { status: "claimed" };
+      return { status: "pending" };
+    }
+    return { status: "unavailable" };
+  } catch (error) {
+    console.warn("[ProofLoan] Acceptance idempotency claim unavailable", error instanceof Error ? error.message : error);
+    return { status: "unavailable" };
+  }
+}
+
+export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    if (!isDurableAcceptanceReplayResult(applicationId, result)) return false;
+    const resultJson = JSON.stringify(result);
+    if (resultJson.length > MAX_ACCEPTANCE_RESULT_LENGTH) return false;
+    await db.update(acceptanceIdempotencyRecords).set({ status: "Committed", resultJson }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey)));
+    return true;
+  } catch (error) {
+    console.warn("[ProofLoan] Acceptance idempotency commit unavailable", error instanceof Error ? error.message : error);
+    return false;
+  }
 }
 
 type DatabaseClient = NonNullable<Awaited<ReturnType<typeof getDb>>>;

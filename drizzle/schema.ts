@@ -75,6 +75,16 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 
+export const acceptanceIdempotency = mysqlTable("acceptance_idempotency", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: varchar("applicationId", { length: 64 }).notNull().unique(),
+  requestKey: varchar("requestKey", { length: 128 }).notNull(),
+  status: varchar("status", { length: 16 }).notNull(),
+  resultJson: text("resultJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const auditEvents = mysqlTable("audit_events", {
   id: int("id").autoincrement().primaryKey(),
   applicationId: varchar("applicationId", { length: 64 }).notNull(),
