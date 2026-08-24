@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -18,6 +18,13 @@ describe("ProofLoan underwriting primitives", () => {
     expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 90, volume7d: 4050, volume30d: 4050, volume180d: 4900, evidenceCount: 3 });
     expect(features.leverageRatio).toBeGreaterThan(0);
     expect(features.freshnessScore).toBeLessThan(1);
+  });
+
+  it("fingerprints feature vectors canonically and detects drift", () => {
+    const features = buildFeatureVector(buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia"), Date.parse("2026-08-24T20:00:00.000Z"));
+    expect(fingerprintFeatureVector(features)).toMatch(/^[a-f0-9]{18}$/);
+    expect(fingerprintFeatureVector({ ...features })).toBe(fingerprintFeatureVector(features));
+    expect(fingerprintFeatureVector({ ...features, volume30d: features.volume30d + 1 })).not.toBe(fingerprintFeatureVector(features));
   });
 
   it("accepts only feature vectors consistent with the same evidence and clock", () => {

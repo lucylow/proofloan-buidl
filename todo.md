@@ -1054,3 +1054,8 @@
 - [x] Add deterministic fact-to-feature consistency validation
 - [x] Reject reconstructed snapshots when derived metrics drift from evidence
 - [x] Add feature-drift tests and revalidate the full project
+
+## Feature-integrity fingerprint hardening
+- [x] Add a canonical deterministic fingerprint for derived feature vectors
+- [x] Verify fingerprint stability and reject drift at persistence boundaries
+- [x] Add fingerprint regression tests and revalidate the full project

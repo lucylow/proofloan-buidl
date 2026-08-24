@@ -103,9 +103,15 @@ export function buildFeatureVector(facts: VerifiedFact[], nowMs = Date.now()): F
   };
 }
 
+const FEATURE_VECTOR_KEYS: Array<keyof FeatureVector> = ["repaymentCount", "latePayments", "leverageRatio", "walletAgeDays", "volume7d", "volume30d", "volume180d", "evidenceCount", "freshnessScore"];
+
+export function fingerprintFeatureVector(features: FeatureVector): string {
+  return hashValue(Object.fromEntries(FEATURE_VECTOR_KEYS.map(key => [key, features[key]])));
+}
+
 export function isFeatureVectorConsistentWithFacts(features: FeatureVector, facts: VerifiedFact[], nowMs = Date.now()): boolean {
   const expected = buildFeatureVector(facts, nowMs);
-  return (Object.keys(expected) as Array<keyof FeatureVector>).every(key => expected[key] === features[key]);
+  return fingerprintFeatureVector(expected) === fingerprintFeatureVector(features);
 }
 
 function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): Decision {
