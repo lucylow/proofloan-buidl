@@ -15,6 +15,7 @@ export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "i
 export type ReplayRefreshCategoryTrend = { category: ReplayRefreshFailureCategory; direction: "rising" | "falling" | "flat" | "insufficient"; severity: "neutral" | "attention" | "critical"; recentCount: number; priorCount: number };
 export type ReplayRefreshSeverityThresholds = { attentionCount: number; criticalCount: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
+export type ReplayRefreshThresholdAuditEvent = { id: number; occurredAt: string; attentionCount: number; criticalCount: number; kind: "saved" | "restored" };
 
 const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
 const replayRefreshThresholdStorageKey = "proofloan.replay-refresh-thresholds";
@@ -126,6 +127,22 @@ export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[]
 export function getReplayRefreshSeverityExplanation(input?: Partial<ReplayRefreshSeverityThresholds>): string {
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);
   return `Attention at ${thresholds.attentionCount} recent event${thresholds.attentionCount === 1 ? "" : "s"}; critical at ${thresholds.criticalCount}. Based on the bounded six-event window.`;
+}
+
+export function appendReplayRefreshThresholdAuditEvent(events: ReplayRefreshThresholdAuditEvent[], input: Partial<ReplayRefreshThresholdAuditEvent> = {}): ReplayRefreshThresholdAuditEvent[] {
+  const thresholds = normalizeReplayRefreshSeverityThresholds(input);
+  const event: ReplayRefreshThresholdAuditEvent = {
+    id: Number.isFinite(input.id) && Number(input.id) >= 0 ? Math.floor(Number(input.id)) : Date.now(),
+    occurredAt: typeof input.occurredAt === "string" && Number.isFinite(new Date(input.occurredAt).getTime()) ? input.occurredAt : new Date().toISOString(),
+    attentionCount: thresholds.attentionCount,
+    criticalCount: thresholds.criticalCount,
+    kind: input.kind === "restored" ? "restored" : "saved",
+  };
+  return [...events, event].slice(-6);
+}
+
+export function getReplayRefreshThresholdAuditLabel(event: ReplayRefreshThresholdAuditEvent): string {
+  return event.kind === "restored" ? "Default severity thresholds restored" : "Severity thresholds saved";
 }
 
 export function getReplayRefreshSeverityNotice(kind: "saved" | "restored"): string {

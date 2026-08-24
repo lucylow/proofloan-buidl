@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -110,6 +110,17 @@ describe("replay diagnostics view model", () => {
   it("explains normalized threshold semantics without raw diagnostics", () => {
     expect(getReplayRefreshSeverityExplanation({ attentionCount: 1, criticalCount: 3 })).toBe("Attention at 1 recent event; critical at 3. Based on the bounded six-event window.");
     expect(getReplayRefreshSeverityExplanation({ attentionCount: 9, criticalCount: -2 })).toBe("Attention at 2 recent events; critical at 3. Based on the bounded six-event window.");
+  });
+
+  it("keeps threshold audit events bounded, normalized, and coarse", () => {
+    const events = Array.from({ length: 6 }, (_, index) => ({ id: index, occurredAt: `2026-08-24T00:0${index}:00.000Z`, attentionCount: 1, criticalCount: 2, kind: "saved" as const }));
+    const next = appendReplayRefreshThresholdAuditEvent(events, { id: 7, occurredAt: "2026-08-24T00:07:00.000Z", attentionCount: 9, criticalCount: -2, kind: "restored" });
+    expect(next).toHaveLength(6);
+    expect(next[0].id).toBe(1);
+    expect(next.at(-1)).toEqual({ id: 7, occurredAt: "2026-08-24T00:07:00.000Z", attentionCount: 2, criticalCount: 3, kind: "restored" });
+    expect(getReplayRefreshThresholdAuditLabel(next.at(-1)!)).toBe("Default severity thresholds restored");
+    expect(JSON.stringify(next)).not.toContain("wallet");
+    expect(JSON.stringify(next)).not.toContain("payload");
   });
 
   it("uses safe threshold feedback text without exposing values", () => {

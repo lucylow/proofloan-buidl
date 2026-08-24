@@ -949,3 +949,8 @@
 - [x] Add a safe explanation of Attention and Critical derivation
 - [x] Render concise accessible guidance beside the threshold controls
 - [x] Add explanation tests and revalidate the full project
+
+## Threshold-change audit events
+- [x] Add bounded coarse audit events for threshold changes
+- [x] Render audit events without sensitive identifiers or raw diagnostics
+- [x] Add audit-event tests and revalidate the full project
