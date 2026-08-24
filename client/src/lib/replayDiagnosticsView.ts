@@ -153,6 +153,11 @@ export function getReplayRefreshThresholdAuditAriaLabel(event: ReplayRefreshThre
   return `${getReplayRefreshThresholdAuditLabel(event)}. Attention ${thresholds.attentionCount}; Critical ${thresholds.criticalCount}.`;
 }
 
+export function getReplayRefreshSeverityStatusSummary(input?: Partial<ReplayRefreshSeverityThresholds>): string {
+  const thresholds = normalizeReplayRefreshSeverityThresholds(input);
+  return `Attention threshold: ${thresholds.attentionCount} recent event${thresholds.attentionCount === 1 ? "" : "s"}. Critical threshold: ${thresholds.criticalCount} recent events.`;
+}
+
 export function getReplayRefreshSeverityNotice(kind: "saved" | "restored"): string {
   return kind === "restored" ? "Default thresholds restored" : "Thresholds saved for this session";
 }

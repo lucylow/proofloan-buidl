@@ -964,3 +964,8 @@
 - [x] Add explicit descriptions and grouped semantics for severity threshold controls
 - [x] Improve keyboard-readable semantics for threshold audit entries
 - [x] Add accessibility regression coverage and revalidate the full project
+
+## Operator keyboard feedback hardening
+- [x] Add stable status summaries for threshold changes and restored defaults
+- [x] Improve keyboard guidance for threshold inputs and reset action
+- [x] Add status-summary tests and revalidate the full project

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshThresholdAuditEvent, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -110,6 +110,8 @@ describe("replay diagnostics view model", () => {
   it("explains normalized threshold semantics without raw diagnostics", () => {
     expect(getReplayRefreshSeverityExplanation({ attentionCount: 1, criticalCount: 3 })).toBe("Attention at 1 recent event; critical at 3. Based on the bounded six-event window.");
     expect(getReplayRefreshSeverityExplanation({ attentionCount: 9, criticalCount: -2 })).toBe("Attention at 2 recent events; critical at 3. Based on the bounded six-event window.");
+    expect(getReplayRefreshSeverityStatusSummary({ attentionCount: 1, criticalCount: 2 })).toBe("Attention threshold: 1 recent event. Critical threshold: 2 recent events.");
+    expect(getReplayRefreshSeverityStatusSummary({ attentionCount: 9, criticalCount: -2 })).toBe("Attention threshold: 2 recent events. Critical threshold: 3 recent events.");
   });
 
   it("keeps threshold audit events bounded, normalized, and coarse", () => {
