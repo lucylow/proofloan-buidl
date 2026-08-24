@@ -14,6 +14,25 @@ export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategor
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
+const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
+
+export function readReplayRefreshTimelineFilter(storage: Pick<Storage, "getItem"> | undefined): ReplayRefreshTimelineFilter {
+  try {
+    const value = storage?.getItem(replayRefreshFilterStorageKey);
+    return value === "all" || value === "failures" || value === "unavailable" || value === "malformed" || value === "request_error" ? value : "all";
+  } catch {
+    return "all";
+  }
+}
+
+export function writeReplayRefreshTimelineFilter(storage: Pick<Storage, "setItem"> | undefined, filter: ReplayRefreshTimelineFilter): void {
+  try {
+    storage?.setItem(replayRefreshFilterStorageKey, filter);
+  } catch {
+    // Session storage may be blocked; the in-memory selection remains authoritative.
+  }
+}
+
 export function shouldShowReplayRefreshFilterReset(input: { filter: ReplayRefreshTimelineFilter; visibleCount: number }): boolean {
   return input.filter !== "all" && input.visibleCount === 0;
 }

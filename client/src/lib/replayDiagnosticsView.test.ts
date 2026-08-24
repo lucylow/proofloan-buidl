@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
+import { readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
+  it("restores only validated session filters and fails safely when storage is blocked", () => {
+    const values = new Map<string, string>();
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } };
+    writeReplayRefreshTimelineFilter(storage, "malformed");
+    expect(readReplayRefreshTimelineFilter(storage)).toBe("malformed");
+    values.set("proofloan.replay-refresh-filter", "wallet-secret");
+    expect(readReplayRefreshTimelineFilter(storage)).toBe("all");
+    expect(readReplayRefreshTimelineFilter({ getItem: () => { throw new Error("blocked"); } })).toBe("all");
+    expect(() => writeReplayRefreshTimelineFilter({ setItem: () => { throw new Error("blocked"); } }, "failures")).not.toThrow();
+  });
+
   it("marks stale records for operator attention", () => {
     expect(getReplayDiagnosticsRows({ acceptance: { pending: 3, stale: 1 }, proofRequest: { pending: 2, stale: 0 } })).toEqual([
       { label: "Acceptance", pending: 3, stale: 1, tone: "attention" },

@@ -884,3 +884,8 @@
 - [x] Add an explicit reset to the full timeline
 - [x] Make the empty state explain and recover from no matches
 - [x] Add recovery tests and revalidate the full project
+
+## Session-scoped timeline filter persistence
+- [x] Persist and restore only validated filter values
+- [x] Degrade safely when session storage is unavailable
+- [x] Add persistence tests and revalidate the full project

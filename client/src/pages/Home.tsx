@@ -13,7 +13,7 @@ import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshFailureLabel, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshFailureLabel, getReplayRefreshTimelineSummary, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -40,7 +40,7 @@ export default function Home() {
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
   const [replayRefreshOutcome, setReplayRefreshOutcome] = useState<ReplayDiagnosticsRefreshOutcome>("idle");
-  const [replayTimelineFilter, setReplayTimelineFilter] = useState<ReplayRefreshTimelineFilter>("all");
+  const [replayTimelineFilter, setReplayTimelineFilter] = useState<ReplayRefreshTimelineFilter>(() => readReplayRefreshTimelineFilter(typeof window === "undefined" ? undefined : window.sessionStorage));
   const [replayRefreshTimeline, setReplayRefreshTimeline] = useState<ReplayRefreshTimelineEvent[]>([]);
   const replayRefreshRequestRef = useRef(0);
   const replayRefreshMountedRef = useRef(true);
@@ -78,6 +78,7 @@ export default function Home() {
   const replayRefreshTrend = getReplayRefreshTrend(replayRefreshTimeline);
   const replayRefreshCategoryCounts = getReplayRefreshCategoryCounts(replayRefreshTimeline);
   const filteredReplayRefreshTimeline = filterReplayRefreshTimeline(replayRefreshTimeline, replayTimelineFilter);
+  useEffect(() => { writeReplayRefreshTimelineFilter(typeof window === "undefined" ? undefined : window.sessionStorage, replayTimelineFilter); }, [replayTimelineFilter]);
   const refreshReplayDiagnostics = () => {
     if (!replayDiagnosticsRefresh.enabled) return;
     const requestId = replayRefreshRequestRef.current + 1;
