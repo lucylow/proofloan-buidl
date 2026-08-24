@@ -914,3 +914,8 @@
 - [x] Add a safe transient status model for filter changes
 - [x] Render the cue accessibly with timer cleanup
 - [x] Add filter-change tests and revalidate the full project
+
+## Count-aware filter-change cue
+- [x] Include the bounded matching count in filter-change feedback
+- [x] Keep count feedback accessible and privacy-safe
+- [x] Add count-aware cue tests and revalidate the full project

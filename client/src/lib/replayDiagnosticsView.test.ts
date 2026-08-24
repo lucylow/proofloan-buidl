@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -11,6 +11,13 @@ describe("replay diagnostics view model", () => {
     expect(getReplayRefreshFilterChangeNotice("all", "failures")).toBe("Filter changed to failures only");
     expect(getReplayRefreshFilterChangeNotice("failures", "malformed")).toBe("Filter changed to invalid response");
     expect(getReplayRefreshFilterChangeNotice("all", "all")).toBeNull();
+  });
+
+  it("includes only bounded matching counts in changed-filter notices", () => {
+    expect(getReplayRefreshFilterChangeScopeNotice("all", "failures", 3)).toBe("Filter changed to failures only · 3");
+    expect(getReplayRefreshFilterChangeScopeNotice("all", "malformed", 99)).toBe("Filter changed to invalid response · 6");
+    expect(getReplayRefreshFilterChangeScopeNotice("all", "request_error", Number.NaN)).toBe("Filter changed to request error · 0");
+    expect(getReplayRefreshFilterChangeScopeNotice("failures", "failures", 4)).toBeNull();
   });
 
   it("bounds matching-count labels and never exposes invalid count values", () => {

@@ -44,6 +44,11 @@ export function getReplayRefreshFilterChangeNotice(previous: ReplayRefreshTimeli
   return `Filter changed to ${getReplayRefreshFilterLabel(next).toLowerCase()}`;
 }
 
+export function getReplayRefreshFilterChangeScopeNotice(previous: ReplayRefreshTimelineFilter, next: ReplayRefreshTimelineFilter, matchingCount: number): string | null {
+  if (previous === next) return null;
+  return `Filter changed to ${getReplayRefreshFilterScopeLabel(next, matchingCount).toLowerCase()}`;
+}
+
 export function getReplayRefreshFilterScopeLabel(filter: ReplayRefreshTimelineFilter, matchingCount: number): string {
   const safeCount = Number.isFinite(matchingCount) && matchingCount >= 0 ? Math.min(6, Math.floor(matchingCount)) : 0;
   return `${getReplayRefreshFilterLabel(filter)} · ${safeCount}`;
