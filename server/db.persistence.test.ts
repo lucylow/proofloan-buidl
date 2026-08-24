@@ -355,6 +355,17 @@ describe("transactional snapshot persistence", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it("rejects incomplete modern acceptance payloads when replayed from storage", () => {
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", {
+      applicationId: "PL-PERSISTENCE-TEST",
+      state: "Executed",
+      transactionHash: "0xlegacy-transaction",
+      offer: {},
+      decision: { decisionHash: "decision-hash" },
+      audit: [{ hash: "terminal-audit-hash" }],
+    })).toBe(false);
+  });
+
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {
     let rollbackObserved = false;
     const failingTx = {

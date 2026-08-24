@@ -1184,3 +1184,8 @@
 - [x] Enforce canonical execution receipt binding for modern durable replay records
 - [x] Add regression coverage for missing and mismatched receipt bindings
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 36
+- [x] Strengthen modern acceptance replay read validation against incomplete execution records
+- [x] Add focused regression coverage for incomplete committed replay payloads
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
