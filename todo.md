@@ -809,3 +809,8 @@
 - [x] Add an admin-only read-only replay diagnostics query
 - [x] Expose bounded counts and stale status without raw identifiers
 - [x] Add authorization/privacy tests and revalidate the full project
+
+## Code improvement pass 116
+- [x] Add an admin-only replay-protection health surface
+- [x] Keep diagnostics read-only, bounded, and privacy-safe
+- [x] Add UI tests and revalidate the full project
