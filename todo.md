@@ -1069,3 +1069,8 @@
 - [x] Reject ambiguous persisted snapshots when duplicate application or decision rows exist
 - [x] Add regression coverage for duplicate-row fail-closed behavior
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 13
+- [x] Reject duplicate verified fact IDs and transaction references at the persistence boundary
+- [x] Add regression coverage for duplicate evidence identity and fail-closed reconstruction
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

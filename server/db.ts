@@ -176,14 +176,15 @@ export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>
   return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), termDays: offer.termDays, status: offer.status, expiresAt };
 }
 
-function hasUniqueFactReferences(facts: Array<{ chain?: unknown; txHash?: unknown }>): boolean {
+function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txHash?: unknown; factId?: unknown }>): boolean {
+  const ids = facts.map(fact => String(fact.id ?? fact.factId));
   const references = facts.map(fact => `${String(fact.chain)}:${String(fact.txHash)}`);
-  return new Set(references).size === references.length;
+  return new Set(ids).size === ids.length && new Set(references).size === references.length;
 }
 
 export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {
   if (!Array.isArray(snapshot.audit) || snapshot.audit.length === 0) return false;
-  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && hasUniqueFactReferences(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
+  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
 }
 
 export function isLoanSnapshotPersistable(snapshot: LoanSnapshot, now = Date.now()): boolean {
@@ -560,7 +561,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalNonEmptyText(input.application.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isCanonicalNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || Number(fact.verificationBlock) < Number(fact.sourceBlock) || !isValidDate(fact.verifiedAt))) return false;
   const factIds = input.facts.map(fact => fact.factId);
-  if (new Set(factIds).size !== factIds.length || !hasUniqueFactReferences(input.facts)) return false;
+  if (new Set(factIds).size !== factIds.length || !hasUniqueFactIdentity(input.facts)) return false;
   if (!isDecisionStateConsistent(input.application.state, Boolean(input.decision))) return false;
   if (input.decision && (!isRecord(input.decision) || !isCanonicalNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || Number(input.decision.pd30) > Number(input.decision.pd90) || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
   if (input.decision) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, buildDecisionUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, buildDecisionUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -73,6 +73,14 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, walletAddress: " " })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, requestedAmount: "Infinity" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
+  });
+
+  it("rejects duplicate evidence identity before persistence", () => {
+    const fact = { id: "fact-identity-1", chain: "Ethereum Sepolia" as const, sourceBlock: 1, txHash: "0xidentity-1", eventType: "REPAYMENT" as const, amount: "1 USDC", verificationBlock: 1, verifiedAt: "2026-08-24T20:00:00.000Z", observedAt: "2026-08-24T20:00:00.000Z", freshness: "Fresh" as const, proofRoot: "root-identity-1", proofWorker: "Attestcoin proof worker" };
+    const base = { ...snapshot, applicationId: "PL-IDENTITY", state: "EvidenceVerified" as const, facts: [fact], audit: [{ ...snapshot.audit[0], state: "EvidenceVerified" as const, label: "EvidenceVerified" }] };
+    expect(isLoanSnapshotWriteConsistent({ ...base, facts: [fact, { ...fact, id: "fact-identity-2" }] })).toBe(false);
+    expect(isLoanSnapshotWriteConsistent({ ...base, facts: [fact, { ...fact, id: "fact-identity-2", txHash: fact.txHash }] })).toBe(false);
+    expect(isLoanSnapshotWriteConsistent(base)).toBe(true);
   });
 
   it("fails closed when persisted singleton rows are ambiguous", async () => {
