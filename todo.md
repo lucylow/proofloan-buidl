@@ -1129,3 +1129,8 @@
 - [x] Enforce decision risk-tier consistency with persisted probability thresholds
 - [x] Add regression coverage for risk-tier drift and fail-closed reconstruction
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 25
+- [x] Enforce policy-hash consistency with the canonical underwriting policy
+- [x] Add regression coverage for policy-hash drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

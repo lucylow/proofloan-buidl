@@ -169,7 +169,7 @@ export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
 }
 
 export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["decision"]>) {
-  if ((decision.featureFingerprint !== undefined && !/^[a-f0-9]{18}$/.test(decision.featureFingerprint)) || !isCanonicalNonEmptyText(decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(JSON.stringify(decision.reasonCodes)) || !isRiskTier(decision.riskTier) || !isFiniteInRange(decision.pd30, 0, 1) || !isFiniteInRange(decision.pd90, 0, 1) || Number(decision.pd30) > Number(decision.pd90) || riskTierForPd30(Number(decision.pd30)) !== decision.riskTier || !isFiniteInRange(decision.confidence, 0, 1)) {
+  if ((decision.featureFingerprint !== undefined && (!/^[a-f0-9]{18}$/.test(decision.featureFingerprint) || decision.policyHash !== POLICY_HASH)) || !isCanonicalNonEmptyText(decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(JSON.stringify(decision.reasonCodes)) || !isRiskTier(decision.riskTier) || !isFiniteInRange(decision.pd30, 0, 1) || !isFiniteInRange(decision.pd90, 0, 1) || Number(decision.pd30) > Number(decision.pd90) || riskTierForPd30(Number(decision.pd30)) !== decision.riskTier || !isFiniteInRange(decision.confidence, 0, 1)) {
     throw new Error("Invalid persisted decision.");
   }
   return { pd30: String(decision.pd30), pd90: String(decision.pd90), confidence: String(decision.confidence), riskTier: decision.riskTier, reasonCodes: JSON.stringify(decision.reasonCodes), featureVersion: decision.featureVersion, modelVersion: decision.modelVersion, policyHash: decision.policyHash, evidenceRoot: decision.evidenceRoot, decisionHash: decision.decisionHash, featureFingerprint: decision.featureFingerprint };
@@ -493,7 +493,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, riskTierForPd30 } from "./underwriting";
+import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, POLICY_HASH, riskTierForPd30 } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -531,7 +531,7 @@ export function parsePersistedReasonCodes(raw: unknown): Decision["reasonCodes"]
 type PersistedSnapshotValidationInput = {
   application: { applicationId?: unknown; walletAddress?: unknown; state: string; sourceChain: string; requestedAmount: unknown };
   facts: Array<{ factId?: unknown; chain: string; sourceBlock: unknown; txHash?: unknown; eventType: string; amount?: unknown; verificationBlock: unknown; freshness: string; proofRoot?: unknown; verifiedAt: unknown }>;
-  decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown; featureVersion?: unknown; modelVersion?: unknown; policyHash?: unknown; evidenceRoot?: unknown; decisionHash?: unknown };
+  decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown; featureVersion?: unknown; modelVersion?: unknown; policyHash?: unknown; evidenceRoot?: unknown; decisionHash?: unknown; featureFingerprint?: unknown };
   offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; termDays: unknown; expiresAt: unknown };
   audit: Array<{ state: string; label?: unknown; detail?: unknown; eventHash?: unknown; createdAt: unknown }>;
 };
@@ -576,7 +576,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   const factIds = input.facts.map(fact => fact.factId);
   if (new Set(factIds).size !== factIds.length || !hasUniqueFactIdentity(input.facts)) return false;
   if (!isDecisionStateConsistent(input.application.state, Boolean(input.decision))) return false;
-  if (input.decision && (!isRecord(input.decision) || !isCanonicalNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || Number(input.decision.pd30) > Number(input.decision.pd90) || riskTierForPd30(Number(input.decision.pd30)) !== input.decision.riskTier || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
+  if (input.decision && (!isRecord(input.decision) || !isCanonicalNonEmptyText(input.decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || (input.decision.featureFingerprint !== undefined && input.decision.policyHash !== POLICY_HASH) || !isCanonicalNonEmptyText(input.decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(input.decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(input.decision.reasonCodes) || !isRiskTier(input.decision.riskTier) || !isFiniteInRange(input.decision.pd30, 0, 1) || !isFiniteInRange(input.decision.pd90, 0, 1) || Number(input.decision.pd30) > Number(input.decision.pd90) || riskTierForPd30(Number(input.decision.pd30)) !== input.decision.riskTier || !isFiniteInRange(input.decision.confidence, 0, 1))) return false;
   if (input.decision) {
     const mirroredDecisionFields = ["featureVersion", "modelVersion", "policyHash", "evidenceRoot", "decisionHash"] as const;
     const applicationRecord = input.application as Record<string, unknown>;

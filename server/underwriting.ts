@@ -12,7 +12,7 @@ import {
 
 const MODEL_VERSION = "proofloan-underwriter-v0.1.0";
 const FEATURE_VERSION = "feature-vector-v0.1.0";
-const POLICY_HASH = "riskguard-policy-v0.1.0:amount-ltv-rate-freshness-confidence-liquidity";
+export const POLICY_HASH = "riskguard-policy-v0.1.0:amount-ltv-rate-freshness-confidence-liquidity";
 
 export const hashValue = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 18);
