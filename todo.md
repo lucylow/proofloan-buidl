@@ -869,3 +869,8 @@
 - [x] Add explicit trend sample-size confidence semantics
 - [x] Render coverage guidance beside the trend indicator
 - [x] Add boundary tests and revalidate the full project
+
+## Failures-only replay timeline view
+- [x] Add bounded failures-only filter state
+- [x] Render accessible filter and empty states
+- [x] Add filter tests and revalidate the full project

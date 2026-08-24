@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,18 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("filters to bounded failures while preserving newest-first source order", () => {
+    const events = [
+      { id: 1, occurredAt: "2026-08-24T00:00:00.000Z", outcome: "success" as const },
+      { id: 2, occurredAt: "2026-08-24T00:01:00.000Z", outcome: "error" as const, category: "unavailable" as const },
+      { id: 3, occurredAt: "2026-08-24T00:02:00.000Z", outcome: "success" as const },
+      { id: 4, occurredAt: "2026-08-24T00:03:00.000Z", outcome: "error" as const, category: "malformed" as const },
+    ];
+    expect(filterReplayRefreshTimeline(events, "failures").map(event => event.id)).toEqual([2, 4]);
+    expect(filterReplayRefreshTimeline(events, "all")).toHaveLength(4);
+    expect(filterReplayRefreshTimeline(events, "failures").every(event => event.outcome === "error")).toBe(true);
   });
 
   it("classifies bounded failure trends without exposing event details", () => {
