@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshThresholdAuditEvent, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -119,6 +119,7 @@ describe("replay diagnostics view model", () => {
     expect(next[0].id).toBe(1);
     expect(next.at(-1)).toEqual({ id: 7, occurredAt: "2026-08-24T00:07:00.000Z", attentionCount: 2, criticalCount: 3, kind: "restored" });
     expect(getReplayRefreshThresholdAuditLabel(next.at(-1)!)).toBe("Default severity thresholds restored");
+    expect(getReplayRefreshThresholdAuditAriaLabel(next.at(-1)!)).toBe("Default severity thresholds restored. Attention 2; Critical 3.");
     expect(JSON.stringify(next)).not.toContain("wallet");
     expect(JSON.stringify(next)).not.toContain("payload");
     const unchanged = appendReplayRefreshThresholdAuditEvent(next, { id: 8, occurredAt: "2026-08-24T00:08:00.000Z", attentionCount: 2, criticalCount: 3, kind: "restored" });

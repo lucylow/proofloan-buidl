@@ -148,6 +148,11 @@ export function getReplayRefreshThresholdAuditLabel(event: ReplayRefreshThreshol
   return event.kind === "restored" ? "Default severity thresholds restored" : "Severity thresholds saved";
 }
 
+export function getReplayRefreshThresholdAuditAriaLabel(event: ReplayRefreshThresholdAuditEvent): string {
+  const thresholds = normalizeReplayRefreshSeverityThresholds(event);
+  return `${getReplayRefreshThresholdAuditLabel(event)}. Attention ${thresholds.attentionCount}; Critical ${thresholds.criticalCount}.`;
+}
+
 export function getReplayRefreshSeverityNotice(kind: "saved" | "restored"): string {
   return kind === "restored" ? "Default thresholds restored" : "Thresholds saved for this session";
 }

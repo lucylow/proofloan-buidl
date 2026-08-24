@@ -959,3 +959,8 @@
 - [x] Deduplicate unchanged threshold audit events during rapid edits
 - [x] Guard audit recording against updates after component teardown
 - [x] Add lifecycle-boundary tests and revalidate the full project
+
+## Operator accessibility hardening
+- [x] Add explicit descriptions and grouped semantics for severity threshold controls
+- [x] Improve keyboard-readable semantics for threshold audit entries
+- [x] Add accessibility regression coverage and revalidate the full project
