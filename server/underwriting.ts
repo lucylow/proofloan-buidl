@@ -160,8 +160,9 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
   }
 }
 
-export function isOfferAcceptable(state: string, status: Offer["status"], expiresAt?: string, nowMs = Date.now()) {
+export function isOfferAcceptable(state: string, status: Offer["status"], expiresAt?: string, nowMs = Date.now(), offer?: Partial<Offer>) {
   if (state !== "AwaitingAcceptance" || status !== "Ready") return false;
+  if (offer && (!Number.isFinite(offer.amount) || (offer.amount ?? 0) <= 0 || !Number.isFinite(offer.apr) || !Number.isFinite(offer.ltv) || !Number.isFinite(offer.termDays) || (offer.termDays ?? 0) <= 0 || !Number.isFinite(offer.poolLiquidity) || !expiresAt)) return false;
   if (!expiresAt) return true;
   const expiryMs = Date.parse(expiresAt);
   return Number.isFinite(expiryMs) && expiryMs > nowMs;

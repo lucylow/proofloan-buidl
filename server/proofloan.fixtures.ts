@@ -1,6 +1,7 @@
 import type { LoanSnapshot, ProofLoanState } from "@shared/proofloan";
 
 export type LoanFixtureKind = "accepted" | "blocked" | "expired" | "executed";
+export type MalformedLoanFixtureKind = "missing-offer" | "partial-offer";
 
 const baseFeatures = { repaymentCount: 2, latePayments: 0, leverageRatio: 0.54, walletAgeDays: 90, volume7d: 1250, volume30d: 1250, volume180d: 2100, evidenceCount: 3, freshnessScore: 0.93 };
 
@@ -8,6 +9,12 @@ function fixtureState(kind: LoanFixtureKind): ProofLoanState {
   if (kind === "blocked") return "Rejected";
   if (kind === "executed") return "Executed";
   return "AwaitingAcceptance";
+}
+
+export function createMalformedLoanFixture(applicationId: string, kind: MalformedLoanFixtureKind): LoanSnapshot {
+  const base = createLoanFixture(applicationId, "accepted");
+  const malformed = kind === "missing-offer" ? { ...base, offer: undefined } : { ...base, offer: { status: "Ready", expiresAt: base.offer?.expiresAt } };
+  return malformed as unknown as LoanSnapshot;
 }
 
 export function createLoanFixture(applicationId: string, kind: LoanFixtureKind): LoanSnapshot {

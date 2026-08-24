@@ -3,7 +3,7 @@ import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAu
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 import { previewAttestcoinFacts } from "./attestcoin";
-import { createLoanFixture } from "./proofloan.fixtures";
+import { createLoanFixture, createMalformedLoanFixture } from "./proofloan.fixtures";
 
 function createContext(): TrpcContext {
   return {
@@ -196,6 +196,15 @@ describe("proofloan API flow", () => {
     const caller = appRouter.createCaller(createContext());
     for (const kind of ["blocked", "expired", "executed"] as const) {
       const snapshot = createLoanFixture(`PL-${kind.toUpperCase()}FIXTURE`, kind);
+      registerPreviewApplication(snapshot);
+      await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("Offer is unavailable");
+    }
+  });
+
+  it("fails closed for malformed loan snapshots without executing an offer", async () => {
+    const caller = appRouter.createCaller(createContext());
+    for (const kind of ["missing-offer", "partial-offer"] as const) {
+      const snapshot = createMalformedLoanFixture(`PL-MALFORMED${kind === "missing-offer" ? "MISSING" : "PARTIAL"}`, kind);
       registerPreviewApplication(snapshot);
       await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("Offer is unavailable");
     }

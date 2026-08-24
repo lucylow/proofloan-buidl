@@ -1014,3 +1014,8 @@
 - [x] Centralize accepted, blocked, expired, and executed loan fixtures
 - [x] Reuse fixtures across router state and replay tests
 - [x] Add fixture-state regression coverage and revalidate the full project
+
+## Malformed loan-state fixture hardening
+- [x] Add malformed and partially populated snapshot fixtures
+- [x] Verify acceptance fails closed without executing incomplete offers
+- [x] Add malformed-state tests and revalidate the full project
