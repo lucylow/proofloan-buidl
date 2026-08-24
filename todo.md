@@ -1169,3 +1169,8 @@
 - [x] Enforce offer expiry and state consistency at the execution boundary using one shared validator
 - [x] Add regression coverage for stale or state-inconsistent execution attempts
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 33
+- [x] Bind the execution transaction receipt to the canonical final offer and audit event
+- [x] Add regression coverage for transaction-receipt tampering and fail-closed acceptance results
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

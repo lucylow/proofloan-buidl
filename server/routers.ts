@@ -35,7 +35,7 @@ const MAX_THROTTLE_KEYS = 1_000;
 const proofRequestWindows = new Map<string, number[]>();
 const applicationMutationLocks = new Map<string, Promise<void>>();
 const MAX_ACCEPTANCE_IDEMPOTENCY_ENTRIES = 1_000;
-type AcceptedOfferResult = LoanSnapshot & { transactionHash: string };
+type AcceptedOfferResult = LoanSnapshot & { transactionHash: string; receiptHash: string };
 const acceptanceIdempotency = new Map<string, { requestKey: string; result: AcceptedOfferResult }>();
 
 export async function withApplicationMutation<T>(applicationId: string, operation: () => Promise<T>): Promise<T> {
@@ -205,7 +205,9 @@ export const appRouter = router({
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
       await persistLiveSnapshot(snapshot, !previewMode);
       if (previewMode) registerPreviewApplication(snapshot);
-      const result: AcceptedOfferResult = { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, auditHash: snapshot.audit.at(-1)?.hash })}` };
+      const auditHash = snapshot.audit.at(-1)?.hash;
+      const receiptHash = hashValue({ applicationId: snapshot.applicationId, offer: snapshot.offer, decisionHash: snapshot.decision?.decisionHash, auditHash });
+      const result: AcceptedOfferResult = { ...snapshot, transactionHash: `0xcreditcoin_${receiptHash}`, receiptHash };
       if (!previewMode && input.idempotencyKey && !(await commitAcceptanceReplay(input.applicationId, input.idempotencyKey, result))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Acceptance committed, but replay protection could not be finalized.");
       if (input.idempotencyKey) {
         if (!acceptanceIdempotency.has(input.applicationId) && acceptanceIdempotency.size >= MAX_ACCEPTANCE_IDEMPOTENCY_ENTRIES) {
