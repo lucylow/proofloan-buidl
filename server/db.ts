@@ -321,12 +321,18 @@ export type ProofRequestReplayClaim =
 
 export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string): Promise<ProofRequestReplayClaim> {
   const db = await getDb();
-  if (!db) return { status: "unavailable" };
+  if (!db) {
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "storage_unavailable" });
+    return { status: "unavailable" };
+  }
   try {
     await cleanupReplayProtectionRecords();
     await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
     const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
-    if (!row[0]) return { status: "unavailable" };
+    if (!row[0]) {
+      recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "missing_record" });
+      return { status: "unavailable" };
+    }
     if (row[0].walletAddress !== walletAddress || row[0].sourceChain !== sourceChain) {
       recordReplayProtectionEvent({ operation: "proof_request", outcome: "conflict", requestKey });
       return { status: "conflict" };
@@ -339,8 +345,10 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
           return { status: "committed", result };
         }
       } catch {
+        recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "invalid_result" });
         return { status: "unavailable" };
       }
+      recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "invalid_result" });
       return { status: "unavailable" };
     }
     if (row[0].status === "Pending") {
@@ -354,7 +362,7 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
     }
     return { status: "unavailable" };
   } catch (error) {
-    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey });
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "storage_unavailable" });
     console.warn("[ProofLoan] Proof-request idempotency claim unavailable", error instanceof Error ? error.message : error);
     return { status: "unavailable" };
   }

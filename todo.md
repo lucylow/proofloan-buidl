@@ -754,3 +754,8 @@
 - [x] Classify replay storage failures separately from request conflicts
 - [x] Preserve fail-closed execution and diagnostic behavior
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 105
+- [x] Classify proof-request replay storage failures separately from conflicts
+- [x] Preserve fail-closed proof-request recovery behavior
+- [x] Add focused tests and revalidate the full project
