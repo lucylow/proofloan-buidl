@@ -149,7 +149,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
     throw new Error("Invalid persisted audit event.");
   }
   const createdAt = new Date(event.timestamp);
-  if (Number.isNaN(createdAt.getTime())) throw new Error("Invalid persisted audit event.");
+  if (Number.isNaN(createdAt.getTime()) || createdAt.toISOString() !== event.timestamp) throw new Error("Invalid persisted audit event.");
   return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
 }
 

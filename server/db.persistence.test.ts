@@ -103,6 +103,11 @@ describe("transactional snapshot persistence", () => {
     expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: "not-a-fingerprint" })).toThrow("Invalid persisted decision.");
   });
 
+  it("rejects non-canonical audit timestamps before persistence", () => {
+    expect(() => buildAuditUpsertValues({ ...snapshot.audit[0], timestamp: "2026-08-21T20:00:00Z" })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...snapshot.audit[0], timestamp: "2026-08-21T15:00:00.000-05:00" })).toThrow("Invalid persisted audit event.");
+  });
+
   it("keeps audit insert and update payloads synchronized", () => {
     const payload = buildAuditUpsertValues(snapshot.audit[0]);
     expect(payload.values).toEqual({ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "audit-hash-1", createdAt: new Date("2026-08-21T20:00:00.000Z") });

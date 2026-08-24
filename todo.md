@@ -1079,3 +1079,8 @@
 - [x] Reject duplicate audit event hashes at the write boundary before persistence
 - [x] Add regression coverage for duplicate audit identity and fail-closed writes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 15
+- [x] Reject non-canonical audit timestamps before persistence
+- [x] Add regression coverage for timestamp normalization and fail-closed writes
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
