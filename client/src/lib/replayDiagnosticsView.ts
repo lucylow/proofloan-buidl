@@ -17,6 +17,7 @@ export type ReplayRefreshSeverityThresholds = { attentionCount: number; critical
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
 const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
+const replayRefreshThresholdStorageKey = "proofloan.replay-refresh-thresholds";
 
 export function readReplayRefreshTimelineFilter(storage: Pick<Storage, "getItem"> | undefined): ReplayRefreshTimelineFilter {
   try {
@@ -126,6 +127,25 @@ export function normalizeReplayRefreshSeverityThresholds(input?: Partial<ReplayR
   const attentionCount = Number.isFinite(input?.attentionCount) ? Math.max(1, Math.min(2, Math.floor(input!.attentionCount!))) : 1;
   const criticalCount = Number.isFinite(input?.criticalCount) ? Math.max(attentionCount + 1, Math.min(3, Math.floor(input!.criticalCount!))) : 2;
   return { attentionCount, criticalCount };
+}
+
+export function readReplayRefreshSeverityThresholds(storage?: Pick<Storage, "getItem">): ReplayRefreshSeverityThresholds {
+  try {
+    const raw = storage?.getItem(replayRefreshThresholdStorageKey);
+    if (!raw) return normalizeReplayRefreshSeverityThresholds();
+    const parsed = JSON.parse(raw) as Partial<ReplayRefreshSeverityThresholds>;
+    return normalizeReplayRefreshSeverityThresholds(parsed);
+  } catch {
+    return normalizeReplayRefreshSeverityThresholds();
+  }
+}
+
+export function writeReplayRefreshSeverityThresholds(storage: Pick<Storage, "setItem"> | undefined, input?: Partial<ReplayRefreshSeverityThresholds>): void {
+  try {
+    storage?.setItem(replayRefreshThresholdStorageKey, JSON.stringify(normalizeReplayRefreshSeverityThresholds(input)));
+  } catch {
+    // Session storage is an optional operator convenience; diagnostics remain functional without it.
+  }
 }
 
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {

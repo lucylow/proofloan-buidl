@@ -934,3 +934,8 @@
 - [x] Add validated bounded attention and critical thresholds
 - [x] Wire threshold configuration into category severity display
 - [x] Add threshold-bound tests and revalidate the full project
+
+## Admin threshold settings surface
+- [x] Add admin-only threshold settings controls
+- [x] Persist validated bounded settings safely for the session
+- [x] Add settings tests and revalidate the full project

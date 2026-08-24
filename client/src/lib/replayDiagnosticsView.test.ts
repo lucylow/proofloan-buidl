@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("maps every supported filter to a safe operator label", () => {
@@ -105,6 +105,17 @@ describe("replay diagnostics view model", () => {
       { category: "request_error", direction: "rising", severity: "attention", recentCount: 1, priorCount: 0 },
     ]);
     expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", severity: "neutral", recentCount: 1, priorCount: 0 }]);
+  });
+
+  it("restores only valid session thresholds and fails safely when storage is blocked", () => {
+    const values = new Map<string, string>([["proofloan.replay-refresh-thresholds", JSON.stringify({ attentionCount: 2, criticalCount: 3 })]]);
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) };
+    expect(readReplayRefreshSeverityThresholds(storage)).toEqual({ attentionCount: 2, criticalCount: 3 });
+    writeReplayRefreshSeverityThresholds(storage, { attentionCount: 2, criticalCount: 3 });
+    expect(values.get("proofloan.replay-refresh-thresholds")).toBe(JSON.stringify({ attentionCount: 2, criticalCount: 3 }));
+    expect(readReplayRefreshSeverityThresholds({ getItem: () => "not-json" })).toEqual({ attentionCount: 1, criticalCount: 2 });
+    expect(readReplayRefreshSeverityThresholds({ getItem: () => JSON.stringify({ attentionCount: 9, criticalCount: -2 }) })).toEqual({ attentionCount: 2, criticalCount: 3 });
+    expect(() => writeReplayRefreshSeverityThresholds({ setItem: () => { throw new Error("blocked"); } }, { attentionCount: 2 })).not.toThrow();
   });
 
   it("normalizes severity thresholds into a safe bounded ordering", () => {
