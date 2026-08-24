@@ -90,7 +90,7 @@ export default function Home() {
   useEffect(() => { if (!replayRefreshSeverityNotice) return; const timer = window.setTimeout(() => setReplayRefreshSeverityNotice(null), 2500); return () => window.clearTimeout(timer); }, [replayRefreshSeverityNotice]);
   useEffect(() => { if (!replayTimelineFilterChangeNotice) return; const timer = window.setTimeout(() => setReplayTimelineFilterChangeNotice(null), 2500); return () => window.clearTimeout(timer); }, [replayTimelineFilterChangeNotice]);
   const changeReplayTimelineFilter = (next: ReplayRefreshTimelineFilter) => { setReplayTimelineFilterChangeNotice(getReplayRefreshFilterChangeScopeNotice(replayTimelineFilter, next, filterReplayRefreshTimeline(replayRefreshTimeline, next).length) ?? getReplayRefreshFilterChangeNotice(replayTimelineFilter, next)); setReplayTimelineFilter(next); };
-  const recordReplayThresholdAudit = (kind: "saved" | "restored", thresholds: { attentionCount: number; criticalCount: number }) => setReplayRefreshThresholdAudit(events => appendReplayRefreshThresholdAuditEvent(events, { kind, ...thresholds }));
+  const recordReplayThresholdAudit = (kind: "saved" | "restored", thresholds: { attentionCount: number; criticalCount: number }) => { if (!replayRefreshMountedRef.current) return; setReplayRefreshThresholdAudit(events => appendReplayRefreshThresholdAuditEvent(events, { kind, ...thresholds })); };
   const refreshReplayDiagnostics = () => {
     if (!replayDiagnosticsRefresh.enabled) return;
     const requestId = replayRefreshRequestRef.current + 1;

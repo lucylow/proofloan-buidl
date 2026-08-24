@@ -131,12 +131,15 @@ export function getReplayRefreshSeverityExplanation(input?: Partial<ReplayRefres
 
 export function appendReplayRefreshThresholdAuditEvent(events: ReplayRefreshThresholdAuditEvent[], input: Partial<ReplayRefreshThresholdAuditEvent> = {}): ReplayRefreshThresholdAuditEvent[] {
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);
+  const kind = input.kind === "restored" ? "restored" : "saved";
+  const previous = events.at(-1);
+  if (previous && previous.kind === kind && previous.attentionCount === thresholds.attentionCount && previous.criticalCount === thresholds.criticalCount) return events.slice(-6);
   const event: ReplayRefreshThresholdAuditEvent = {
     id: Number.isFinite(input.id) && Number(input.id) >= 0 ? Math.floor(Number(input.id)) : Date.now(),
     occurredAt: typeof input.occurredAt === "string" && Number.isFinite(new Date(input.occurredAt).getTime()) ? input.occurredAt : new Date().toISOString(),
     attentionCount: thresholds.attentionCount,
     criticalCount: thresholds.criticalCount,
-    kind: input.kind === "restored" ? "restored" : "saved",
+    kind,
   };
   return [...events, event].slice(-6);
 }

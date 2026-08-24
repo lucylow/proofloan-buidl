@@ -121,6 +121,10 @@ describe("replay diagnostics view model", () => {
     expect(getReplayRefreshThresholdAuditLabel(next.at(-1)!)).toBe("Default severity thresholds restored");
     expect(JSON.stringify(next)).not.toContain("wallet");
     expect(JSON.stringify(next)).not.toContain("payload");
+    const unchanged = appendReplayRefreshThresholdAuditEvent(next, { id: 8, occurredAt: "2026-08-24T00:08:00.000Z", attentionCount: 2, criticalCount: 3, kind: "restored" });
+    expect(unchanged).toEqual(next);
+    const malformed = appendReplayRefreshThresholdAuditEvent([], { id: -4, occurredAt: "not-a-date", attentionCount: Number.NaN, criticalCount: Number.POSITIVE_INFINITY });
+    expect(malformed[0]).toMatchObject({ id: expect.any(Number), attentionCount: 1, criticalCount: 2, kind: "saved" });
   });
 
   it("uses safe threshold feedback text without exposing values", () => {

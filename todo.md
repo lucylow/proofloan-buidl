@@ -954,3 +954,8 @@
 - [x] Add bounded coarse audit events for threshold changes
 - [x] Render audit events without sensitive identifiers or raw diagnostics
 - [x] Add audit-event tests and revalidate the full project
+
+## Threshold audit lifecycle hardening
+- [x] Deduplicate unchanged threshold audit events during rapid edits
+- [x] Guard audit recording against updates after component teardown
+- [x] Add lifecycle-boundary tests and revalidate the full project
