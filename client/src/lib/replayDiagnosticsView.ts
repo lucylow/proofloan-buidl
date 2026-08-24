@@ -1,4 +1,5 @@
 export type ReplayDiagnosticsInput = {
+  generatedAt: string;
   acceptance: { pending: number; stale: number };
   proofRequest: { pending: number; stale: number };
 };
@@ -9,6 +10,26 @@ export type ReplayDiagnosticsRow = {
   stale: number;
   tone: "clear" | "attention";
 };
+
+function boundedCount(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  return Math.min(1_000_000, Math.floor(value));
+}
+
+export function normalizeReplayDiagnostics(value: unknown): ReplayDiagnosticsInput | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<ReplayDiagnosticsInput>;
+  if (typeof candidate.generatedAt !== "string" || Number.isNaN(new Date(candidate.generatedAt).getTime())) return null;
+  const acceptance = candidate.acceptance;
+  const proofRequest = candidate.proofRequest;
+  if (!acceptance || !proofRequest) return null;
+  const acceptancePending = boundedCount(acceptance.pending);
+  const acceptanceStale = boundedCount(acceptance.stale);
+  const proofPending = boundedCount(proofRequest.pending);
+  const proofStale = boundedCount(proofRequest.stale);
+  if (acceptancePending === null || acceptanceStale === null || proofPending === null || proofStale === null) return null;
+  return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale } };
+}
 
 export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput): ReplayDiagnosticsRow[] {
   return [

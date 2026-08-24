@@ -814,3 +814,8 @@
 - [x] Add an admin-only replay-protection health surface
 - [x] Keep diagnostics read-only, bounded, and privacy-safe
 - [x] Add UI tests and revalidate the full project
+
+## Code improvement pass 117
+- [x] Normalize malformed replay diagnostics safely
+- [x] Show unavailable diagnostics as attention-required, not clear
+- [x] Add focused tests and revalidate the full project
