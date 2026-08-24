@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, persistLoanSnapshot } from "./db";
+import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -57,6 +57,12 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+  });
+
+  it("expires stale replay leases but preserves fresh claims", () => {
+    const now = Date.parse("2026-08-24T00:30:00.000Z");
+    expect(isReplayRecordExpired(new Date(now - 10 * 60_000 - 1), now)).toBe(true);
+    expect(isReplayRecordExpired(new Date(now - 10 * 60_000), now)).toBe(false);
   });
 
   it("validates proof-request replay results before durable commit", () => {

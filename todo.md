@@ -739,3 +739,8 @@
 - [x] Add durable idempotency storage for live proof-request creation
 - [x] Add focused persistence, router, and client retry coverage
 - [x] Revalidate migration, typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 102
+- [x] Add bounded retention handling for durable replay-protection records
+- [x] Harden stale proof-request and acceptance claim recovery
+- [x] Add focused coverage and revalidate the full project

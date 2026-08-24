@@ -1,4 +1,4 @@
-import { eq, and, asc, desc } from "drizzle-orm";
+import { eq, and, asc, desc, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -19,6 +19,10 @@ const MAX_PERSISTED_WALLET_LENGTH = 128;
 const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
 const MAX_ACCEPTANCE_RESULT_LENGTH = 65_536;
 const MAX_PROOF_REQUEST_RESULT_LENGTH = 65_536;
+const REPLAY_PENDING_LEASE_MS = 10 * 60_000;
+const REPLAY_COMMITTED_RETENTION_MS = 30 * 24 * 60 * 60_000;
+const REPLAY_CLEANUP_INTERVAL_MS = 60_000;
+let lastReplayCleanupAt = 0;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -182,6 +186,29 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   return candidate.applicationId === applicationId && candidate.state === "Executed" && typeof candidate.transactionHash === "string" && candidate.transactionHash === candidate.transactionHash.trim() && candidate.transactionHash.length > 0 && candidate.transactionHash.length <= MAX_PERSISTED_TX_HASH_LENGTH && Array.isArray(candidate.audit) && candidate.audit.length > 0;
 }
 
+export function isReplayRecordExpired(createdAt: Date, now = Date.now()): boolean {
+  return now - createdAt.getTime() > REPLAY_PENDING_LEASE_MS;
+}
+
+export async function cleanupReplayProtectionRecords(now = Date.now()): Promise<boolean> {
+  if (now - lastReplayCleanupAt < REPLAY_CLEANUP_INTERVAL_MS) return true;
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    const pendingCutoff = new Date(now - REPLAY_PENDING_LEASE_MS);
+    const committedCutoff = new Date(now - REPLAY_COMMITTED_RETENTION_MS);
+    await db.delete(acceptanceIdempotencyRecords).where(lt(acceptanceIdempotencyRecords.createdAt, committedCutoff));
+    await db.delete(proofRequestIdempotency).where(lt(proofRequestIdempotency.createdAt, committedCutoff));
+    await db.delete(acceptanceIdempotencyRecords).where(and(eq(acceptanceIdempotencyRecords.status, "Pending"), lt(acceptanceIdempotencyRecords.createdAt, pendingCutoff)));
+    await db.delete(proofRequestIdempotency).where(and(eq(proofRequestIdempotency.status, "Pending"), lt(proofRequestIdempotency.createdAt, pendingCutoff)));
+    lastReplayCleanupAt = now;
+    return true;
+  } catch (error) {
+    console.warn("[ProofLoan] Replay protection cleanup unavailable", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
 export type AcceptanceReplayClaim =
   | { status: "claimed" }
   | { status: "pending" }
@@ -193,6 +220,7 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
   const db = await getDb();
   if (!db) return { status: "unavailable" };
   try {
+    await cleanupReplayProtectionRecords();
     await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
     const row = await db.select().from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.applicationId, applicationId)).limit(1);
     if (!row[0]) return { status: "unavailable" };
@@ -207,7 +235,10 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
       return { status: "unavailable" };
     }
     if (row[0].status === "Pending") {
-      if (row[0].createdAt.getTime() < Date.now() - 10 * 60_000) return { status: "claimed" };
+      if (isReplayRecordExpired(row[0].createdAt)) {
+        await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey)));
+        return { status: "claimed" };
+      }
       return { status: "pending" };
     }
     return { status: "unavailable" };
@@ -249,6 +280,7 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
   const db = await getDb();
   if (!db) return { status: "unavailable" };
   try {
+    await cleanupReplayProtectionRecords();
     await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
     const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
     if (!row[0]) return { status: "unavailable" };
@@ -263,7 +295,7 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
       return { status: "unavailable" };
     }
     if (row[0].status === "Pending") {
-      if (row[0].createdAt.getTime() < Date.now() - 10 * 60_000) {
+      if (isReplayRecordExpired(row[0].createdAt)) {
         await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(eq(proofRequestIdempotency.requestKey, requestKey));
         return { status: "claimed" };
       }
