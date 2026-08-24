@@ -1099,3 +1099,8 @@
 - [x] Reject non-monotonic verified-fact chronology before persistence
 - [x] Add regression coverage for chronology drift and fail-closed writes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 19
+- [x] Enforce source-block and verification-block chronology at the write boundary
+- [x] Add regression coverage for block-order drift and fail-closed writes
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
