@@ -1094,3 +1094,8 @@
 - [x] Enforce canonical application decision metadata across all persistence write paths
 - [x] Add regression coverage for metadata drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 18
+- [x] Reject non-monotonic verified-fact chronology before persistence
+- [x] Add regression coverage for chronology drift and fail-closed writes
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

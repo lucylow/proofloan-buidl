@@ -108,6 +108,11 @@ describe("transactional snapshot persistence", () => {
     expect(() => buildApplicationUpsertValues({ ...snapshot, decision: invalidDecision })).toThrow("Invalid persisted decision.");
   });
 
+  it("rejects observed-after-verification fact chronology before persistence", () => {
+    const fact = { id: "fact-chronology-1", chain: "Ethereum Sepolia" as const, sourceBlock: 1, txHash: "0xchronology-1", eventType: "REPAYMENT" as const, amount: "1 USDC", asset: "USDC", verificationBlock: 1, verifiedAt: "2026-08-21T20:00:00.000Z", observedAt: "2026-08-21T20:00:01.000Z", freshness: "Fresh" as const, proofRoot: "root-chronology-1", proofWorker: "Attestcoin proof worker" };
+    expect(() => buildFactUpsertValues(fact)).toThrow("Invalid persisted verified fact.");
+  });
+
   it("rejects non-canonical fact and offer timestamps before persistence", () => {
     const fact = { id: "fact-time-1", chain: "Ethereum Sepolia" as const, sourceBlock: 1, txHash: "0xtime-1", eventType: "REPAYMENT" as const, amount: "1 USDC", asset: "USDC", verificationBlock: 1, verifiedAt: "2026-08-21T20:00:00.000Z", observedAt: "2026-08-21T20:00:00.000Z", freshness: "Fresh" as const, proofRoot: "root-time-1", proofWorker: "Attestcoin proof worker" };
     const offer = { amount: 1500, apr: 11.5, ltv: 0.54, termDays: 90, expiresAt: "2026-08-25T20:00:00.000Z", poolLiquidity: 250000, status: "Ready" as const };
