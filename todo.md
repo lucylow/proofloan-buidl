@@ -1209,3 +1209,8 @@
 - [x] Harden receipt-bearing replay validation against inconsistent audit chronology
 - [x] Add focused regression coverage for terminal audit drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 41
+- [x] Harden receipt-bearing replay validation against inconsistent audit identity
+- [x] Add focused regression coverage for audit-hash drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

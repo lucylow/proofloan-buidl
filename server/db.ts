@@ -234,6 +234,8 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
       if (Date.parse(auditTimestamps[index] as string) < Date.parse(auditTimestamps[index - 1] as string)) return false;
     }
   }
+  const auditHashes = candidate.audit.map(event => event.hash).filter((hash): hash is string => typeof hash === "string" && hash.trim().length > 0);
+  if (auditHashes.length !== candidate.audit.length || new Set(auditHashes).size !== auditHashes.length) return false;
   const terminalAudit = candidate.audit.at(-1);
   if (terminalAudit?.state !== "Executed") return false;
   const auditHash = terminalAudit.hash;
