@@ -597,12 +597,13 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
   const db = dbOverride ?? await getDb();
   if (!db) return undefined;
   try {
-    const applicationRows = await db.select().from(loanApplications).where(eq(loanApplications.applicationId, applicationId)).limit(1);
+    const applicationRows = await db.select().from(loanApplications).where(eq(loanApplications.applicationId, applicationId)).limit(2);
+    if (applicationRows.length !== 1) return undefined;
     const application = applicationRows[0];
-    if (!application) return undefined;
     const factRows = await db.select().from(verifiedFacts).where(eq(verifiedFacts.applicationId, applicationId)).orderBy(asc(verifiedFacts.id));
-    const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).orderBy(desc(decisions.id)).limit(1);
-    const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).orderBy(desc(offers.id)).limit(1);
+    const decisionRows = await db.select().from(decisions).where(eq(decisions.applicationId, applicationId)).orderBy(desc(decisions.id)).limit(2);
+    const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).orderBy(desc(offers.id)).limit(2);
+    if (decisionRows.length > 1 || offerRows.length > 1) return undefined;
     const auditRows = await db.select().from(auditEvents).where(eq(auditEvents.applicationId, applicationId)).orderBy(asc(auditEvents.id));
     if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows }, applicationId)) return undefined;
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;

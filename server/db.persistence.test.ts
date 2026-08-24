@@ -75,6 +75,14 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
   });
 
+  it("fails closed when persisted singleton rows are ambiguous", async () => {
+    const application = { applicationId: "PL-DUPLICATE", walletAddress: "0xduplicate", state: "EvidencePending", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
+    const audit = [{ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "duplicate-audit-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
+    expect(await getPersistedLoanSnapshot("PL-DUPLICATE", createSnapshotReadDb([[application, application], [], [], [], audit]) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-DUPLICATE", createSnapshotReadDb([[application], [], [{ id: 2 }, { id: 1 }], [], audit]) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-DUPLICATE", createSnapshotReadDb([[application], [], [], [{ id: 2 }, { id: 1 }], audit]) as never)).toBeUndefined();
+  });
+
   it("persists only canonical feature fingerprints in decision metadata", () => {
     const decision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
     expect(buildDecisionUpsertValues(decision).featureFingerprint).toBe("a".repeat(18));

@@ -1064,3 +1064,8 @@
 - [x] Add a nullable migration-safe feature fingerprint field to decision metadata
 - [x] Write and verify the canonical fingerprint across persistence boundaries
 - [x] Add schema, migration, and drift regression tests with full validation
+
+## Code improvement pass 12
+- [x] Reject ambiguous persisted snapshots when duplicate application or decision rows exist
+- [x] Add regression coverage for duplicate-row fail-closed behavior
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
