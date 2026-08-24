@@ -1004,3 +1004,8 @@
 - [x] Make the acceptance idempotency router test deterministic when underwriting blocks a preview offer
 - [x] Preserve coverage for committed replay results and distinct-key conflicts
 - [x] Re-run the full suite and build after the reliability fix
+
+## Deterministic preview-offer test hardening
+- [x] Add an explicit accepted preview snapshot fixture for router tests
+- [x] Preserve committed replay and distinct-key conflict assertions
+- [x] Re-run the full suite and build after fixture hardening

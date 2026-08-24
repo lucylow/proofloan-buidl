@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, withApplicationMutation } from "./routers";
+import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, registerPreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 import { previewAttestcoinFacts } from "./attestcoin";
@@ -14,6 +14,10 @@ function createContext(): TrpcContext {
 
 function previewSnapshot(applicationId: string): LoanSnapshot {
   return { applicationId, walletAddress: "0xpreview", sourceChain: "Ethereum Sepolia", state: "Intake", facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
+}
+
+function acceptedPreviewSnapshot(applicationId: string): LoanSnapshot {
+  return { ...previewSnapshot(applicationId), state: "AwaitingAcceptance", offer: { amount: 1500, apr: 11.5, ltv: 0.54, termDays: 90, expiresAt: new Date(Date.now() + 86_400_000).toISOString(), poolLiquidity: 250_000, status: "Ready" } };
 }
 
 describe("proofloan API flow", () => {
@@ -179,12 +183,8 @@ describe("proofloan API flow", () => {
 
   it("replays a committed acceptance result when the preview offer passes policy", async () => {
     const caller = appRouter.createCaller(createContext());
-    const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xidempotency-test-wallet", sourceChain: "Ethereum Sepolia" });
-    if (snapshot.state !== "AwaitingAcceptance") {
-      expect(snapshot.offer?.status).toBe("Blocked");
-      await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey: "accept-retry-key-0001" })).rejects.toThrow("already accepted");
-      return;
-    }
+    const snapshot = acceptedPreviewSnapshot("PL-IDEMPOTENCYFIXTURE");
+    registerPreviewApplication(snapshot);
     const idempotencyKey = "accept-retry-key-0001";
     const first = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });
     const retry = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });

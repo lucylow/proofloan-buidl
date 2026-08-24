@@ -24,6 +24,10 @@ export function storePreviewApplication(store: Map<string, LoanSnapshot>, snapsh
   store.set(snapshot.applicationId, snapshot);
 }
 
+export function registerPreviewApplication(snapshot: LoanSnapshot): void {
+  storePreviewApplication(applications, snapshot);
+}
+
 const MAX_AUDIT_DETAIL_LENGTH = 512;
 const MAX_PROOF_REQUESTS_PER_WINDOW = 5;
 const PROOF_REQUEST_WINDOW_MS = 60_000;
@@ -177,7 +181,7 @@ export const appRouter = router({
       snapshot.audit.push(audit(snapshot.state, snapshot.offer.status === "Blocked" ? snapshot.offer.rejectionReason ?? "RiskGuard rejected the offer." : "RiskGuard approved a bounded offer; awaiting borrower acceptance."));
       if (snapshot.offer.status === "Ready") await transitionLiveState(snapshot, "OfferPrepared", "AwaitingAcceptance", !previewMode);
       await persistLiveSnapshot(snapshot, !previewMode);
-      if (previewMode) storePreviewApplication(applications, snapshot);
+      if (previewMode) registerPreviewApplication(snapshot);
       if (!previewMode && input.idempotencyKey && !(await commitProofRequestReplay(input.idempotencyKey, snapshot.applicationId, snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof request completed, but replay protection could not be finalized.");
       return snapshot;
     }),
@@ -200,7 +204,7 @@ export const appRouter = router({
       await transitionLiveState(snapshot, "AwaitingAcceptance", "Executed", !previewMode);
       snapshot.audit.push(audit("Executed", "Simulated Creditcoin testnet transaction submitted by the typed execution boundary."));
       await persistLiveSnapshot(snapshot, !previewMode);
-      if (previewMode) storePreviewApplication(applications, snapshot);
+      if (previewMode) registerPreviewApplication(snapshot);
       const result: AcceptedOfferResult = { ...snapshot, transactionHash: `0xcreditcoin_${hashValue({ applicationId: snapshot.applicationId, auditHash: snapshot.audit.at(-1)?.hash })}` };
       if (!previewMode && input.idempotencyKey && !(await commitAcceptanceReplay(input.applicationId, input.idempotencyKey, result))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Acceptance committed, but replay protection could not be finalized.");
       if (input.idempotencyKey) {
