@@ -64,6 +64,16 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, expiresAt: new Date("invalid") })) as never)).toBeUndefined();
   });
 
+  it("fails closed for malformed application metadata before feature derivation", async () => {
+    const audit = [{ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "metadata-audit-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
+    const rows = (application: Record<string, unknown>) => [[application], [], [], [], audit];
+    const base = { applicationId: "PL-READMETA", walletAddress: "0xread-meta", state: "EvidencePending", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows(base)) as never)).toMatchObject({ applicationId: "PL-READMETA", features: { evidenceCount: 0 } });
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, walletAddress: " " })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, requestedAmount: "Infinity" })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
+  });
+
   it("keeps audit insert and update payloads synchronized", () => {
     const payload = buildAuditUpsertValues(snapshot.audit[0]);
     expect(payload.values).toEqual({ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "audit-hash-1", createdAt: new Date("2026-08-21T20:00:00.000Z") });

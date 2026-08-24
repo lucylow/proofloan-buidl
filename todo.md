@@ -1039,3 +1039,8 @@
 - [x] Add malformed fact, decision, and offer database-row fixtures
 - [x] Verify reconstruction fails closed for each malformed underwriting row
 - [x] Add read-path regression tests and revalidate the full project
+
+## Persisted metadata validation hardening
+- [x] Add malformed application metadata and feature-vector read fixtures
+- [x] Verify reconstruction fails closed for invalid persisted metadata
+- [x] Add metadata regression tests and revalidate the full project
