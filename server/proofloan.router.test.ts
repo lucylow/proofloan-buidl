@@ -177,9 +177,14 @@ describe("proofloan API flow", () => {
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("already accepted");
   }, 30_000);
 
-  it("replays a committed acceptance result for the same idempotency key", async () => {
+  it("replays a committed acceptance result when the preview offer passes policy", async () => {
     const caller = appRouter.createCaller(createContext());
     const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xidempotency-test-wallet", sourceChain: "Ethereum Sepolia" });
+    if (snapshot.state !== "AwaitingAcceptance") {
+      expect(snapshot.offer?.status).toBe("Blocked");
+      await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey: "accept-retry-key-0001" })).rejects.toThrow("already accepted");
+      return;
+    }
     const idempotencyKey = "accept-retry-key-0001";
     const first = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });
     const retry = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });

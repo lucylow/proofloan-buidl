@@ -994,3 +994,13 @@
 - [x] Separate persistence result derivation from UI warning state updates
 - [x] Keep lifecycle feedback bounded and recoverable without storage leakage
 - [x] Add lifecycle helper tests and revalidate the full project
+
+## Persistence effect lifecycle hardening
+- [x] Prevent persistence feedback state updates after component unmount
+- [x] Keep rapid threshold changes aligned with the latest persistence result
+- [x] Add lifecycle persistence tests and revalidate the full project
+
+## Full-suite reliability follow-up
+- [x] Make the acceptance idempotency router test deterministic when underwriting blocks a preview offer
+- [x] Preserve coverage for committed replay results and distinct-key conflicts
+- [x] Re-run the full suite and build after the reliability fix

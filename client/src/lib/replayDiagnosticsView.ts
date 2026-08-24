@@ -219,6 +219,10 @@ export function persistReplayRefreshSeverityThresholds(storage: Pick<Storage, "s
   return { available, transition, warning: getReplayRefreshSeverityPersistenceNotice(available), status: getReplayRefreshSeverityPersistenceStatus(transition) };
 }
 
+export function shouldApplyReplayRefreshPersistenceUpdate(input: { isMounted: boolean; persisted: Partial<ReplayRefreshSeverityThresholds>; current: Partial<ReplayRefreshSeverityThresholds> }): boolean {
+  return input.isMounted && areReplayRefreshSeverityThresholdsEqual(input.persisted, input.current);
+}
+
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
   const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);
