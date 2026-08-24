@@ -1074,3 +1074,8 @@
 - [x] Reject duplicate verified fact IDs and transaction references at the persistence boundary
 - [x] Add regression coverage for duplicate evidence identity and fail-closed reconstruction
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 14
+- [x] Reject duplicate audit event hashes at the write boundary before persistence
+- [x] Add regression coverage for duplicate audit identity and fail-closed writes
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

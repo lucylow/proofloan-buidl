@@ -75,6 +75,12 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
   });
 
+  it("rejects duplicate audit identity before persistence", () => {
+    const duplicateAudit = [{ ...snapshot.audit[0] }, { ...snapshot.audit[0], state: "Intake" as const, label: "Intake" as const }];
+    expect(isLoanSnapshotWriteConsistent({ ...snapshot, audit: duplicateAudit })).toBe(false);
+    expect(isLoanSnapshotWriteConsistent(snapshot)).toBe(true);
+  });
+
   it("rejects duplicate evidence identity before persistence", () => {
     const fact = { id: "fact-identity-1", chain: "Ethereum Sepolia" as const, sourceBlock: 1, txHash: "0xidentity-1", eventType: "REPAYMENT" as const, amount: "1 USDC", verificationBlock: 1, verifiedAt: "2026-08-24T20:00:00.000Z", observedAt: "2026-08-24T20:00:00.000Z", freshness: "Fresh" as const, proofRoot: "root-identity-1", proofWorker: "Attestcoin proof worker" };
     const base = { ...snapshot, applicationId: "PL-IDENTITY", state: "EvidenceVerified" as const, facts: [fact], audit: [{ ...snapshot.audit[0], state: "EvidenceVerified" as const, label: "EvidenceVerified" }] };

@@ -184,7 +184,7 @@ function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txH
 
 export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {
   if (!Array.isArray(snapshot.audit) || snapshot.audit.length === 0) return false;
-  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
+  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && hasUniqueAuditHashes(snapshot.audit) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
 }
 
 export function isLoanSnapshotPersistable(snapshot: LoanSnapshot, now = Date.now()): boolean {
@@ -545,6 +545,10 @@ const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) =
 const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDecision ? ["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) : !["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state);
 const isFactStateConsistent = (state: string, factCount: number) => !["EvidenceVerified", "Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) || factCount > 0;
 const AUDIT_STATE_ORDER: Record<ProofLoanState, number> = { Intake: 0, EvidencePending: 1, EvidenceVerified: 2, Scored: 3, OfferPrepared: 4, AwaitingAcceptance: 5, Executed: 6, Rejected: 7 };
+const hasUniqueAuditHashes = (audit: Array<{ hash?: unknown; eventHash?: unknown }>) => {
+  const hashes = audit.map(event => String(event.hash ?? event.eventHash));
+  return new Set(hashes).size === hashes.length;
+};
 const isAuditStateProgressionConsistent = (audit: Array<{ state: string }>) => audit.every((event, index) => {
   if (index === 0) return true;
   const previous = audit[index - 1].state as ProofLoanState;
