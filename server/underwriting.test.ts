@@ -27,6 +27,11 @@ describe("ProofLoan underwriting primitives", () => {
     expect(fingerprintFeatureVector({ ...features, volume30d: features.volume30d + 1 })).not.toBe(fingerprintFeatureVector(features));
   });
 
+  it("caps advisory confidence at the evidence freshness score", () => {
+    const baseline = { pd30: 0.08, pd90: 0.16, confidence: 0.4, freshnessScore: 0.6, riskTier: "B" as const, reasonCodes: ["SPARSE_EVIDENCE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
+    expect(sanitizeAiCandidate({ confidence: 0.99 }, baseline).confidence).toBe(0.6);
+  });
+
   it("accepts only feature vectors consistent with the same evidence and clock", () => {
     const facts = buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia");
     const nowMs = Date.parse("2026-08-24T20:00:00.000Z");
@@ -49,7 +54,7 @@ describe("ProofLoan underwriting primitives", () => {
     const sanitized = sanitizeAiCandidate({ pd30: Number.NaN, pd90: -4, confidence: 9, reasonCodes: ["HIGH_LEVERAGE", "UNTRUSTED_CODE"] as never[] }, baseline);
     expect(sanitized.pd30).toBe(baseline.pd30);
     expect(sanitized.pd90).toBe(baseline.pd30);
-    expect(sanitized.confidence).toBe(1);
+    expect(sanitized.confidence).toBe(0.9);
     expect(sanitized.reasonCodes).toEqual(["HIGH_LEVERAGE"]);
     expect(Number.isFinite(sanitized.pd30)).toBe(true);
   });

@@ -149,7 +149,7 @@ const clampProbability = (value: unknown, fallback: number) => {
 export function sanitizeAiCandidate(candidate: Partial<Decision>, baseline: Decision): Decision {
   const pd30 = clampProbability(candidate.pd30, baseline.pd30);
   const pd90 = Math.max(pd30, clampProbability(candidate.pd90, baseline.pd90));
-  const confidence = clampProbability(candidate.confidence, baseline.confidence);
+  const confidence = Math.min(baseline.freshnessScore, clampProbability(candidate.confidence, baseline.confidence));
   const reasonCodes = Array.isArray(candidate.reasonCodes) ? candidate.reasonCodes.filter((code): code is ReasonCode => typeof code === "string" && isReasonCode(code)) : [];
   return { ...baseline, pd30, pd90, confidence, reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes, featureFingerprint: baseline.featureFingerprint };
 }

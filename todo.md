@@ -1119,3 +1119,8 @@
 - [x] Align persisted decision freshness with the canonical derived feature vector
 - [x] Add regression coverage for reconstructed decision-feature freshness alignment
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 23
+- [x] Enforce consistency between persisted decision confidence and derived freshness metrics
+- [x] Add regression coverage for confidence-freshness drift and fail-closed reconstruction
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
