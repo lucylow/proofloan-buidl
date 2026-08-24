@@ -29,10 +29,11 @@ describe("replay diagnostics view model", () => {
 
   it("classifies bounded failure trends without exposing event details", () => {
     const event = (id: number, outcome: "success" | "error") => ({ id, occurredAt: `2026-08-24T00:0${id}:00.000Z`, outcome });
-    expect(getReplayRefreshTrend([event(1, "success"), event(2, "success"), event(3, "error"), event(4, "error")])).toMatchObject({ direction: "rising", priorFailureRatePercent: 0, recentFailureRatePercent: 100 });
+    expect(getReplayRefreshTrend([event(1, "success"), event(2, "success"), event(3, "error"), event(4, "error")])).toMatchObject({ direction: "rising", confidence: "medium", priorSampleSize: 2, recentSampleSize: 2, priorFailureRatePercent: 0, recentFailureRatePercent: 100 });
     expect(getReplayRefreshTrend([event(1, "error"), event(2, "error"), event(3, "success"), event(4, "success")])).toMatchObject({ direction: "falling" });
     expect(getReplayRefreshTrend([event(1, "error"), event(2, "success"), event(3, "error"), event(4, "success")])).toMatchObject({ direction: "flat" });
-    expect(getReplayRefreshTrend([event(1, "error"), event(2, "success")]).direction).toBe("insufficient");
+    expect(getReplayRefreshTrend([event(1, "error"), event(2, "success")])).toMatchObject({ direction: "insufficient", confidence: "low", priorSampleSize: 0, recentSampleSize: 0 });
+    expect(getReplayRefreshTrend([event(1, "success"), event(2, "success"), event(3, "success"), event(4, "success"), event(5, "error"), event(6, "error")])).toMatchObject({ confidence: "high", recentSampleSize: 3, priorSampleSize: 3 });
   });
 
   it("counts only the six newest failures in a stable category order", () => {

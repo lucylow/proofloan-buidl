@@ -864,3 +864,8 @@
 - [x] Compare the newest and preceding bounded refresh windows
 - [x] Render a privacy-safe trend direction for operators
 - [x] Add trend boundary tests and revalidate the full project
+
+## Refresh trend confidence cue
+- [x] Add explicit trend sample-size confidence semantics
+- [x] Render coverage guidance beside the trend indicator
+- [x] Add boundary tests and revalidate the full project

@@ -11,7 +11,7 @@ export type ReplayRefreshFailureCategory = "unavailable" | "malformed" | "reques
 export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome; category?: ReplayRefreshFailureCategory };
 export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
-export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; recentFailureRatePercent: number; priorFailureRatePercent: number };
+export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -72,7 +72,7 @@ export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEven
 
 export function getReplayRefreshTrend(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTrend {
   const recent = events.slice(-6);
-  if (recent.length < 4) return { direction: "insufficient", recentFailureRatePercent: 0, priorFailureRatePercent: 0 };
+  if (recent.length < 4) return { direction: "insufficient", confidence: "low", recentSampleSize: 0, priorSampleSize: 0, recentFailureRatePercent: 0, priorFailureRatePercent: 0 };
   const split = Math.ceil(recent.length / 2);
   const prior = recent.slice(0, split);
   const latest = recent.slice(split);
@@ -80,7 +80,7 @@ export function getReplayRefreshTrend(events: ReplayRefreshTimelineEvent[]): Rep
   const priorFailureRatePercent = rate(prior);
   const recentFailureRatePercent = rate(latest);
   const delta = recentFailureRatePercent - priorFailureRatePercent;
-  return { direction: delta > 0 ? "rising" : delta < 0 ? "falling" : "flat", recentFailureRatePercent, priorFailureRatePercent };
+  return { direction: delta > 0 ? "rising" : delta < 0 ? "falling" : "flat", confidence: recent.length >= 6 ? "high" : "medium", recentSampleSize: latest.length, priorSampleSize: prior.length, recentFailureRatePercent, priorFailureRatePercent };
 }
 
 export function getReplayRefreshTimelineSummary(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTimelineSummary {
