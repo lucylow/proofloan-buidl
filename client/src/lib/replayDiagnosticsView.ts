@@ -213,6 +213,12 @@ export function getReplayRefreshSeverityPersistenceStatus(state: ReplayRefreshSe
   return "Session persistence ready for this browser session.";
 }
 
+export function persistReplayRefreshSeverityThresholds(storage: Pick<Storage, "setItem"> | undefined, input: Partial<ReplayRefreshSeverityThresholds> | undefined, previousAvailable: boolean | null): { available: boolean; transition: ReplayRefreshSeverityPersistenceState; warning: string | null; status: string } {
+  const available = writeReplayRefreshSeverityThresholds(storage, input);
+  const transition = getReplayRefreshSeverityPersistenceTransition(previousAvailable, available);
+  return { available, transition, warning: getReplayRefreshSeverityPersistenceNotice(available), status: getReplayRefreshSeverityPersistenceStatus(transition) };
+}
+
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
   const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);

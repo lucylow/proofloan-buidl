@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -155,6 +155,11 @@ describe("replay diagnostics view model", () => {
     expect(getReplayRefreshSeverityPersistenceStatus("ready")).toBe("Session persistence ready for this browser session.");
     expect(getReplayRefreshSeverityPersistenceStatus("unavailable")).toContain("remain active in memory");
     expect(getReplayRefreshSeverityPersistenceStatus("recovered")).toContain("restored for this browser session");
+    const transitionValues = new Map<string, string>();
+    const transitionStorage = { setItem: (key: string, value: string) => transitionValues.set(key, value) };
+    expect(persistReplayRefreshSeverityThresholds(transitionStorage, { attentionCount: 2, criticalCount: 3 }, null)).toMatchObject({ available: true, transition: "ready", warning: null });
+    expect(persistReplayRefreshSeverityThresholds(undefined, { attentionCount: 2, criticalCount: 3 }, true)).toMatchObject({ available: false, transition: "unavailable" });
+    expect(persistReplayRefreshSeverityThresholds(transitionStorage, { attentionCount: 2, criticalCount: 3 }, false)).toMatchObject({ available: true, transition: "recovered" });
   });
 
   it("normalizes severity thresholds into a safe bounded ordering", () => {

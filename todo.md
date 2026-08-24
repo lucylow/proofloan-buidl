@@ -989,3 +989,8 @@
 - [x] Model ready, unavailable, and recovered persistence states with fixed safe labels
 - [x] Keep transition announcements bounded and free of storage details
 - [x] Add transition tests and revalidate the full project
+
+## Persistence lifecycle separation
+- [x] Separate persistence result derivation from UI warning state updates
+- [x] Keep lifecycle feedback bounded and recoverable without storage leakage
+- [x] Add lifecycle helper tests and revalidate the full project
