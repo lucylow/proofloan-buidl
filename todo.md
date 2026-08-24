@@ -764,3 +764,8 @@
 - [x] Verify affected-row counts for durable acceptance and proof-request commits
 - [x] Fail closed when the intended replay record was not updated
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 107
+- [x] Add direct mocked-database coverage for durable acceptance commits
+- [x] Add direct mocked-database coverage for durable proof-request commits
+- [x] Revalidate the full project and responsive rendering
