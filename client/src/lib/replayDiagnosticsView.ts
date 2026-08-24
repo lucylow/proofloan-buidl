@@ -47,6 +47,12 @@ export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshnes
   ];
 }
 
+export function getReplayDiagnosticsRefreshState(input: { isFetching: boolean; isOnline: boolean }): { enabled: boolean; label: string } {
+  if (!input.isOnline) return { enabled: false, label: "Offline" };
+  if (input.isFetching) return { enabled: false, label: "Refreshing" };
+  return { enabled: true, label: "Refresh now" };
+}
+
 export function formatReplayDiagnosticsTimestamp(timestamp: string): string {
   const parsed = new Date(timestamp);
   return Number.isNaN(parsed.getTime()) ? "Unavailable" : parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

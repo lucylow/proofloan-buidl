@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -19,6 +19,12 @@ describe("replay diagnostics view model", () => {
 
   it("marks rows for attention when diagnostics are not fresh", () => {
     expect(getReplayDiagnosticsRows({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 } }, "stale").every(row => row.tone === "attention")).toBe(true);
+  });
+
+  it("gates manual refresh while offline or already fetching", () => {
+    expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
+    expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
+    expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
   });
 
   it("handles invalid timestamps without throwing", () => {

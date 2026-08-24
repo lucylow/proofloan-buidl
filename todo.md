@@ -824,3 +824,8 @@
 - [x] Classify replay diagnostics freshness explicitly
 - [x] Prevent stale or future timestamps from appearing healthy
 - [x] Add focused freshness tests and revalidate the full project
+
+## Code improvement pass 119
+- [x] Add an explicit admin replay-diagnostics refresh action
+- [x] Show request-level refreshing and refresh-failure feedback
+- [x] Add focused interaction tests and revalidate the full project
