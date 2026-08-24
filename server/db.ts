@@ -245,14 +245,14 @@ export type AcceptanceReplayClaim =
   | { status: "conflict" }
   | { status: "unavailable" };
 
-export async function claimAcceptanceReplay(applicationId: string, requestKey: string): Promise<AcceptanceReplayClaim> {
-  const db = await getDb();
+export async function claimAcceptanceReplay(applicationId: string, requestKey: string, dbOverride?: DatabaseClient): Promise<AcceptanceReplayClaim> {
+  const db = dbOverride ?? await getDb();
   if (!db) {
     recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
     return { status: "unavailable" };
   }
   try {
-    await cleanupReplayProtectionRecords();
+    if (!dbOverride) await cleanupReplayProtectionRecords();
     await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
     const row = await db.select().from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.applicationId, applicationId)).limit(1);
     if (!row[0]) return { status: "unavailable" };
@@ -330,14 +330,14 @@ export type ProofRequestReplayClaim =
   | { status: "conflict" }
   | { status: "unavailable" };
 
-export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string): Promise<ProofRequestReplayClaim> {
-  const db = await getDb();
+export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string, dbOverride?: DatabaseClient): Promise<ProofRequestReplayClaim> {
+  const db = dbOverride ?? await getDb();
   if (!db) {
     recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "storage_unavailable" });
     return { status: "unavailable" };
   }
   try {
-    await cleanupReplayProtectionRecords();
+    if (!dbOverride) await cleanupReplayProtectionRecords();
     await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
     const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
     if (!row[0]) {

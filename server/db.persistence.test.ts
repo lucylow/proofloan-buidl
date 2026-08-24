@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, commitAcceptanceReplay, commitProofRequestReplay, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -115,6 +115,26 @@ describe("transactional snapshot persistence", () => {
     expect(JSON.stringify(payload)).not.toContain("proof-secret-key");
     expect(JSON.stringify(payload)).not.toContain("PL-PERSISTENCE-TEST");
     info.mockRestore();
+  });
+
+  it("fails closed when a stale acceptance claim loses its recovery race", async () => {
+    const replayDb = (affectedRows: number) => ({
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ applicationId: "PL-PERSISTENCE-TEST", requestKey: "acceptance-race-key", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }),
+    });
+    await expect(claimAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-race-key", replayDb(0) as never)).resolves.toEqual({ status: "unavailable" });
+    await expect(claimAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-race-key", replayDb(1) as never)).resolves.toEqual({ status: "claimed" });
+  });
+
+  it("fails closed when a stale proof-request claim loses its recovery race", async () => {
+    const replayDb = (affectedRows: number) => ({
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-race-key", walletAddress: "0xproof-race-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }),
+    });
+    await expect(claimProofRequestReplay("proof-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(0) as never)).resolves.toEqual({ status: "unavailable" });
+    await expect(claimProofRequestReplay("proof-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(1) as never)).resolves.toEqual({ status: "claimed" });
   });
 
   it("expires stale replay leases but preserves fresh claims", () => {

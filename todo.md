@@ -784,3 +784,8 @@
 - [x] Harden stale pending acceptance and proof-request claim recovery
 - [x] Preserve exactly-once behavior during recovery races
 - [x] Add focused tests and revalidate the full project
+
+## Code improvement pass 111
+- [x] Add deterministic tests for stale acceptance recovery races
+- [x] Add deterministic tests for stale proof-request recovery races
+- [x] Revalidate the full project and responsive rendering
