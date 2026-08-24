@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityStatusSummary, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, readReplayRefreshSeverityThresholds, writeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
@@ -149,6 +149,8 @@ describe("replay diagnostics view model", () => {
     expect(writeReplayRefreshSeverityThresholds(undefined, { attentionCount: 2 })).toBe(false);
     expect(getReplayRefreshSeverityPersistenceNotice(true)).toBeNull();
     expect(getReplayRefreshSeverityPersistenceNotice(false)).toContain("remain active in memory");
+    expect(getReplayRefreshSeverityPersistenceStatus(true)).toBe("Session persistence ready for this browser session.");
+    expect(getReplayRefreshSeverityPersistenceStatus(false)).toContain("remain active in memory");
   });
 
   it("normalizes severity thresholds into a safe bounded ordering", () => {

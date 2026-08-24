@@ -979,3 +979,8 @@
 - [x] Add explicit safe persistence outcomes for threshold storage reads and writes
 - [x] Keep operator state authoritative when session storage is malformed or unavailable
 - [x] Add storage recovery tests and revalidate the full project
+
+## Threshold persistence warning hardening
+- [x] Deduplicate repeated persistence warning state updates
+- [x] Preserve a clear recovery signal when storage becomes available again
+- [x] Add persistence-warning transition tests and revalidate the full project

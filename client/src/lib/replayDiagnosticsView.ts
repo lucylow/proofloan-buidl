@@ -200,6 +200,10 @@ export function getReplayRefreshSeverityPersistenceNotice(available: boolean): s
   return available ? null : "Session persistence is unavailable; current thresholds remain active in memory.";
 }
 
+export function getReplayRefreshSeverityPersistenceStatus(available: boolean): string {
+  return available ? "Session persistence ready for this browser session." : "Session persistence is unavailable; current thresholds remain active in memory.";
+}
+
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
   const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
   const thresholds = normalizeReplayRefreshSeverityThresholds(input);
