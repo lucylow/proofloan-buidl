@@ -1134,3 +1134,8 @@
 - [x] Enforce policy-hash consistency with the canonical underwriting policy
 - [x] Add regression coverage for policy-hash drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 26
+- [x] Enforce decision PD90 monotonicity and risk-tier consistency across all modern persistence paths
+- [x] Add regression coverage for probability-order drift and fail-closed reconstruction
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

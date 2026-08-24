@@ -109,6 +109,10 @@ export function fingerprintFeatureVector(features: FeatureVector): string {
   return hashValue(Object.fromEntries(FEATURE_VECTOR_KEYS.map(key => [key, features[key]])));
 }
 
+export function isProbabilityOrderConsistent(pd30: number, pd90: number): boolean {
+  return Number.isFinite(pd30) && Number.isFinite(pd90) && pd30 <= pd90;
+}
+
 export function riskTierForPd30(pd30: number): Decision["riskTier"] {
   return pd30 < 0.1 ? "A" : pd30 < 0.18 ? "B" : pd30 < 0.3 ? "C" : "D";
 }
