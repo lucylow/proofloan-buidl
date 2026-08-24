@@ -1044,3 +1044,8 @@
 - [x] Add malformed application metadata and feature-vector read fixtures
 - [x] Verify reconstruction fails closed for invalid persisted metadata
 - [x] Add metadata regression tests and revalidate the full project
+
+## Underwriting consistency hardening
+- [x] Reject inconsistent fact chronology before feature derivation
+- [x] Validate derived feature inputs remain finite and bounded
+- [x] Add consistency regression tests and revalidate the full project

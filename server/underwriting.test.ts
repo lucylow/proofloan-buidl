@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -18,6 +18,14 @@ describe("ProofLoan underwriting primitives", () => {
     expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 90, volume7d: 4050, volume30d: 4050, volume180d: 4900, evidenceCount: 3 });
     expect(features.leverageRatio).toBeGreaterThan(0);
     expect(features.freshnessScore).toBeLessThan(1);
+  });
+
+  it("accepts finite bounded feature vectors and rejects malformed derivation output", () => {
+    const valid = buildFeatureVector(buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia"));
+    expect(isFeatureVectorFiniteAndBounded(valid)).toBe(true);
+    expect(isFeatureVectorFiniteAndBounded({ ...valid, volume180d: Number.POSITIVE_INFINITY })).toBe(false);
+    expect(isFeatureVectorFiniteAndBounded({ ...valid, evidenceCount: 65 })).toBe(false);
+    expect(isFeatureVectorFiniteAndBounded({ ...valid, walletAgeDays: -1 })).toBe(false);
   });
 
   it("sanitizes malformed AI advisory output before policy evaluation", () => {

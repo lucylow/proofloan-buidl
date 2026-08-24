@@ -70,6 +70,17 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
   ];
 }
 
+export function isFeatureVectorFiniteAndBounded(features: FeatureVector): boolean {
+  const boundedCounts = [features.repaymentCount, features.latePayments, features.evidenceCount];
+  const boundedRatios = [features.leverageRatio, features.freshnessScore];
+  const boundedVolumes = [features.volume7d, features.volume30d, features.volume180d];
+  return [...boundedCounts, ...boundedRatios, ...boundedVolumes, features.walletAgeDays].every(value => Number.isFinite(value) && value >= 0)
+    && boundedCounts.every(value => Number.isInteger(value) && value <= 64)
+    && features.walletAgeDays <= 10_000
+    && boundedRatios.every(value => value <= 1_000_000)
+    && boundedVolumes.every(value => value <= 1_000_000);
+}
+
 export function buildFeatureVector(facts: VerifiedFact[]): FeatureVector {
   const nowMs = Date.now();
   const ageDays = (fact: VerifiedFact) => Math.max(0, (nowMs - new Date(fact.observedAt).getTime()) / 86_400_000);

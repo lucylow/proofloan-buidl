@@ -484,7 +484,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector } from "./underwriting";
+import { buildFeatureVector, isFeatureVectorFiniteAndBounded } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -622,7 +622,9 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const offerStatus: Offer["status"] | undefined = offerRow && isOfferStatus(offerRow.status) ? offerRow.status : undefined;
     const offer: Offer | undefined = offerRow && offerStatus ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), poolLiquidity: 250000, status: offerStatus } : undefined;
     const audit: AuditEvent[] = auditRows.map(event => ({ state: event.state as AuditEvent["state"], label: event.label, timestamp: event.createdAt.toISOString(), detail: event.detail, hash: event.eventHash }));
-    return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features: buildFeatureVector(facts), decision, offer, audit };
+    const features = buildFeatureVector(facts);
+    if (!isFeatureVectorFiniteAndBounded(features)) return undefined;
+    return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
   } catch (error) {
     console.warn("[ProofLoan] Database read unavailable; using active in-memory snapshot.", error instanceof Error ? error.message : error);
     return undefined;
