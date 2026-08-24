@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("maps every supported filter to a safe operator label", () => {
     expect(["all", "failures", "unavailable", "malformed", "request_error"].map(filter => getReplayRefreshFilterLabel(filter as any))).toEqual(["All attempts", "Failures only", "Service unavailable", "Invalid response", "Request error"]);
+  });
+
+  it("describes only allowlisted filter changes and stays silent when unchanged", () => {
+    expect(getReplayRefreshFilterChangeNotice("all", "failures")).toBe("Filter changed to failures only");
+    expect(getReplayRefreshFilterChangeNotice("failures", "malformed")).toBe("Filter changed to invalid response");
+    expect(getReplayRefreshFilterChangeNotice("all", "all")).toBeNull();
   });
 
   it("bounds matching-count labels and never exposes invalid count values", () => {

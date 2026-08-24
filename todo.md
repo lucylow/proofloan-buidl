@@ -909,3 +909,8 @@
 - [x] Add a bounded matching-event count to the active-filter label
 - [x] Keep count semantics accessible and privacy-safe
 - [x] Add count tests and revalidate the full project
+
+## Filter-change status cue
+- [x] Add a safe transient status model for filter changes
+- [x] Render the cue accessibly with timer cleanup
+- [x] Add filter-change tests and revalidate the full project
