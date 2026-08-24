@@ -1154,3 +1154,8 @@
 - [x] Enforce persisted collateral-basis provenance for canonical LTV reconstruction
 - [x] Add regression coverage for collateral-basis drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 30
+- [x] Enforce collateral provenance presence for modern offers and preserve legacy compatibility
+- [x] Add regression coverage for missing modern collateral provenance and fail-closed reconstruction
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

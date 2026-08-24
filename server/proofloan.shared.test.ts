@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { POLICY_HASH } from "./underwriting";
 
 describe("ProofLoan shared validation", () => {
   it("accepts canonical ProofLoan application IDs and rejects malformed ones", () => {
@@ -43,6 +44,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, audit: [] })).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-DIFFERENT1")).toBe(false);
     expect(isPersistedSnapshotValid(valid, "PL-APPTEST1")).toBe(true);
+    expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, featureFingerprint: "a".repeat(18), policyHash: POLICY_HASH } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Unknown" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "EvidencePending" }, decision: undefined, offer: undefined, audit: [{ ...valid.audit[0], state: "EvidencePending", label: "EvidencePending" }] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "EvidenceVerified" }, facts: [], decision: undefined, offer: undefined })).toBe(false);
