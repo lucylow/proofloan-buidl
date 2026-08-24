@@ -225,8 +225,10 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   if (candidate.offer !== undefined && candidate.decision !== undefined && candidate.receiptHash === undefined) return false;
   if (candidate.receiptHash === undefined) return true;
   if (typeof candidate.receiptHash !== "string" || !/^[a-f0-9]{18}$/.test(candidate.receiptHash) || !/^0xcreditcoin_[a-f0-9]{18}$/.test(candidate.transactionHash)) return false;
+  if (!candidate.offer || typeof candidate.offer !== "object" || !candidate.decision || typeof candidate.decision !== "object" || typeof candidate.decision.decisionHash !== "string") return false;
   const auditHash = candidate.audit.at(-1)?.hash;
-  return candidate.receiptHash === hashValue({ applicationId, offer: candidate.offer, decisionHash: candidate.decision?.decisionHash, auditHash }) && candidate.transactionHash === `0xcreditcoin_${candidate.receiptHash}`;
+  if (typeof auditHash !== "string" || auditHash.trim().length === 0) return false;
+  return candidate.receiptHash === hashValue({ applicationId, offer: candidate.offer, decisionHash: candidate.decision.decisionHash, auditHash }) && candidate.transactionHash === `0xcreditcoin_${candidate.receiptHash}`;
 }
 
 export function isReplayRecordExpired(createdAt: Date, now = Date.now()): boolean {
