@@ -340,6 +340,21 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableProofRequestReplayResult({ ...valid, audit: [] })).toBe(false);
   });
 
+  it("rejects modern acceptance commits without a receipt before touching storage", async () => {
+    const update = vi.fn();
+    const replayDb = { update };
+    const modernWithoutReceipt = {
+      applicationId: "PL-PERSISTENCE-TEST",
+      state: "Executed",
+      transactionHash: "0xlegacy-transaction",
+      offer: {},
+      decision: { decisionHash: "decision-hash" },
+      audit: [{ hash: "terminal-audit-hash" }],
+    };
+    await expect(commitAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-modern-missing-receipt", modernWithoutReceipt, replayDb as never)).resolves.toBe(false);
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {
     let rollbackObserved = false;
     const failingTx = {

@@ -1179,3 +1179,8 @@
 - [x] Enforce transaction-hash format and receipt binding at the durable replay boundary
 - [x] Add regression coverage for malformed or mismatched execution receipts
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 35
+- [x] Enforce canonical execution receipt binding for modern durable replay records
+- [x] Add regression coverage for missing and mismatched receipt bindings
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

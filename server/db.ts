@@ -368,6 +368,8 @@ export async function commitAcceptanceReplay(applicationId: string, requestKey: 
   if (!db) return false;
   try {
     if (!isDurableAcceptanceReplayResult(applicationId, result)) return false;
+    const replayCandidate = result as { offer?: unknown; decision?: unknown; receiptHash?: unknown };
+    if (replayCandidate.offer !== undefined && replayCandidate.decision !== undefined && replayCandidate.receiptHash === undefined) return false;
     const resultJson = JSON.stringify(result);
     if (resultJson.length > MAX_ACCEPTANCE_RESULT_LENGTH) return false;
     const updateResult = await db.update(acceptanceIdempotencyRecords).set({ status: "Committed", resultJson }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey), eq(acceptanceIdempotencyRecords.status, "Pending")));
