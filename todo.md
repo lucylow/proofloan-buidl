@@ -969,3 +969,8 @@
 - [x] Add stable status summaries for threshold changes and restored defaults
 - [x] Improve keyboard guidance for threshold inputs and reset action
 - [x] Add status-summary tests and revalidate the full project
+
+## Threshold no-op update hardening
+- [x] Detect unchanged normalized threshold values before updating state
+- [x] Suppress redundant status notices and audit entries for no-op edits
+- [x] Add no-op transition tests and revalidate the full project
