@@ -1029,3 +1029,8 @@
 - [x] Normalize persisted audit histories at the server snapshot boundary
 - [x] Keep malformed audit records bounded and free of raw diagnostic details
 - [x] Add server snapshot regression tests and revalidate the full project
+
+## Persisted snapshot read-boundary coverage
+- [x] Add a mocked database read harness for snapshot reconstruction
+- [x] Verify valid snapshots reconstruct and malformed rows fail closed
+- [x] Add read-path tests and revalidate the full project

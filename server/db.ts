@@ -593,8 +593,8 @@ export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput
   }
 }
 
-export async function getPersistedLoanSnapshot(applicationId: string): Promise<LoanSnapshot | undefined> {
-  const db = await getDb();
+export async function getPersistedLoanSnapshot(applicationId: string, dbOverride?: DatabaseClient): Promise<LoanSnapshot | undefined> {
+  const db = dbOverride ?? await getDb();
   if (!db) return undefined;
   try {
     const applicationRows = await db.select().from(loanApplications).where(eq(loanApplications.applicationId, applicationId)).limit(1);

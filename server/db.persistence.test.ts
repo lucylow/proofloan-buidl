@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -17,6 +17,35 @@ const snapshot: LoanSnapshot = {
 };
 
 describe("transactional snapshot persistence", () => {
+  it("reconstructs a valid persisted snapshot at the database read boundary", async () => {
+    const createdAt = new Date("2026-08-24T20:00:00.000Z");
+    const rows = [
+      [{ applicationId: "PL-READBOUNDARY", walletAddress: "0xread-boundary", state: "EvidencePending", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }],
+      [],
+      [],
+      [],
+      [{ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "read-audit-1", createdAt }],
+    ];
+    let index = 0;
+    const db = { select: () => ({ from: () => ({ where: () => { const current = index++; return current === 0 ? { limit: async () => rows[0] } : { orderBy: () => current === 2 || current === 3 ? { limit: async () => rows[current] } : rows[current] }; } }) }) };
+    const result = await getPersistedLoanSnapshot("PL-READBOUNDARY", db as never);
+    expect(result).toMatchObject({ applicationId: "PL-READBOUNDARY", state: "EvidencePending", audit: [{ state: "EvidencePending", hash: "read-audit-1" }] });
+  });
+
+  it("fails closed when the persisted audit row is malformed at read time", async () => {
+    const createdAt = new Date("invalid");
+    const rows = [
+      [{ applicationId: "PL-READMALFORMED", walletAddress: "0xread-malformed", state: "EvidencePending", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }],
+      [],
+      [],
+      [],
+      [{ state: "EvidencePending", label: "EvidencePending", detail: "raw-wallet=0xsecret", eventHash: "read-audit-1", createdAt }],
+    ];
+    let index = 0;
+    const db = { select: () => ({ from: () => ({ where: () => { const current = index++; return current === 0 ? { limit: async () => rows[0] } : { orderBy: () => current === 2 || current === 3 ? { limit: async () => rows[current] } : rows[current] }; } }) }) };
+    expect(await getPersistedLoanSnapshot("PL-READMALFORMED", db as never)).toBeUndefined();
+  });
+
   it("keeps audit insert and update payloads synchronized", () => {
     const payload = buildAuditUpsertValues(snapshot.audit[0]);
     expect(payload.values).toEqual({ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "audit-hash-1", createdAt: new Date("2026-08-21T20:00:00.000Z") });
