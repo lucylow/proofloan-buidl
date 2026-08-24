@@ -13,7 +13,7 @@ import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, type ReplayDiagnosticsRefreshOutcome } from "@/lib/replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -40,6 +40,12 @@ export default function Home() {
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
   const [replayRefreshOutcome, setReplayRefreshOutcome] = useState<ReplayDiagnosticsRefreshOutcome>("idle");
+  const replayRefreshRequestRef = useRef(0);
+  const replayRefreshMountedRef = useRef(true);
+  useEffect(() => () => {
+    replayRefreshMountedRef.current = false;
+    replayRefreshRequestRef.current += 1;
+  }, []);
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -68,8 +74,14 @@ export default function Home() {
   const replayRefreshFeedback = getReplayDiagnosticsRefreshFeedback(replayRefreshOutcome);
   const refreshReplayDiagnostics = () => {
     if (!replayDiagnosticsRefresh.enabled) return;
+    const requestId = replayRefreshRequestRef.current + 1;
+    replayRefreshRequestRef.current = requestId;
     setReplayRefreshOutcome("refreshing");
-    void replayDiagnostics.refetch().then(result => setReplayRefreshOutcome(result.isError ? "error" : "success")).catch(() => setReplayRefreshOutcome("error"));
+    void replayDiagnostics.refetch().then(result => {
+      if (shouldApplyReplayRefreshOutcome({ requestId, currentRequestId: replayRefreshRequestRef.current, isMounted: replayRefreshMountedRef.current })) setReplayRefreshOutcome(result.isError ? "error" : "success");
+    }).catch(() => {
+      if (shouldApplyReplayRefreshOutcome({ requestId, currentRequestId: replayRefreshRequestRef.current, isMounted: replayRefreshMountedRef.current })) setReplayRefreshOutcome("error");
+    });
   };
   const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { acceptanceIdempotencyRef.current = null; setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true), onError: (_error, variables) => { const recovery = getAcceptanceFailureRecovery({ hasApplication: Boolean(variables.applicationId), isOnline, pollingPaused }); if (recovery.shouldInvalidateCreditFile) { if (recovery.shouldResumePolling) setPollingPaused(false); void proofloanUtils.proofloan.getApplication.invalidate({ applicationId: variables.applicationId }).catch(() => undefined); } } });

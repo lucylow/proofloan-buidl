@@ -48,6 +48,10 @@ export function getReplayDiagnosticsRows(input: ReplayDiagnosticsInput, freshnes
   ];
 }
 
+export function shouldApplyReplayRefreshOutcome(input: { requestId: number; currentRequestId: number; isMounted: boolean }): boolean {
+  return input.isMounted && input.requestId === input.currentRequestId;
+}
+
 export function getReplayDiagnosticsRefreshFeedback(outcome: ReplayDiagnosticsRefreshOutcome): { label: string; tone: "muted" | "positive" | "negative" } {
   if (outcome === "refreshing") return { label: "Refreshing protected diagnostics…", tone: "muted" };
   if (outcome === "success") return { label: "Refresh completed", tone: "positive" };

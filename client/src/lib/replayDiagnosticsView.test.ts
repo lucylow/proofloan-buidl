@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics } from "./replayDiagnosticsView";
+import { formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,12 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("ignores outcomes from superseded or unmounted refresh requests", () => {
+    expect(shouldApplyReplayRefreshOutcome({ requestId: 1, currentRequestId: 2, isMounted: true })).toBe(false);
+    expect(shouldApplyReplayRefreshOutcome({ requestId: 1, currentRequestId: 1, isMounted: false })).toBe(false);
+    expect(shouldApplyReplayRefreshOutcome({ requestId: 2, currentRequestId: 2, isMounted: true })).toBe(true);
   });
 
   it("describes refresh outcomes without hiding the last snapshot", () => {

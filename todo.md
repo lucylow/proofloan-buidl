@@ -834,3 +834,8 @@
 - [x] Track manual replay-diagnostics refresh outcomes explicitly
 - [x] Preserve trustworthy snapshots while surfacing refresh failures
 - [x] Add focused outcome tests and revalidate the full project
+
+## Code improvement pass 121
+- [x] Prevent stale refresh outcomes from updating the panel
+- [x] Guard refresh feedback against component teardown
+- [x] Add focused lifecycle tests and revalidate the full project
