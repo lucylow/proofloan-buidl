@@ -789,3 +789,8 @@
 - [x] Add deterministic tests for stale acceptance recovery races
 - [x] Add deterministic tests for stale proof-request recovery races
 - [x] Revalidate the full project and responsive rendering
+
+## Code improvement pass 112
+- [x] Add database-exception tests for stale acceptance recovery
+- [x] Add database-exception tests for stale proof-request recovery
+- [x] Verify privacy-safe failure diagnostics and revalidate the full project

@@ -289,7 +289,7 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     }
     return { status: "unavailable" };
   } catch (error) {
-    recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId });
+    recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
     console.warn("[ProofLoan] Acceptance idempotency claim unavailable", error instanceof Error ? error.message : error);
     return { status: "unavailable" };
   }

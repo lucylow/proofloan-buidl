@@ -137,6 +137,34 @@ describe("transactional snapshot persistence", () => {
     await expect(claimProofRequestReplay("proof-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(1) as never)).resolves.toEqual({ status: "claimed" });
   });
 
+  it("fails closed and classifies acceptance recovery database exceptions", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const replayDb = {
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ applicationId: "PL-PERSISTENCE-TEST", requestKey: "acceptance-exception-key", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: acceptance-exception-key"); } }) }),
+    };
+    await expect(claimAcceptanceReplay("PL-PERSISTENCE-TEST", "acceptance-exception-key", replayDb as never)).resolves.toEqual({ status: "unavailable" });
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("storage_unavailable");
+    expect(JSON.stringify(payload)).not.toContain("acceptance-exception-key");
+    info.mockRestore();
+  });
+
+  it("fails closed and classifies proof-request recovery database exceptions", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const replayDb = {
+      insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-exception-key", walletAddress: "0xproof-exception-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-exception-key"); } }) }),
+    };
+    await expect(claimProofRequestReplay("proof-exception-key", "0xproof-exception-wallet", "Ethereum Sepolia", replayDb as never)).resolves.toEqual({ status: "unavailable" });
+    const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
+    expect(payload.reason).toBe("storage_unavailable");
+    expect(JSON.stringify(payload)).not.toContain("proof-exception-key");
+    info.mockRestore();
+  });
+
   it("expires stale replay leases but preserves fresh claims", () => {
     const now = Date.parse("2026-08-24T00:30:00.000Z");
     expect(isReplayRecordExpired(new Date(now - 10 * 60_000 - 1), now)).toBe(true);
