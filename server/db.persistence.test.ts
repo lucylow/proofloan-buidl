@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot } from "./db";
+import { buildAuditUpsertValues, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -57,6 +57,20 @@ describe("transactional snapshot persistence", () => {
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, state: "AwaitingAcceptance" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, transactionHash: " 0xcreditcoin_result" })).toBe(false);
     expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", { ...valid, audit: [] })).toBe(false);
+  });
+
+  it("records privacy-safe structured replay events", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "conflict", requestKey: "proof-secret-key", applicationId: "PL-PERSISTENCE-TEST" });
+    const payload = JSON.parse(info.mock.calls[0]?.[0] as string) as Record<string, unknown>;
+    expect(payload.event).toBe("proofloan.replay_protection");
+    expect(payload.operation).toBe("proof_request");
+    expect(payload.outcome).toBe("conflict");
+    expect(payload.requestFingerprint).toMatch(/^[a-f0-9]{16}$/);
+    expect(payload.applicationFingerprint).toMatch(/^[a-f0-9]{16}$/);
+    expect(JSON.stringify(payload)).not.toContain("proof-secret-key");
+    expect(JSON.stringify(payload)).not.toContain("PL-PERSISTENCE-TEST");
+    info.mockRestore();
   });
 
   it("expires stale replay leases but preserves fresh claims", () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { eq, and, asc, desc, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
@@ -23,6 +24,30 @@ const REPLAY_PENDING_LEASE_MS = 10 * 60_000;
 const REPLAY_COMMITTED_RETENTION_MS = 30 * 24 * 60 * 60_000;
 const REPLAY_CLEANUP_INTERVAL_MS = 60_000;
 let lastReplayCleanupAt = 0;
+
+export type ReplayProtectionEvent = {
+  operation: "proof_request" | "acceptance" | "cleanup";
+  outcome: "claimed" | "pending" | "committed" | "conflict" | "reclaimed" | "cleaned" | "unavailable";
+  requestKey?: string;
+  applicationId?: string;
+  removed?: number;
+};
+
+function replayFingerprint(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+export function recordReplayProtectionEvent(event: ReplayProtectionEvent): void {
+  console.info(JSON.stringify({
+    event: "proofloan.replay_protection",
+    operation: event.operation,
+    outcome: event.outcome,
+    requestFingerprint: event.requestKey ? replayFingerprint(event.requestKey) : undefined,
+    applicationFingerprint: event.applicationId ? replayFingerprint(event.applicationId) : undefined,
+    removed: event.removed,
+    timestamp: new Date().toISOString(),
+  }));
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -202,8 +227,10 @@ export async function cleanupReplayProtectionRecords(now = Date.now()): Promise<
     await db.delete(acceptanceIdempotencyRecords).where(and(eq(acceptanceIdempotencyRecords.status, "Pending"), lt(acceptanceIdempotencyRecords.createdAt, pendingCutoff)));
     await db.delete(proofRequestIdempotency).where(and(eq(proofRequestIdempotency.status, "Pending"), lt(proofRequestIdempotency.createdAt, pendingCutoff)));
     lastReplayCleanupAt = now;
+    recordReplayProtectionEvent({ operation: "cleanup", outcome: "cleaned" });
     return true;
   } catch (error) {
+    recordReplayProtectionEvent({ operation: "cleanup", outcome: "unavailable" });
     console.warn("[ProofLoan] Replay protection cleanup unavailable", error instanceof Error ? error.message : error);
     return false;
   }
@@ -224,11 +251,17 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     await db.insert(acceptanceIdempotencyRecords).values({ applicationId, requestKey, status: "Pending" }).onDuplicateKeyUpdate({ set: { applicationId } });
     const row = await db.select().from(acceptanceIdempotencyRecords).where(eq(acceptanceIdempotencyRecords.applicationId, applicationId)).limit(1);
     if (!row[0]) return { status: "unavailable" };
-    if (row[0].requestKey !== requestKey) return { status: "conflict" };
+    if (row[0].requestKey !== requestKey) {
+      recordReplayProtectionEvent({ operation: "acceptance", outcome: "conflict", requestKey, applicationId });
+      return { status: "conflict" };
+    }
     if (row[0].status === "Committed" && typeof row[0].resultJson === "string") {
       try {
         const result = JSON.parse(row[0].resultJson) as unknown;
-        if (isDurableAcceptanceReplayResult(applicationId, result)) return { status: "committed", result };
+        if (isDurableAcceptanceReplayResult(applicationId, result)) {
+          recordReplayProtectionEvent({ operation: "acceptance", outcome: "committed", requestKey, applicationId });
+          return { status: "committed", result };
+        }
       } catch {
         return { status: "unavailable" };
       }
@@ -237,12 +270,15 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
         await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey)));
+        recordReplayProtectionEvent({ operation: "acceptance", outcome: "reclaimed", requestKey, applicationId });
         return { status: "claimed" };
       }
+      recordReplayProtectionEvent({ operation: "acceptance", outcome: "pending", requestKey, applicationId });
       return { status: "pending" };
     }
     return { status: "unavailable" };
   } catch (error) {
+    recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId });
     console.warn("[ProofLoan] Acceptance idempotency claim unavailable", error instanceof Error ? error.message : error);
     return { status: "unavailable" };
   }
@@ -284,11 +320,17 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
     await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
     const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
     if (!row[0]) return { status: "unavailable" };
-    if (row[0].walletAddress !== walletAddress || row[0].sourceChain !== sourceChain) return { status: "conflict" };
+    if (row[0].walletAddress !== walletAddress || row[0].sourceChain !== sourceChain) {
+      recordReplayProtectionEvent({ operation: "proof_request", outcome: "conflict", requestKey });
+      return { status: "conflict" };
+    }
     if (row[0].status === "Committed" && typeof row[0].resultJson === "string") {
       try {
         const result = JSON.parse(row[0].resultJson) as unknown;
-        if (isDurableProofRequestReplayResult(result)) return { status: "committed", result };
+        if (isDurableProofRequestReplayResult(result)) {
+          recordReplayProtectionEvent({ operation: "proof_request", outcome: "committed", requestKey, applicationId: result.applicationId });
+          return { status: "committed", result };
+        }
       } catch {
         return { status: "unavailable" };
       }
@@ -297,12 +339,15 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
         await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(eq(proofRequestIdempotency.requestKey, requestKey));
+        recordReplayProtectionEvent({ operation: "proof_request", outcome: "reclaimed", requestKey });
         return { status: "claimed" };
       }
+      recordReplayProtectionEvent({ operation: "proof_request", outcome: "pending", requestKey });
       return { status: "pending" };
     }
     return { status: "unavailable" };
   } catch (error) {
+    recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey });
     console.warn("[ProofLoan] Proof-request idempotency claim unavailable", error instanceof Error ? error.message : error);
     return { status: "unavailable" };
   }

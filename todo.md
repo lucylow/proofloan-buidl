@@ -744,3 +744,8 @@
 - [x] Add bounded retention handling for durable replay-protection records
 - [x] Harden stale proof-request and acceptance claim recovery
 - [x] Add focused coverage and revalidate the full project
+
+## Code improvement pass 103
+- [x] Add privacy-safe structured events for replay-protection outcomes
+- [x] Instrument claim, replay, conflict, cleanup, and stale-recovery branches
+- [x] Add focused tests and revalidate the full project
