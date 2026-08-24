@@ -166,4 +166,21 @@ describe("proofloan API flow", () => {
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT]");
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("already accepted");
   }, 30_000);
+
+  it("replays a committed acceptance result for the same idempotency key", async () => {
+    const caller = appRouter.createCaller(createContext());
+    const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xidempotency-test-wallet", sourceChain: "Ethereum Sepolia" });
+    const idempotencyKey = "accept-retry-key-0001";
+    const first = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });
+    const retry = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });
+    expect(retry.transactionHash).toBe(first.transactionHash);
+    expect(retry.audit).toEqual(first.audit);
+    await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey: "different-retry-key-01" })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT]");
+  }, 30_000);
+
+  it("rejects undersized acceptance idempotency keys at the API boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xidempotency-validation-wallet", sourceChain: "Polygon Amoy" });
+    await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey: "short" })).rejects.toThrow();
+  }, 30_000);
 });

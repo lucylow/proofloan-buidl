@@ -11,6 +11,7 @@ import { clearStoredApplicationId, getSafeSessionStorage, persistApplicationId, 
 import { scheduleFeedbackReset, type FeedbackTimer } from "@/lib/transientFeedback";
 import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
+import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 
 const demoWallet = "0x71C7...9A2F";
 
@@ -32,6 +33,7 @@ export default function Home() {
   const [inputError, setInputError] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
   const copyResetTimer = useRef<FeedbackTimer | null>(null);
+  const acceptanceIdempotencyRef = useRef<AcceptanceIdempotencyRef | null>(null);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
   const [pollingPaused, setPollingPaused] = useState(false);
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function Home() {
     else clearStoredApplicationId(storage);
   }, [applicationId]);
   const proofloanUtils = trpc.useUtils();
-  const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
+  const createApplication = trpc.proofloan.createApplication.useMutation({ onMutate: () => { setProofSubmitted(false); setInputError(null); }, onSuccess: data => { acceptanceIdempotencyRef.current = null; setApplicationId(data.applicationId); setPollingPaused(false); setProofSubmitted(true); } });
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true), onError: (_error, variables) => { const recovery = getAcceptanceFailureRecovery({ hasApplication: Boolean(variables.applicationId), isOnline, pollingPaused }); if (recovery.shouldInvalidateCreditFile) { if (recovery.shouldResumePolling) setPollingPaused(false); void proofloanUtils.proofloan.getApplication.invalidate({ applicationId: variables.applicationId }).catch(() => undefined); } } });
   const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, retry: (_failureCount, _error) => shouldRetryCreditFileQuery({ isOnline, pollingPaused, failureCount: _failureCount }), refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
   const app = applicationQuery.data;
@@ -105,7 +107,8 @@ export default function Home() {
   };
   const submitOffer = () => {
     if (!app || !shouldInvokeMobileAction({ action: "accept", isOnline, pending: acceptOffer.isPending, hasApplication: Boolean(app) })) return;
-    acceptOffer.mutate({ applicationId: app.applicationId });
+    acceptanceIdempotencyRef.current = getAcceptanceIdempotencyRef(acceptanceIdempotencyRef.current, app.applicationId);
+    acceptOffer.mutate({ applicationId: app.applicationId, idempotencyKey: acceptanceIdempotencyRef.current.key });
   };
 
   return (
