@@ -1049,3 +1049,8 @@
 - [x] Reject inconsistent fact chronology before feature derivation
 - [x] Validate derived feature inputs remain finite and bounded
 - [x] Add consistency regression tests and revalidate the full project
+
+## Evidence-integrity hardening
+- [x] Add deterministic fact-to-feature consistency validation
+- [x] Reject reconstructed snapshots when derived metrics drift from evidence
+- [x] Add feature-drift tests and revalidate the full project

@@ -81,8 +81,7 @@ export function isFeatureVectorFiniteAndBounded(features: FeatureVector): boolea
     && boundedVolumes.every(value => value <= 1_000_000);
 }
 
-export function buildFeatureVector(facts: VerifiedFact[]): FeatureVector {
-  const nowMs = Date.now();
+export function buildFeatureVector(facts: VerifiedFact[], nowMs = Date.now()): FeatureVector {
   const ageDays = (fact: VerifiedFact) => Math.max(0, (nowMs - new Date(fact.observedAt).getTime()) / 86_400_000);
   const amountValue = (fact: VerifiedFact) => Number.parseFloat(fact.amount.replace(/[^0-9.]/g, "")) || 0;
   const repaymentFacts = facts.filter(f => f.eventType === "REPAYMENT");
@@ -102,6 +101,11 @@ export function buildFeatureVector(facts: VerifiedFact[]): FeatureVector {
     evidenceCount: facts.length,
     freshnessScore: facts.length ? facts.reduce((sum, fact) => sum + (fact.freshness === "Fresh" ? 1 : fact.freshness === "Aging" ? 0.8 : 0.3), 0) / facts.length : 0,
   };
+}
+
+export function isFeatureVectorConsistentWithFacts(features: FeatureVector, facts: VerifiedFact[], nowMs = Date.now()): boolean {
+  const expected = buildFeatureVector(facts, nowMs);
+  return (Object.keys(expected) as Array<keyof FeatureVector>).every(key => expected[key] === features[key]);
 }
 
 function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): Decision {

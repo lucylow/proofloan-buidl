@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -18,6 +18,15 @@ describe("ProofLoan underwriting primitives", () => {
     expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 90, volume7d: 4050, volume30d: 4050, volume180d: 4900, evidenceCount: 3 });
     expect(features.leverageRatio).toBeGreaterThan(0);
     expect(features.freshnessScore).toBeLessThan(1);
+  });
+
+  it("accepts only feature vectors consistent with the same evidence and clock", () => {
+    const facts = buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia");
+    const nowMs = Date.parse("2026-08-24T20:00:00.000Z");
+    const features = buildFeatureVector(facts, nowMs);
+    expect(isFeatureVectorConsistentWithFacts(features, facts, nowMs)).toBe(true);
+    expect(isFeatureVectorConsistentWithFacts({ ...features, volume30d: features.volume30d + 1 }, facts, nowMs)).toBe(false);
+    expect(isFeatureVectorConsistentWithFacts(features, facts, nowMs + 86_400_000)).toBe(false);
   });
 
   it("accepts finite bounded feature vectors and rejects malformed derivation output", () => {
