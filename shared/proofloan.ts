@@ -124,6 +124,7 @@ export type Decision = {
   evidenceRoot: string;
   policyHash: string;
   decisionHash: string;
+  featureFingerprint?: string;
 };
 
 export type Offer = {

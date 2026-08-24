@@ -126,7 +126,7 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   if (reasonCodes.length === 0) reasonCodes.push("SPARSE_EVIDENCE");
   const riskTier: Decision["riskTier"] = pd30 < 0.1 ? "A" : pd30 < 0.18 ? "B" : pd30 < 0.3 ? "C" : "D";
   const evidenceRoot = hashValue(facts.map(f => f.proofRoot));
-  const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot };
+  const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, featureFingerprint: fingerprintFeatureVector(features) };
   return {
     ...decisionBase,
     modelVersion: MODEL_VERSION,
@@ -146,7 +146,7 @@ export function sanitizeAiCandidate(candidate: Partial<Decision>, baseline: Deci
   const pd90 = Math.max(pd30, clampProbability(candidate.pd90, baseline.pd90));
   const confidence = clampProbability(candidate.confidence, baseline.confidence);
   const reasonCodes = Array.isArray(candidate.reasonCodes) ? candidate.reasonCodes.filter((code): code is ReasonCode => typeof code === "string" && isReasonCode(code)) : [];
-  return { ...baseline, pd30, pd90, confidence, reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes };
+  return { ...baseline, pd30, pd90, confidence, reasonCodes: reasonCodes.length ? reasonCodes : baseline.reasonCodes, featureFingerprint: baseline.featureFingerprint };
 }
 
 export async function runAiUnderwriting(features: FeatureVector, facts: VerifiedFact[]): Promise<Decision> {

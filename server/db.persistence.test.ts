@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, buildDecisionUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -62,6 +62,7 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows({ ...fact, txHash: "" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, reasonCodes: "not-json" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, expiresAt: new Date("invalid") })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, featureFingerprint: "0".repeat(18) })) as never)).toBeUndefined();
   });
 
   it("fails closed for malformed application metadata before feature derivation", async () => {
@@ -72,6 +73,12 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, walletAddress: " " })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, requestedAmount: "Infinity" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
+  });
+
+  it("persists only canonical feature fingerprints in decision metadata", () => {
+    const decision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
+    expect(buildDecisionUpsertValues(decision).featureFingerprint).toBe("a".repeat(18));
+    expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: "not-a-fingerprint" })).toThrow("Invalid persisted decision.");
   });
 
   it("keeps audit insert and update payloads synchronized", () => {

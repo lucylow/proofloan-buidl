@@ -162,10 +162,10 @@ export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
 }
 
 export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["decision"]>) {
-  if (!isCanonicalNonEmptyText(decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(JSON.stringify(decision.reasonCodes)) || !isRiskTier(decision.riskTier) || !isFiniteInRange(decision.pd30, 0, 1) || !isFiniteInRange(decision.pd90, 0, 1) || Number(decision.pd30) > Number(decision.pd90) || !isFiniteInRange(decision.confidence, 0, 1)) {
+  if ((decision.featureFingerprint !== undefined && !/^[a-f0-9]{18}$/.test(decision.featureFingerprint)) || !isCanonicalNonEmptyText(decision.featureVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.modelVersion, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.policyHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.evidenceRoot, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !isCanonicalNonEmptyText(decision.decisionHash, MAX_PERSISTED_DECISION_METADATA_LENGTH) || !parsePersistedReasonCodes(JSON.stringify(decision.reasonCodes)) || !isRiskTier(decision.riskTier) || !isFiniteInRange(decision.pd30, 0, 1) || !isFiniteInRange(decision.pd90, 0, 1) || Number(decision.pd30) > Number(decision.pd90) || !isFiniteInRange(decision.confidence, 0, 1)) {
     throw new Error("Invalid persisted decision.");
   }
-  return { pd30: String(decision.pd30), pd90: String(decision.pd90), confidence: String(decision.confidence), riskTier: decision.riskTier, reasonCodes: JSON.stringify(decision.reasonCodes), featureVersion: decision.featureVersion, modelVersion: decision.modelVersion, policyHash: decision.policyHash, evidenceRoot: decision.evidenceRoot, decisionHash: decision.decisionHash };
+  return { pd30: String(decision.pd30), pd90: String(decision.pd90), confidence: String(decision.confidence), riskTier: decision.riskTier, reasonCodes: JSON.stringify(decision.reasonCodes), featureVersion: decision.featureVersion, modelVersion: decision.modelVersion, policyHash: decision.policyHash, evidenceRoot: decision.evidenceRoot, decisionHash: decision.decisionHash, featureFingerprint: decision.featureFingerprint };
 }
 
 export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>, applicationState: ProofLoanState, requestedAmount: number, now = Date.now()) {
@@ -484,7 +484,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded } from "./underwriting";
+import { buildFeatureVector, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -616,7 +616,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
       const parsedReasonCodes = parsePersistedReasonCodes(decisionRow.reasonCodes);
       if (!parsedReasonCodes || !isRiskTier(decisionRow.riskTier)) return undefined;
       const riskTier = decisionRow.riskTier;
-      decision = { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier, reasonCodes: parsedReasonCodes, featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, decisionHash: decisionRow.decisionHash };
+      decision = { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier, reasonCodes: parsedReasonCodes, featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, decisionHash: decisionRow.decisionHash, featureFingerprint: decisionRow.featureFingerprint ?? undefined };
     }
     const offerRow = offerRows[0];
     const offerStatus: Offer["status"] | undefined = offerRow && isOfferStatus(offerRow.status) ? offerRow.status : undefined;
@@ -625,6 +625,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const reconstructionNow = Date.now();
     const features = buildFeatureVector(facts, reconstructionNow);
     if (!isFeatureVectorFiniteAndBounded(features) || !isFeatureVectorConsistentWithFacts(features, facts, reconstructionNow)) return undefined;
+    if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
     return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
   } catch (error) {
     console.warn("[ProofLoan] Database read unavailable; using active in-memory snapshot.", error instanceof Error ? error.message : error);

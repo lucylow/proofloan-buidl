@@ -56,6 +56,7 @@ export const decisions = mysqlTable("decisions", {
   policyHash: varchar("policyHash", { length: 128 }).notNull(),
   evidenceRoot: varchar("evidenceRoot", { length: 128 }).notNull(),
   decisionHash: varchar("decisionHash", { length: 128 }).notNull(),
+  featureFingerprint: varchar("featureFingerprint", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

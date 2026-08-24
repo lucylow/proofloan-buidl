@@ -1059,3 +1059,8 @@
 - [x] Add a canonical deterministic fingerprint for derived feature vectors
 - [x] Verify fingerprint stability and reject drift at persistence boundaries
 - [x] Add fingerprint regression tests and revalidate the full project
+
+## Persisted feature fingerprint hardening
+- [x] Add a nullable migration-safe feature fingerprint field to decision metadata
+- [x] Write and verify the canonical fingerprint across persistence boundaries
+- [x] Add schema, migration, and drift regression tests with full validation
