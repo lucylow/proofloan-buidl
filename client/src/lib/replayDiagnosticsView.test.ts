@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshTimelineSummary, normalizeReplayRefreshSeverityThresholds, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("maps every supported filter to a safe operator label", () => {
@@ -105,6 +105,13 @@ describe("replay diagnostics view model", () => {
       { category: "request_error", direction: "rising", severity: "attention", recentCount: 1, priorCount: 0 },
     ]);
     expect(getReplayRefreshCategoryTrends([event(1, "malformed")])).toEqual([{ category: "malformed", direction: "insufficient", severity: "neutral", recentCount: 1, priorCount: 0 }]);
+  });
+
+  it("normalizes severity thresholds into a safe bounded ordering", () => {
+    expect(normalizeReplayRefreshSeverityThresholds({ attentionCount: 2, criticalCount: 3 })).toEqual({ attentionCount: 2, criticalCount: 3 });
+    expect(normalizeReplayRefreshSeverityThresholds({ attentionCount: -5, criticalCount: 0 })).toEqual({ attentionCount: 1, criticalCount: 2 });
+    expect(normalizeReplayRefreshSeverityThresholds({ attentionCount: 3, criticalCount: 1 })).toEqual({ attentionCount: 2, criticalCount: 3 });
+    expect(normalizeReplayRefreshSeverityThresholds({ attentionCount: Number.NaN, criticalCount: Number.POSITIVE_INFINITY })).toEqual({ attentionCount: 1, criticalCount: 2 });
   });
 
   it("marks a rising category with two recent events as critical", () => {

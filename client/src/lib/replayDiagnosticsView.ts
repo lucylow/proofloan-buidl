@@ -13,6 +13,7 @@ export type ReplayRefreshTimelineSummary = { attempts: number; failures: number;
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
 export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; confidence: "low" | "medium" | "high"; recentSampleSize: number; priorSampleSize: number; recentFailureRatePercent: number; priorFailureRatePercent: number };
 export type ReplayRefreshCategoryTrend = { category: ReplayRefreshFailureCategory; direction: "rising" | "falling" | "flat" | "insufficient"; severity: "neutral" | "attention" | "critical"; recentCount: number; priorCount: number };
+export type ReplayRefreshSeverityThresholds = { attentionCount: number; criticalCount: number };
 export type ReplayRefreshTimelineFilter = "all" | "failures" | ReplayRefreshFailureCategory;
 
 const replayRefreshFilterStorageKey = "proofloan.replay-refresh-filter";
@@ -121,8 +122,15 @@ export function filterReplayRefreshTimeline(events: ReplayRefreshTimelineEvent[]
   return recent.filter(event => event.outcome === "error" && event.category === filter);
 }
 
-export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[]): ReplayRefreshCategoryTrend[] {
+export function normalizeReplayRefreshSeverityThresholds(input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshSeverityThresholds {
+  const attentionCount = Number.isFinite(input?.attentionCount) ? Math.max(1, Math.min(2, Math.floor(input!.attentionCount!))) : 1;
+  const criticalCount = Number.isFinite(input?.criticalCount) ? Math.max(attentionCount + 1, Math.min(3, Math.floor(input!.criticalCount!))) : 2;
+  return { attentionCount, criticalCount };
+}
+
+export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
   const categories: ReplayRefreshFailureCategory[] = ["unavailable", "malformed", "request_error"];
+  const thresholds = normalizeReplayRefreshSeverityThresholds(input);
   const bounded = events.slice(-6);
   const midpoint = Math.floor(bounded.length / 2);
   const prior = bounded.slice(0, midpoint);
@@ -131,7 +139,7 @@ export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEven
     const recentCount = recent.filter(event => event.outcome === "error" && event.category === category).length;
     const priorCount = prior.filter(event => event.outcome === "error" && event.category === category).length;
     const direction: ReplayRefreshCategoryTrend["direction"] = recent.length < 2 || prior.length < 2 ? "insufficient" : recentCount > priorCount ? "rising" : recentCount < priorCount ? "falling" : "flat";
-    const severity: ReplayRefreshCategoryTrend["severity"] = direction !== "rising" ? "neutral" : recentCount >= 2 && recentCount > priorCount ? "critical" : "attention";
+    const severity: ReplayRefreshCategoryTrend["severity"] = direction !== "rising" ? "neutral" : recentCount >= thresholds.criticalCount && recentCount > priorCount ? "critical" : recentCount >= thresholds.attentionCount ? "attention" : "neutral";
     return { category, direction, severity, recentCount, priorCount };
   }).filter((trend: ReplayRefreshCategoryTrend) => trend.recentCount > 0 || trend.priorCount > 0);
 }

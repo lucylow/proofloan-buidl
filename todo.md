@@ -929,3 +929,8 @@
 - [x] Classify bounded category trends into safe severity levels
 - [x] Render accessible severity cues beside category trends
 - [x] Add severity boundary tests and revalidate the full project
+
+## Configurable severity thresholds
+- [x] Add validated bounded attention and critical thresholds
+- [x] Wire threshold configuration into category severity display
+- [x] Add threshold-bound tests and revalidate the full project
