@@ -3,6 +3,7 @@ import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAu
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 import { previewAttestcoinFacts } from "./attestcoin";
+import { createLoanFixture } from "./proofloan.fixtures";
 
 function createContext(): TrpcContext {
   return {
@@ -16,9 +17,6 @@ function previewSnapshot(applicationId: string): LoanSnapshot {
   return { applicationId, walletAddress: "0xpreview", sourceChain: "Ethereum Sepolia", state: "Intake", facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
 }
 
-function acceptedPreviewSnapshot(applicationId: string): LoanSnapshot {
-  return { ...previewSnapshot(applicationId), state: "AwaitingAcceptance", offer: { amount: 1500, apr: 11.5, ltv: 0.54, termDays: 90, expiresAt: new Date(Date.now() + 86_400_000).toISOString(), poolLiquidity: 250_000, status: "Ready" } };
-}
 
 describe("proofloan API flow", () => {
   it("restricts replay diagnostics to admin callers", async () => {
@@ -174,7 +172,8 @@ describe("proofloan API flow", () => {
 
   it("accepts an offer once and rejects a replay at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());
-    const snapshot = await caller.proofloan.createApplication({ walletAddress: "0xreplay-test-wallet", sourceChain: "Polygon Amoy" });
+    const snapshot = createLoanFixture("PL-ACCEPTONCEFIXTURE", "accepted");
+    registerPreviewApplication(snapshot);
     const executed = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId });
     expect(executed.state).toBe("Executed");
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT]");
@@ -183,7 +182,7 @@ describe("proofloan API flow", () => {
 
   it("replays a committed acceptance result when the preview offer passes policy", async () => {
     const caller = appRouter.createCaller(createContext());
-    const snapshot = acceptedPreviewSnapshot("PL-IDEMPOTENCYFIXTURE");
+    const snapshot = createLoanFixture("PL-IDEMPOTENCYFIXTURE", "accepted");
     registerPreviewApplication(snapshot);
     const idempotencyKey = "accept-retry-key-0001";
     const first = await caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey });
@@ -192,6 +191,15 @@ describe("proofloan API flow", () => {
     expect(retry.audit).toEqual(first.audit);
     await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId, idempotencyKey: "different-retry-key-01" })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT]");
   }, 30_000);
+
+  it("rejects blocked, expired, and executed loan fixtures at the acceptance boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    for (const kind of ["blocked", "expired", "executed"] as const) {
+      const snapshot = createLoanFixture(`PL-${kind.toUpperCase()}FIXTURE`, kind);
+      registerPreviewApplication(snapshot);
+      await expect(caller.proofloan.acceptOffer({ applicationId: snapshot.applicationId })).rejects.toThrow("Offer is unavailable");
+    }
+  });
 
   it("rejects undersized acceptance idempotency keys at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());

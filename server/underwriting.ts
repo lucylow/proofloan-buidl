@@ -160,8 +160,11 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
   }
 }
 
-export function isOfferAcceptable(state: string, status: Offer["status"]) {
-  return state === "AwaitingAcceptance" && status === "Ready";
+export function isOfferAcceptable(state: string, status: Offer["status"], expiresAt?: string, nowMs = Date.now()) {
+  if (state !== "AwaitingAcceptance" || status !== "Ready") return false;
+  if (!expiresAt) return true;
+  const expiryMs = Date.parse(expiresAt);
+  return Number.isFinite(expiryMs) && expiryMs > nowMs;
 }
 
 export function evaluateRiskGuard(decision: Decision, requestedAmount: number, collateralValue = 2800, poolLiquidity = 250_000): Offer {

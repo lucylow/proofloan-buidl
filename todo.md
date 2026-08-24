@@ -1009,3 +1009,8 @@
 - [x] Add an explicit accepted preview snapshot fixture for router tests
 - [x] Preserve committed replay and distinct-key conflict assertions
 - [x] Re-run the full suite and build after fixture hardening
+
+## Deterministic loan-state fixture factory
+- [x] Centralize accepted, blocked, expired, and executed loan fixtures
+- [x] Reuse fixtures across router state and replay tests
+- [x] Add fixture-state regression coverage and revalidate the full project
