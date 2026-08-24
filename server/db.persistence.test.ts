@@ -372,6 +372,15 @@ describe("transactional snapshot persistence", () => {
       offer: {},
       audit: [{ hash: "terminal-audit-hash" }],
     })).toBe(false);
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", {
+      applicationId: "PL-PERSISTENCE-TEST",
+      state: "Executed",
+      transactionHash: `0xcreditcoin_${"a".repeat(18)}`,
+      receiptHash: "a".repeat(18),
+      offer: {},
+      decision: { pd30: 0.12, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B", reasonCodes: ["HIGH_LEVERAGE"], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "stale-decision-hash" },
+      audit: [{ hash: "terminal-audit-hash" }],
+    })).toBe(false);
   });
 
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {

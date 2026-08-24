@@ -1194,3 +1194,8 @@
 - [x] Strengthen modern acceptance replay validation for receipt and transaction consistency
 - [x] Add focused regression coverage for malformed modern replay payloads
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 38
+- [x] Harden receipt-bearing replay validation against inconsistent decision metadata
+- [x] Add focused regression coverage for decision-binding drift in replay payloads
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
