@@ -974,3 +974,8 @@
 - [x] Detect unchanged normalized threshold values before updating state
 - [x] Suppress redundant status notices and audit entries for no-op edits
 - [x] Add no-op transition tests and revalidate the full project
+
+## Threshold persistence recovery hardening
+- [x] Add explicit safe persistence outcomes for threshold storage reads and writes
+- [x] Keep operator state authoritative when session storage is malformed or unavailable
+- [x] Add storage recovery tests and revalidate the full project

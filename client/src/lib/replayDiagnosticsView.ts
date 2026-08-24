@@ -185,12 +185,19 @@ export function readReplayRefreshSeverityThresholds(storage?: Pick<Storage, "get
   }
 }
 
-export function writeReplayRefreshSeverityThresholds(storage: Pick<Storage, "setItem"> | undefined, input?: Partial<ReplayRefreshSeverityThresholds>): void {
+export function writeReplayRefreshSeverityThresholds(storage: Pick<Storage, "setItem"> | undefined, input?: Partial<ReplayRefreshSeverityThresholds>): boolean {
+  if (!storage) return false;
   try {
-    storage?.setItem(replayRefreshThresholdStorageKey, JSON.stringify(normalizeReplayRefreshSeverityThresholds(input)));
+    storage.setItem(replayRefreshThresholdStorageKey, JSON.stringify(normalizeReplayRefreshSeverityThresholds(input)));
+    return true;
   } catch {
     // Session storage is an optional operator convenience; diagnostics remain functional without it.
+    return false;
   }
+}
+
+export function getReplayRefreshSeverityPersistenceNotice(available: boolean): string | null {
+  return available ? null : "Session persistence is unavailable; current thresholds remain active in memory.";
 }
 
 export function getReplayRefreshCategoryTrends(events: ReplayRefreshTimelineEvent[], input?: Partial<ReplayRefreshSeverityThresholds>): ReplayRefreshCategoryTrend[] {
