@@ -276,7 +276,11 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
     }
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
-        await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey)));
+        const recoveryResult = await db.update(acceptanceIdempotencyRecords).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(acceptanceIdempotencyRecords.applicationId, applicationId), eq(acceptanceIdempotencyRecords.requestKey, requestKey), eq(acceptanceIdempotencyRecords.status, "Pending")));
+        if (!hasExactlyOneReplayCommit(recoveryResult[0] ?? {})) {
+          recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "write_failed" });
+          return { status: "unavailable" };
+        }
         recordReplayProtectionEvent({ operation: "acceptance", outcome: "reclaimed", requestKey, applicationId });
         return { status: "claimed" };
       }
@@ -360,7 +364,11 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
     }
     if (row[0].status === "Pending") {
       if (isReplayRecordExpired(row[0].createdAt)) {
-        await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(eq(proofRequestIdempotency.requestKey, requestKey));
+        const recoveryResult = await db.update(proofRequestIdempotency).set({ createdAt: new Date(), status: "Pending" }).where(and(eq(proofRequestIdempotency.requestKey, requestKey), eq(proofRequestIdempotency.status, "Pending")));
+        if (!hasExactlyOneReplayCommit(recoveryResult[0] ?? {})) {
+          recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "write_failed" });
+          return { status: "unavailable" };
+        }
         recordReplayProtectionEvent({ operation: "proof_request", outcome: "reclaimed", requestKey });
         return { status: "claimed" };
       }

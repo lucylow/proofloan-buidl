@@ -779,3 +779,8 @@
 - [x] Add direct exception-path tests for acceptance replay commits
 - [x] Add direct exception-path tests for proof-request replay commits
 - [x] Verify privacy-safe failure diagnostics and revalidate the full project
+
+## Code improvement pass 110
+- [x] Harden stale pending acceptance and proof-request claim recovery
+- [x] Preserve exactly-once behavior during recovery races
+- [x] Add focused tests and revalidate the full project
