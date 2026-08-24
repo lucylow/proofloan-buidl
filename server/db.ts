@@ -20,6 +20,12 @@ const MAX_PERSISTED_WALLET_LENGTH = 128;
 const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
 const MAX_ACCEPTANCE_RESULT_LENGTH = 65_536;
 const MAX_PROOF_REQUEST_RESULT_LENGTH = 65_536;
+
+export function isCanonicalUtcIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const parsed = new Date(value);
+  return isValidDate(parsed) && parsed.toISOString() === value;
+}
 const REPLAY_PENDING_LEASE_MS = 10 * 60_000;
 const REPLAY_COMMITTED_RETENTION_MS = 30 * 24 * 60 * 60_000;
 const REPLAY_CLEANUP_INTERVAL_MS = 60_000;
@@ -149,7 +155,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
     throw new Error("Invalid persisted audit event.");
   }
   const createdAt = new Date(event.timestamp);
-  if (Number.isNaN(createdAt.getTime()) || createdAt.toISOString() !== event.timestamp) throw new Error("Invalid persisted audit event.");
+  if (!isCanonicalUtcIsoTimestamp(event.timestamp)) throw new Error("Invalid persisted audit event.");
   return { values: { state: event.state, label: event.label, detail: event.detail, eventHash: event.hash, createdAt }, updateSet: { detail: event.detail, state: event.state, label: event.label, createdAt } };
 }
 
@@ -170,7 +176,7 @@ export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["de
 
 export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>, applicationState: ProofLoanState, requestedAmount: number, now = Date.now()) {
   const expiresAt = new Date(offer.expiresAt);
-  if (!isOfferStatus(offer.status) || !isOfferStateConsistent(applicationState, offer.status) || !isFiniteInRange(offer.amount, 0.01, 2500) || offer.amount !== requestedAmount || !isFiniteInRange(offer.apr, 0, 24) || !isFiniteInRange(offer.ltv, 0, 1) || !isFiniteInRange(offer.termDays, 1, 3650) || !isValidDate(expiresAt) || (offer.status === "Ready" && expiresAt.getTime() <= now)) {
+  if (!isCanonicalUtcIsoTimestamp(offer.expiresAt) || !isOfferStatus(offer.status) || !isOfferStateConsistent(applicationState, offer.status) || !isFiniteInRange(offer.amount, 0.01, 2500) || offer.amount !== requestedAmount || !isFiniteInRange(offer.apr, 0, 24) || !isFiniteInRange(offer.ltv, 0, 1) || !isFiniteInRange(offer.termDays, 1, 3650) || !isValidDate(expiresAt) || (offer.status === "Ready" && expiresAt.getTime() <= now)) {
     throw new Error("Invalid persisted offer.");
   }
   return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), termDays: offer.termDays, status: offer.status, expiresAt };
@@ -202,7 +208,7 @@ export function isLoanSnapshotPersistable(snapshot: LoanSnapshot, now = Date.now
 
 export function buildFactUpsertValues(fact: LoanSnapshot["facts"][number]) {
   const verifiedAt = new Date(fact.verifiedAt);
-  if (!isCanonicalNonEmptyText(fact.id, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || fact.verificationBlock < fact.sourceBlock || !isValidDate(verifiedAt)) {
+  if (!isCanonicalUtcIsoTimestamp(fact.verifiedAt) || !isCanonicalNonEmptyText(fact.id, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFiniteInRange(fact.sourceBlock, 1, Number.MAX_SAFE_INTEGER) || !isFiniteInRange(fact.verificationBlock, 1, Number.MAX_SAFE_INTEGER) || fact.verificationBlock < fact.sourceBlock || !isValidDate(verifiedAt)) {
     throw new Error("Invalid persisted verified fact.");
   }
   return { values: { factId: fact.id, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, verificationBlock: fact.verificationBlock, freshness: fact.freshness, proofRoot: fact.proofRoot, verifiedAt }, updateSet: { freshness: fact.freshness, verificationBlock: fact.verificationBlock } };

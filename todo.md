@@ -1084,3 +1084,8 @@
 - [x] Reject non-canonical audit timestamps before persistence
 - [x] Add regression coverage for timestamp normalization and fail-closed writes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 16
+- [x] Apply one canonical UTC timestamp validator across facts, audit events, and replay persistence
+- [x] Add regression coverage for cross-boundary timestamp consistency
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

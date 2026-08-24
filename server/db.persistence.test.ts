@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuditUpsertValues, buildDecisionUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 
 type TxLike = {
@@ -101,6 +101,15 @@ describe("transactional snapshot persistence", () => {
     const decision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "decision-1", featureFingerprint: "a".repeat(18) };
     expect(buildDecisionUpsertValues(decision).featureFingerprint).toBe("a".repeat(18));
     expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: "not-a-fingerprint" })).toThrow("Invalid persisted decision.");
+  });
+
+  it("rejects non-canonical fact and offer timestamps before persistence", () => {
+    const fact = { id: "fact-time-1", chain: "Ethereum Sepolia" as const, sourceBlock: 1, txHash: "0xtime-1", eventType: "REPAYMENT" as const, amount: "1 USDC", asset: "USDC", verificationBlock: 1, verifiedAt: "2026-08-21T20:00:00.000Z", observedAt: "2026-08-21T20:00:00.000Z", freshness: "Fresh" as const, proofRoot: "root-time-1", proofWorker: "Attestcoin proof worker" };
+    const offer = { amount: 1500, apr: 11.5, ltv: 0.54, termDays: 90, expiresAt: "2026-08-25T20:00:00.000Z", poolLiquidity: 250000, status: "Ready" as const };
+    expect(buildFactUpsertValues(fact).values.verifiedAt).toEqual(new Date("2026-08-21T20:00:00.000Z"));
+    expect(buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, Date.parse("2026-08-21T20:00:00.000Z")).expiresAt).toEqual(new Date("2026-08-25T20:00:00.000Z"));
+    expect(() => buildFactUpsertValues({ ...fact, verifiedAt: "2026-08-21T20:00:00Z" })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildOfferUpsertValues({ ...offer, expiresAt: "2026-08-25T20:00:00Z" }, "AwaitingAcceptance", 1500)).toThrow("Invalid persisted offer.");
   });
 
   it("rejects non-canonical audit timestamps before persistence", () => {
