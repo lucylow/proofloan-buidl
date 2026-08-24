@@ -904,3 +904,8 @@
 - [x] Add a safe label for the current timeline filter
 - [x] Keep label and reset control responsive and accessible
 - [x] Add label tests and revalidate the full project
+
+## Active-filter matching count
+- [x] Add a bounded matching-event count to the active-filter label
+- [x] Keep count semantics accessible and privacy-safe
+- [x] Add count tests and revalidate the full project

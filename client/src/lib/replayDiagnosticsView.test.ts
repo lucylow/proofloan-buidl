@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
+import { getReplayRefreshFilterLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshFilterScopeLabel, readReplayRefreshTimelineFilter, writeReplayRefreshTimelineFilter } from "./replayDiagnosticsView";
 import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, filterReplayRefreshTimeline, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, shouldShowReplayRefreshFilterReset, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("maps every supported filter to a safe operator label", () => {
     expect(["all", "failures", "unavailable", "malformed", "request_error"].map(filter => getReplayRefreshFilterLabel(filter as any))).toEqual(["All attempts", "Failures only", "Service unavailable", "Invalid response", "Request error"]);
+  });
+
+  it("bounds matching-count labels and never exposes invalid count values", () => {
+    expect(getReplayRefreshFilterScopeLabel("failures", 4)).toBe("Failures only · 4");
+    expect(getReplayRefreshFilterScopeLabel("malformed", 99)).toBe("Invalid response · 6");
+    expect(getReplayRefreshFilterScopeLabel("request_error", -4)).toBe("Request error · 0");
+    expect(getReplayRefreshFilterScopeLabel("all", Number.NaN)).toBe("All attempts · 0");
   });
 
   it("describes restored filters without exposing storage values", () => {

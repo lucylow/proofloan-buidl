@@ -39,6 +39,11 @@ export function getReplayRefreshFilterLabel(filter: ReplayRefreshTimelineFilter)
   return getReplayRefreshFailureLabel(filter);
 }
 
+export function getReplayRefreshFilterScopeLabel(filter: ReplayRefreshTimelineFilter, matchingCount: number): string {
+  const safeCount = Number.isFinite(matchingCount) && matchingCount >= 0 ? Math.min(6, Math.floor(matchingCount)) : 0;
+  return `${getReplayRefreshFilterLabel(filter)} · ${safeCount}`;
+}
+
 export function getReplayRefreshFilterRestorationNotice(filter: ReplayRefreshTimelineFilter, restored: boolean): string | null {
   if (!restored) return null;
   if (filter === "all") return "Restored the full refresh timeline";
