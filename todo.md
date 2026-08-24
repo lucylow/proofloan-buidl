@@ -859,3 +859,8 @@
 - [x] Calculate bounded counts for each coarse failure category
 - [x] Render category counts beside the refresh-rate summary
 - [x] Add breakdown tests and revalidate the full project
+
+## Refresh failure trend indicator
+- [x] Compare the newest and preceding bounded refresh windows
+- [x] Render a privacy-safe trend direction for operators
+- [x] Add trend boundary tests and revalidate the full project

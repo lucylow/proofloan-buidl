@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
+import { appendReplayRefreshTimelineEvent, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshTimelineSummary, getReplayRefreshTrend, normalizeReplayDiagnostics, shouldApplyReplayRefreshOutcome } from "./replayDiagnosticsView";
 
 describe("replay diagnostics view model", () => {
   it("marks stale records for operator attention", () => {
@@ -25,6 +25,14 @@ describe("replay diagnostics view model", () => {
     expect(getReplayDiagnosticsRefreshState({ isOnline: false, isFetching: false })).toEqual({ enabled: false, label: "Offline" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: true })).toEqual({ enabled: false, label: "Refreshing" });
     expect(getReplayDiagnosticsRefreshState({ isOnline: true, isFetching: false })).toEqual({ enabled: true, label: "Refresh now" });
+  });
+
+  it("classifies bounded failure trends without exposing event details", () => {
+    const event = (id: number, outcome: "success" | "error") => ({ id, occurredAt: `2026-08-24T00:0${id}:00.000Z`, outcome });
+    expect(getReplayRefreshTrend([event(1, "success"), event(2, "success"), event(3, "error"), event(4, "error")])).toMatchObject({ direction: "rising", priorFailureRatePercent: 0, recentFailureRatePercent: 100 });
+    expect(getReplayRefreshTrend([event(1, "error"), event(2, "error"), event(3, "success"), event(4, "success")])).toMatchObject({ direction: "falling" });
+    expect(getReplayRefreshTrend([event(1, "error"), event(2, "success"), event(3, "error"), event(4, "success")])).toMatchObject({ direction: "flat" });
+    expect(getReplayRefreshTrend([event(1, "error"), event(2, "success")]).direction).toBe("insufficient");
   });
 
   it("counts only the six newest failures in a stable category order", () => {

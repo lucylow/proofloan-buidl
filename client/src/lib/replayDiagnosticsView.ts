@@ -11,6 +11,7 @@ export type ReplayRefreshFailureCategory = "unavailable" | "malformed" | "reques
 export type ReplayRefreshTimelineEvent = { id: number; occurredAt: string; outcome: ReplayRefreshTimelineOutcome; category?: ReplayRefreshFailureCategory };
 export type ReplayRefreshTimelineSummary = { attempts: number; failures: number; failureRatePercent: number; status: "clear" | "watch" | "critical" };
 export type ReplayRefreshCategoryCount = { category: ReplayRefreshFailureCategory; label: string; count: number };
+export type ReplayRefreshTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; recentFailureRatePercent: number; priorFailureRatePercent: number };
 
 export type ReplayDiagnosticsRow = {
   label: string;
@@ -67,6 +68,19 @@ export function getReplayRefreshCategoryCounts(events: ReplayRefreshTimelineEven
     label: getReplayRefreshFailureLabel(category),
     count: recent.filter(event => event.outcome === "error" && event.category === category).length,
   }));
+}
+
+export function getReplayRefreshTrend(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTrend {
+  const recent = events.slice(-6);
+  if (recent.length < 4) return { direction: "insufficient", recentFailureRatePercent: 0, priorFailureRatePercent: 0 };
+  const split = Math.ceil(recent.length / 2);
+  const prior = recent.slice(0, split);
+  const latest = recent.slice(split);
+  const rate = (window: ReplayRefreshTimelineEvent[]) => Math.round((window.filter(event => event.outcome === "error").length / window.length) * 100);
+  const priorFailureRatePercent = rate(prior);
+  const recentFailureRatePercent = rate(latest);
+  const delta = recentFailureRatePercent - priorFailureRatePercent;
+  return { direction: delta > 0 ? "rising" : delta < 0 ? "falling" : "flat", recentFailureRatePercent, priorFailureRatePercent };
 }
 
 export function getReplayRefreshTimelineSummary(events: ReplayRefreshTimelineEvent[]): ReplayRefreshTimelineSummary {
