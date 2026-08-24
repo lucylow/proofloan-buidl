@@ -67,6 +67,7 @@ export const offers = mysqlTable("offers", {
   apr: decimal("apr", { precision: 8, scale: 3 }).notNull(),
   ltv: decimal("ltv", { precision: 8, scale: 5 }).notNull(),
   collateralValue: decimal("collateralValue", { precision: 18, scale: 2 }),
+  poolLiquidity: decimal("poolLiquidity", { precision: 18, scale: 2 }),
   termDays: int("termDays").notNull(),
   status: varchar("status", { length: 16 }).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),

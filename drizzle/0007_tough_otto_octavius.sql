@@ -1,0 +1,1 @@
+ALTER TABLE `offers` ADD `poolLiquidity` decimal(18,2);

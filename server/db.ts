@@ -178,10 +178,11 @@ export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["de
 export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>, applicationState: ProofLoanState, requestedAmount: number, now = Date.now()) {
   const expiresAt = new Date(offer.expiresAt);
   const collateralValue = offer.collateralValue ?? 2800;
-  if (!isCanonicalUtcIsoTimestamp(offer.expiresAt) || !isOfferStatus(offer.status) || !isOfferStateConsistent(applicationState, offer.status) || !isFiniteInRange(offer.amount, 0.01, 2500) || offer.amount !== requestedAmount || !isFiniteInRange(offer.apr, 0, 24) || !isFiniteInRange(offer.ltv, 0, 1) || !isFiniteInRange(collateralValue, 0.01, 1_000_000) || offer.ltv !== ltvForOfferAmount(offer.amount, collateralValue) || !isFiniteInRange(offer.termDays, 1, 3650) || !isValidDate(expiresAt) || (offer.status === "Ready" && expiresAt.getTime() <= now)) {
+  const poolLiquidity = offer.poolLiquidity ?? 250_000;
+  if (!isCanonicalUtcIsoTimestamp(offer.expiresAt) || !isOfferStatus(offer.status) || !isOfferStateConsistent(applicationState, offer.status) || !isFiniteInRange(offer.amount, 0.01, 2500) || offer.amount !== requestedAmount || !isFiniteInRange(offer.apr, 0, 24) || !isFiniteInRange(offer.ltv, 0, 1) || !isFiniteInRange(collateralValue, 0.01, 1_000_000) || offer.ltv !== ltvForOfferAmount(offer.amount, collateralValue) || !isFiniteInRange(poolLiquidity, 0.01, 1_000_000_000) || poolLiquidity < offer.amount || !isFiniteInRange(offer.termDays, 1, 3650) || !isValidDate(expiresAt) || (offer.status === "Ready" && expiresAt.getTime() <= now)) {
     throw new Error("Invalid persisted offer.");
   }
-  return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), collateralValue: String(collateralValue), termDays: offer.termDays, status: offer.status, expiresAt };
+  return { amount: String(offer.amount), apr: String(offer.apr), ltv: String(offer.ltv), collateralValue: String(collateralValue), poolLiquidity: String(poolLiquidity), termDays: offer.termDays, status: offer.status, expiresAt };
 }
 
 function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txHash?: unknown; factId?: unknown }>): boolean {
@@ -533,7 +534,7 @@ type PersistedSnapshotValidationInput = {
   application: { applicationId?: unknown; walletAddress?: unknown; state: string; sourceChain: string; requestedAmount: unknown };
   facts: Array<{ factId?: unknown; chain: string; sourceBlock: unknown; txHash?: unknown; eventType: string; amount?: unknown; verificationBlock: unknown; freshness: string; proofRoot?: unknown; verifiedAt: unknown }>;
   decision?: { reasonCodes: unknown; riskTier: string; pd30: unknown; pd90: unknown; confidence: unknown; featureVersion?: unknown; modelVersion?: unknown; policyHash?: unknown; evidenceRoot?: unknown; decisionHash?: unknown; featureFingerprint?: unknown };
-  offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; collateralValue?: unknown; termDays: unknown; expiresAt: unknown };
+  offer?: { status: string; amount: unknown; apr: unknown; ltv: unknown; collateralValue?: unknown; poolLiquidity?: unknown; termDays: unknown; expiresAt: unknown };
   audit: Array<{ state: string; label?: unknown; detail?: unknown; eventHash?: unknown; createdAt: unknown }>;
 };
 
@@ -584,7 +585,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
     const decisionRecord = input.decision as Record<string, unknown>;
     if (mirroredDecisionFields.some(field => applicationRecord[field] !== undefined && applicationRecord[field] !== decisionRecord[field])) return false;
   }
-  if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !input.decision || Number(input.offer.apr) !== aprForRiskTier(input.decision.riskTier as Decision["riskTier"]) || !isFiniteInRange(input.offer.ltv, 0, 1) || (input.decision.featureFingerprint !== undefined && input.offer.collateralValue === undefined) || !isFiniteInRange(input.offer.collateralValue ?? 2800, 0.01, 1_000_000) || Number(input.offer.ltv) !== ltvForOfferAmount(Number(input.application.requestedAmount), Number(input.offer.collateralValue ?? 2800)) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
+  if (input.offer && (!input.decision || !isRecord(input.offer) || !isOfferStatus(input.offer.status) || !isOfferStateConsistent(input.application.state, input.offer.status) || !isFiniteInRange(input.offer.amount, 0.01, 2500) || Number(input.application.requestedAmount) !== Number(input.offer.amount) || !isFiniteInRange(input.offer.apr, 0, 24) || !input.decision || Number(input.offer.apr) !== aprForRiskTier(input.decision.riskTier as Decision["riskTier"]) || !isFiniteInRange(input.offer.ltv, 0, 1) || (input.decision.featureFingerprint !== undefined && (input.offer.collateralValue === undefined || input.offer.poolLiquidity === undefined)) || !isFiniteInRange(input.offer.collateralValue ?? 2800, 0.01, 1_000_000) || Number(input.offer.ltv) !== ltvForOfferAmount(Number(input.application.requestedAmount), Number(input.offer.collateralValue ?? 2800)) || !isFiniteInRange(input.offer.poolLiquidity ?? 250_000, 0.01, 1_000_000_000) || Number(input.offer.poolLiquidity ?? 250_000) < Number(input.offer.amount) || !isFiniteInRange(input.offer.termDays, 1, 3650) || !(input.offer.expiresAt instanceof Date) || Number.isNaN(input.offer.expiresAt.getTime()))) return false;
   if (!input.audit.every(event => isRecord(event) && isProofLoanState(event.state) && isValidDate(event.createdAt) && isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) && event.label === event.state && isCanonicalNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(input.audit)) return false;
   const lastAuditState = input.audit.length ? (input.audit[input.audit.length - 1] as { state?: unknown }).state : undefined;
@@ -636,7 +637,8 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     }
     const offerRow = offerRows[0];
     const offerStatus: Offer["status"] | undefined = offerRow && isOfferStatus(offerRow.status) ? offerRow.status : undefined;
-    const offer: Offer | undefined = offerRow && offerStatus ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), collateralValue: offerRow.collateralValue === null || offerRow.collateralValue === undefined ? undefined : Number(offerRow.collateralValue), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), poolLiquidity: 250000, status: offerStatus } : undefined;
+    if (decision?.featureFingerprint !== undefined && offerRow && (offerRow.collateralValue === null || offerRow.collateralValue === undefined || offerRow.poolLiquidity === null || offerRow.poolLiquidity === undefined)) return undefined;
+    const offer: Offer | undefined = offerRow && offerStatus ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), collateralValue: offerRow.collateralValue === null || offerRow.collateralValue === undefined ? undefined : Number(offerRow.collateralValue), poolLiquidity: Number(offerRow.poolLiquidity ?? 250000), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), status: offerStatus } : undefined;
     const audit: AuditEvent[] = auditRows.map(event => ({ state: event.state as AuditEvent["state"], label: event.label, timestamp: event.createdAt.toISOString(), detail: event.detail, hash: event.eventHash }));
     const reconstructionNow = Date.now();
     if (decision && decision.evidenceRoot !== hashValue(facts.map(fact => fact.proofRoot))) return undefined;
@@ -644,8 +646,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     if (!isFeatureVectorFiniteAndBounded(features) || !isFeatureVectorConsistentWithFacts(features, facts, reconstructionNow)) return undefined;
     if (decision) decision = { ...decision, freshnessScore: features.freshnessScore };
     if (decision && decision.confidence > features.freshnessScore) return undefined;
-    if (decision?.featureFingerprint !== undefined && offer && offer.collateralValue === undefined) return undefined;
-    if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
+        if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
     if (decision?.featureFingerprint !== undefined && decision.decisionHash !== fingerprintDecision(decision)) return undefined;
     return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
   } catch (error) {

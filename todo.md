@@ -1159,3 +1159,8 @@
 - [x] Enforce collateral provenance presence for modern offers and preserve legacy compatibility
 - [x] Add regression coverage for missing modern collateral provenance and fail-closed reconstruction
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 31
+- [x] Persist pool-liquidity provenance and enforce offer liquidity consistency across reconstruction
+- [x] Add regression coverage for pool-liquidity drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

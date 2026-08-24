@@ -50,6 +50,13 @@
       "when": 1787613825919,
       "tag": "0006_curved_lady_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787614204696,
+      "tag": "0007_tough_otto_octavius",
+      "breakpoints": true
     }
   ]
 }
