@@ -109,6 +109,11 @@ export function fingerprintFeatureVector(features: FeatureVector): string {
   return hashValue(Object.fromEntries(FEATURE_VECTOR_KEYS.map(key => [key, features[key]])));
 }
 
+export function fingerprintDecision(decision: Decision): string {
+  const { decisionHash: _decisionHash, ...canonicalDecision } = decision;
+  return hashValue(canonicalDecision);
+}
+
 export function isFeatureVectorConsistentWithFacts(features: FeatureVector, facts: VerifiedFact[], nowMs = Date.now()): boolean {
   const expected = buildFeatureVector(facts, nowMs);
   return fingerprintFeatureVector(expected) === fingerprintFeatureVector(features);
@@ -127,13 +132,13 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   const riskTier: Decision["riskTier"] = pd30 < 0.1 ? "A" : pd30 < 0.18 ? "B" : pd30 < 0.3 ? "C" : "D";
   const evidenceRoot = hashValue(facts.map(f => f.proofRoot));
   const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, featureFingerprint: fingerprintFeatureVector(features) };
-  return {
+  const decision = {
     ...decisionBase,
     modelVersion: MODEL_VERSION,
     featureVersion: FEATURE_VERSION,
     policyHash: POLICY_HASH,
-    decisionHash: hashValue({ ...decisionBase, modelVersion: MODEL_VERSION, policyHash: POLICY_HASH }),
-  };
+  } as Decision;
+  return { ...decision, decisionHash: fingerprintDecision(decision) };
 }
 
 const clampProbability = (value: unknown, fallback: number) => {
@@ -175,7 +180,7 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
     const content = response.choices?.[0]?.message?.content;
     const parsed = typeof content === "string" ? JSON.parse(content) as Partial<Decision> : {};
     const candidate = sanitizeAiCandidate(parsed, baseline);
-    return { ...candidate, decisionHash: hashValue(candidate) };
+    return { ...candidate, decisionHash: fingerprintDecision(candidate) };
   } catch {
     return baseline;
   }

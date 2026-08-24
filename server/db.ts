@@ -493,7 +493,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded } from "./underwriting";
+import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -642,6 +642,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const features = buildFeatureVector(facts, reconstructionNow);
     if (!isFeatureVectorFiniteAndBounded(features) || !isFeatureVectorConsistentWithFacts(features, facts, reconstructionNow)) return undefined;
     if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
+    if (decision?.featureFingerprint !== undefined && decision.decisionHash !== fingerprintDecision(decision)) return undefined;
     return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
   } catch (error) {
     console.warn("[ProofLoan] Database read unavailable; using active in-memory snapshot.", error instanceof Error ? error.message : error);

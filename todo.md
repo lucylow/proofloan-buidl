@@ -1109,3 +1109,8 @@
 - [x] Enforce evidence-root consistency between persisted facts and decision metadata
 - [x] Add regression coverage for evidence-root drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 21
+- [x] Enforce deterministic decision-hash consistency during persisted reconstruction
+- [x] Add regression coverage for decision-hash drift and fail-closed reads
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
