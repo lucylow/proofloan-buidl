@@ -160,6 +160,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
 }
 
 export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
+  if (snapshot.decision) buildDecisionUpsertValues(snapshot.decision);
   const requestedAmount = snapshot.offer?.amount ?? 1500;
   if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalNonEmptyText(snapshot.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
     throw new Error("Invalid persisted application.");

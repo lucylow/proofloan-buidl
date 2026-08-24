@@ -1089,3 +1089,8 @@
 - [x] Apply one canonical UTC timestamp validator across facts, audit events, and replay persistence
 - [x] Add regression coverage for cross-boundary timestamp consistency
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 17
+- [x] Enforce canonical application decision metadata across all persistence write paths
+- [x] Add regression coverage for metadata drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
