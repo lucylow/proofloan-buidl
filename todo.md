@@ -1199,3 +1199,8 @@
 - [x] Harden receipt-bearing replay validation against inconsistent decision metadata
 - [x] Add focused regression coverage for decision-binding drift in replay payloads
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 39
+- [x] Harden modern acceptance replay validation against inconsistent execution state
+- [x] Add focused regression coverage for replay state drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
