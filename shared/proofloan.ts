@@ -131,6 +131,7 @@ export type Offer = {
   amount: number;
   apr: number;
   ltv: number;
+  collateralValue?: number;
   termDays: number;
   expiresAt: string;
   poolLiquidity: number;

@@ -228,6 +228,7 @@ export function evaluateRiskGuard(decision: Decision, requestedAmount: number, c
     amount: requestedAmount,
     apr,
     ltv: canonicalLtv,
+    collateralValue,
     termDays: 90,
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     poolLiquidity,

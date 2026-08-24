@@ -143,9 +143,10 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildDecisionUpsertValues({ ...decision, reasonCodes: ["UNKNOWN"] as never })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, modelVersion: " model" })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, policyHash: "policy " })).toThrow("Invalid persisted decision.");
-    const offer = { amount: 1500, apr: 11.5, ltv: 0.42, termDays: 90, expiresAt: new Date(20_000).toISOString(), poolLiquidity: 100_000, status: "Ready" as const };
+    const offer = { amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 2800, termDays: 90, expiresAt: new Date(20_000).toISOString(), poolLiquidity: 100_000, status: "Ready" as const };
     expect(buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, 10_000).amount).toBe("1500");
     expect(() => buildOfferUpsertValues({ ...offer, amount: 1_501 }, "AwaitingAcceptance", 1500, 10_000)).toThrow("Invalid persisted offer.");
+    expect(() => buildOfferUpsertValues({ ...offer, ltv: 0.42 }, "AwaitingAcceptance", 1500, 10_000)).toThrow("Invalid persisted offer.");
     expect(() => buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, 20_000)).toThrow("Invalid persisted offer.");
   });
 

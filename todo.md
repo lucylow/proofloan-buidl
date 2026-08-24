@@ -1149,3 +1149,8 @@
 - [x] Enforce canonical LTV consistency between offer amount and collateral basis
 - [x] Add regression coverage for LTV drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 29
+- [x] Enforce persisted collateral-basis provenance for canonical LTV reconstruction
+- [x] Add regression coverage for collateral-basis drift and fail-closed persistence
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

@@ -43,6 +43,13 @@
       "when": 1787609196877,
       "tag": "0005_burly_apocalypse",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787613825919,
+      "tag": "0006_curved_lady_vermin",
+      "breakpoints": true
     }
   ]
 }

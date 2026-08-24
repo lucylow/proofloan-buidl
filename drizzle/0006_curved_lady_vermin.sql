@@ -1,0 +1,1 @@
+ALTER TABLE `offers` ADD `collateralValue` decimal(18,2);
