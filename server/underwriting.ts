@@ -194,9 +194,12 @@ export async function runAiUnderwriting(features: FeatureVector, facts: Verified
   }
 }
 
-export function isOfferAcceptable(state: string, status: Offer["status"], expiresAt?: string, nowMs = Date.now(), offer?: Partial<Offer>) {
+export function isOfferAcceptable(state: string, status: Offer["status"], expiresAt?: string, nowMs = Date.now(), offer?: Partial<Offer>, decision?: Pick<Decision, "riskTier">) {
   if (state !== "AwaitingAcceptance" || status !== "Ready") return false;
-  if (offer && (!Number.isFinite(offer.amount) || (offer.amount ?? 0) <= 0 || !Number.isFinite(offer.apr) || !Number.isFinite(offer.ltv) || !Number.isFinite(offer.termDays) || (offer.termDays ?? 0) <= 0 || !Number.isFinite(offer.poolLiquidity) || !expiresAt)) return false;
+  if (offer) {
+    const collateralValue = offer.collateralValue ?? 2800;
+    if (!Number.isFinite(offer.amount) || (offer.amount ?? 0) <= 0 || !Number.isFinite(offer.apr) || !Number.isFinite(offer.ltv) || !Number.isFinite(collateralValue) || collateralValue <= 0 || offer.ltv !== ltvForOfferAmount(offer.amount ?? 0, collateralValue) || (decision && offer.apr !== aprForRiskTier(decision.riskTier)) || !Number.isFinite(offer.termDays) || (offer.termDays ?? 0) <= 0 || !Number.isFinite(offer.poolLiquidity) || (offer.poolLiquidity ?? 0) < (offer.amount ?? 0) || !expiresAt) return false;
+  }
   if (!expiresAt) return true;
   const expiryMs = Date.parse(expiresAt);
   return Number.isFinite(expiryMs) && expiryMs > nowMs;

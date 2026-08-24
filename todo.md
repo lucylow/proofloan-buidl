@@ -1164,3 +1164,8 @@
 - [x] Persist pool-liquidity provenance and enforce offer liquidity consistency across reconstruction
 - [x] Add regression coverage for pool-liquidity drift and fail-closed persistence
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 32
+- [x] Enforce offer expiry and state consistency at the execution boundary using one shared validator
+- [x] Add regression coverage for stale or state-inconsistent execution attempts
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
