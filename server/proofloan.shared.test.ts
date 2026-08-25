@@ -199,6 +199,8 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildFactUpsertValues({ ...baseFact, verificationBlock: 9 })).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, sourceBlock: "10" } as never)).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, verificationBlock: "11" } as never)).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, asset: "DAI" })).toThrow("Invalid persisted verified fact.");
+    expect(() => buildFactUpsertValues({ ...baseFact, proofWorker: "untrusted worker" } as never)).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, verifiedAt: "invalid" })).toThrow("Invalid persisted verified fact.");
   });
 

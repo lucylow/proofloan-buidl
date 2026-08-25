@@ -1419,3 +1419,8 @@
 - [x] Reject audit hash identity values that rely on implicit string coercion
 - [x] Add focused regression coverage for malformed audit hash metadata
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 83
+- [x] Reject verified facts with malformed asset or proof-worker provenance
+- [x] Add focused regression coverage for evidence provenance drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
