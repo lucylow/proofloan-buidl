@@ -600,7 +600,8 @@ const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDe
 const isFactStateConsistent = (state: string, factCount: number) => !["EvidenceVerified", "Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) || factCount > 0;
 const AUDIT_STATE_ORDER: Record<ProofLoanState, number> = { Intake: 0, EvidencePending: 1, EvidenceVerified: 2, Scored: 3, OfferPrepared: 4, AwaitingAcceptance: 5, Executed: 6, Rejected: 7 };
 const hasUniqueAuditHashes = (audit: Array<{ hash?: unknown; eventHash?: unknown }>) => {
-  const hashes = audit.map(event => String(event.hash ?? event.eventHash));
+  const hashes = audit.map(event => event.hash ?? event.eventHash);
+  if (!hashes.every(hash => isCanonicalNonEmptyText(hash, MAX_PERSISTED_AUDIT_HASH_LENGTH))) return false;
   return new Set(hashes).size === hashes.length;
 };
 const isAuditStateProgressionConsistent = (audit: Array<{ state: string }>) => audit.every((event, index) => {
