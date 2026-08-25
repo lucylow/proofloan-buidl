@@ -5,24 +5,29 @@ vi.mock("./attestcoin", async () => {
   return { ...actual, verifyTransactionWithAttestcoin: vi.fn() };
 });
 
-const mockedLiveStates = new Map<string, string>();
+vi.mock("./underwriting", async () => {
+  const actual = await vi.importActual<typeof import("./underwriting")>("./underwriting");
+  return { ...actual, evaluateRiskGuard: vi.fn(actual.evaluateRiskGuard), runAiUnderwriting: vi.fn(actual.runAiUnderwriting) };
+});
+
+const mockedLiveSnapshots = new Map<string, LoanSnapshot>();
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
   return {
     ...actual,
-    persistLoanSnapshot: vi.fn(async () => true),
-    transitionLoanState: vi.fn(async (applicationId: string, _from: string, to: string) => { mockedLiveStates.set(applicationId, to); return "committed"; }),
-    getPersistedLoanSnapshot: vi.fn(async (applicationId: string) => {
-      const state = mockedLiveStates.get(applicationId);
-      return state ? { applicationId, state } as LoanSnapshot : undefined;
-    }),
+    persistLoanSnapshot: vi.fn(async (snapshot: LoanSnapshot) => { mockedLiveSnapshots.set(snapshot.applicationId, { ...snapshot, facts: [...snapshot.facts], audit: [...snapshot.audit], offer: snapshot.offer ? { ...snapshot.offer } : undefined }); return true; }),
+    transitionLoanState: vi.fn(async (applicationId: string, _from: string, to: string) => { const snapshot = mockedLiveSnapshots.get(applicationId); if (!snapshot) return "unavailable"; snapshot.state = to as LoanSnapshot["state"]; return "committed"; }),
+    claimAcceptanceReplay: vi.fn(async () => ({ status: "claimed" })),
+    commitAcceptanceReplay: vi.fn(async () => true),
+    getPersistedLoanSnapshot: vi.fn(async (applicationId: string) => mockedLiveSnapshots.get(applicationId)),
   };
 });
 import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, registerPreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
+import { evaluateRiskGuard, runAiUnderwriting } from "./underwriting";
 import { createLoanFixture, createMalformedLoanFixture } from "./proofloan.fixtures";
 
 function createContext(): TrpcContext {
@@ -164,6 +169,7 @@ describe("proofloan API flow", () => {
   }, 30_000);
 
   it("runs the live proof path with distinct identity fields and verified provenance", async () => {
+    mockedLiveSnapshots.clear();
     const sourceHash = `0x${"b".repeat(64)}`;
     vi.mocked(verifyTransactionWithAttestcoin).mockResolvedValueOnce({ verified: true, chainKey: 1, sourceBlock: 6421883, verificationBlock: 7000000, txHash: sourceHash, proofRoot: "0xproof-root", mode: "sdk" });
     const caller = appRouter.createCaller(createContext());
@@ -173,6 +179,22 @@ describe("proofloan API flow", () => {
     expect(snapshot.facts[0]?.txHash).toBe(sourceHash);
     expect(snapshot.audit.map(event => event.state)).toContain("EvidenceVerified");
     expect(["AwaitingAcceptance", "Rejected"]).toContain(snapshot.state);
+  }, 30_000);
+
+  it("accepts a mocked live offer through the Creditcoin execution boundary", async () => {
+    mockedLiveSnapshots.clear();
+    const sourceHash = `0x${"c".repeat(64)}`;
+    const liveDecision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 0.93, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test-model", featureVersion: "test-features", evidenceRoot: "0xevidence", policyHash: "0xpolicy", decisionHash: "0xdecision", featureFingerprint: "0xfeatures" };
+    vi.mocked(runAiUnderwriting).mockResolvedValueOnce(liveDecision);
+    vi.mocked(evaluateRiskGuard).mockReturnValueOnce({ amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 2800, termDays: 90, expiresAt: new Date(Date.now() + 86_400_000).toISOString(), poolLiquidity: 250_000, status: "Ready" });
+    vi.mocked(verifyTransactionWithAttestcoin).mockResolvedValueOnce({ verified: true, chainKey: 1, sourceBlock: 6421883, verificationBlock: 7000000, txHash: sourceHash, proofRoot: "0xproof-root-accept", mode: "sdk" });
+    const caller = appRouter.createCaller(createContext());
+    const created = await caller.proofloan.createApplication({ walletAddress: `0x${"d".repeat(40)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" });
+    const accepted = await caller.proofloan.acceptOffer({ applicationId: created.applicationId, idempotencyKey: "live-acceptance-key-001" });
+    expect(accepted.state).toBe("Executed");
+    expect(accepted.sourceTransactionHash).toBe(sourceHash);
+    expect(accepted.transactionHash).toMatch(/^0xcreditcoin_/);
+    expect(accepted.audit.at(-1)?.state).toBe("Executed");
   }, 30_000);
 
   it("rejects whitespace-only proof requests at the API boundary", async () => {
