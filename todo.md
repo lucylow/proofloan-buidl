@@ -1464,3 +1464,8 @@
 - [x] Add stable, privacy-safe persistence validation rule identifiers
 - [x] Keep diagnostics free of wallet addresses, payloads, and evidence contents
 - [x] Add focused diagnostic regressions and revalidate the project
+
+## Code improvement pass 92
+- [x] Add a bounded operator remediation guide for persistence rule identifiers
+- [x] Keep guidance read-only and free of sensitive persistence payloads
+- [x] Add focused guidance regressions and revalidate the project
