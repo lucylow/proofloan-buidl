@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -41,5 +41,17 @@ describe("persistence diagnostics guidance", () => {
     expect(filterPersistenceFailureHistory(history, "current", now)).toEqual([history[0]]);
     expect(filterPersistenceFailureHistory(history, "stale", now)).toEqual([history[1]]);
     expect(filterPersistenceFailureHistory(history, "all", now)).toEqual([history[0], history[1]]);
+  });
+
+  it("persists only allowlisted diagnostic filters and fails safely when storage is blocked", () => {
+    const values = new Map<string, string>();
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) };
+    expect(writePersistenceFailureHistoryFilter(storage, "stale")).toBe(true);
+    expect(readPersistenceFailureHistoryFilter(storage)).toBe("stale");
+    values.set("proofloan.persistence-history-filter", "wallet-secret");
+    expect(readPersistenceFailureHistoryFilter(storage)).toBe("all");
+    expect(readPersistenceFailureHistoryFilter({ getItem: () => { throw new Error("blocked"); } })).toBe("all");
+    expect(writePersistenceFailureHistoryFilter({ setItem: () => { throw new Error("blocked"); } }, "current")).toBe(false);
+    expect(JSON.stringify(values)).not.toContain("wallet");
   });
 });

@@ -25,6 +25,26 @@ export function getPersistenceFailureFreshness(observedAt: string, now = Date.no
 
 export type PersistenceFailureHistoryFilter = "all" | "current" | "stale";
 
+const persistenceHistoryFilterStorageKey = "proofloan.persistence-history-filter";
+
+export function readPersistenceFailureHistoryFilter(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureHistoryFilter {
+  try {
+    const value = storage?.getItem(persistenceHistoryFilterStorageKey);
+    return value === "all" || value === "current" || value === "stale" ? value : "all";
+  } catch {
+    return "all";
+  }
+}
+
+export function writePersistenceFailureHistoryFilter(storage: Pick<Storage, "setItem"> | undefined, filter: PersistenceFailureHistoryFilter): boolean {
+  try {
+    storage?.setItem(persistenceHistoryFilterStorageKey, filter);
+    return !!storage;
+  } catch {
+    return false;
+  }
+}
+
 export function filterPersistenceFailureHistory(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined, filter: PersistenceFailureHistoryFilter, now = Date.now()): Array<{ rule: string; observedAt: string }> {
   return (history ?? []).filter(entry => {
     if (!entry || !getPersistenceRuleGuidance(entry.rule)) return false;

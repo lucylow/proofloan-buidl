@@ -14,7 +14,7 @@ import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCre
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
 import { getProofIdentityValidationError } from "@/lib/proofIdentityValidation";
-import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, type PersistenceFailureHistoryFilter } from "@/lib/persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter, type PersistenceFailureHistoryFilter } from "@/lib/persistenceDiagnostics";
 import { appendReplayRefreshTimelineEvent, appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshFailureLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, shouldApplyReplayRefreshPersistenceUpdate, getReplayRefreshSeverityStatusSummary, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterScopeLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshTimelineSummary, readReplayRefreshSeverityThresholds, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshSeverityThresholds, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, normalizeReplayRefreshSeverityThresholds, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshThresholdAuditEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
@@ -50,9 +50,12 @@ export default function Home() {
   const [replayRefreshSeverityPersistenceWarning, setReplayRefreshSeverityPersistenceWarning] = useState<string | null>(null);
   const [replayRefreshSeverityPersistenceStatus, setReplayRefreshSeverityPersistenceStatus] = useState("");
   const [replayRefreshSeverityPersistenceAvailable, setReplayRefreshSeverityPersistenceAvailable] = useState<boolean | null>(null);
-  const [persistenceHistoryFilter, setPersistenceHistoryFilter] = useState<PersistenceFailureHistoryFilter>("all");
+  const [persistenceHistoryFilter, setPersistenceHistoryFilter] = useState<PersistenceFailureHistoryFilter>(() => readPersistenceFailureHistoryFilter(typeof window === "undefined" ? undefined : window.sessionStorage));
   const [replayRefreshTimeline, setReplayRefreshTimeline] = useState<ReplayRefreshTimelineEvent[]>([]);
   const [replayRefreshThresholdAudit, setReplayRefreshThresholdAudit] = useState<ReplayRefreshThresholdAuditEvent[]>([]);
+  useEffect(() => {
+    writePersistenceFailureHistoryFilter(typeof window === "undefined" ? undefined : window.sessionStorage, persistenceHistoryFilter);
+  }, [persistenceHistoryFilter]);
   const replayRefreshRequestRef = useRef(0);
   const replayRefreshMountedRef = useRef(true);
   useEffect(() => () => {

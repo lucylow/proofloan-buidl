@@ -1494,3 +1494,8 @@
 - [x] Add a read-only current-versus-stale persistence history filter
 - [x] Preserve bounded history and privacy-safe rule summaries under filtering
 - [x] Add focused filter regressions and revalidate the project
+
+## Code improvement pass 98
+- [x] Persist the selected persistence-diagnostics filter for the current operator session
+- [x] Handle blocked or malformed session storage safely without sensitive values
+- [x] Add focused storage regressions and revalidate the project
