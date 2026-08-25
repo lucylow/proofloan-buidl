@@ -192,9 +192,12 @@ export function buildOfferUpsertValues(offer: NonNullable<LoanSnapshot["offer"]>
 }
 
 function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txHash?: unknown; factId?: unknown }>): boolean {
-  const ids = facts.map(fact => String(fact.id ?? fact.factId));
-  const references = facts.map(fact => `${String(fact.chain)}:${String(fact.txHash)}`);
-  return new Set(ids).size === ids.length && new Set(references).size === references.length;
+  const ids = facts.map(fact => fact.id ?? fact.factId);
+  const references = facts.map(fact => ({ chain: fact.chain, txHash: fact.txHash }));
+  if (!ids.every(id => isCanonicalNonEmptyText(id, MAX_PERSISTED_FACT_ID_LENGTH))) return false;
+  if (!references.every(reference => typeof reference.chain === "string" && isSourceChain(reference.chain) && isCanonicalNonEmptyText(reference.txHash, MAX_PERSISTED_TX_HASH_LENGTH))) return false;
+  const referenceKeys = references.map(reference => `${String(reference.chain)}:${String(reference.txHash)}`);
+  return new Set(ids).size === ids.length && new Set(referenceKeys).size === referenceKeys.length;
 }
 
 export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {

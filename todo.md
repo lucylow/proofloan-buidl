@@ -1389,3 +1389,8 @@
 - [x] Reject direct snapshot writes whose verified facts use a different source chain
 - [x] Add focused regression coverage for write-boundary source-chain drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 77
+- [x] Reject fact identity values that rely on implicit string coercion
+- [x] Add focused regression coverage for malformed fact IDs and references
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
