@@ -23,6 +23,16 @@ export function getPersistenceFailureFreshness(observedAt: string, now = Date.no
   return now - timestamp > maxAgeMs ? "stale" : "fresh";
 }
 
+export type PersistenceFailureHistoryFilter = "all" | "current" | "stale";
+
+export function filterPersistenceFailureHistory(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined, filter: PersistenceFailureHistoryFilter, now = Date.now()): Array<{ rule: string; observedAt: string }> {
+  return (history ?? []).filter(entry => {
+    if (!entry || !getPersistenceRuleGuidance(entry.rule)) return false;
+    const freshness = getPersistenceFailureFreshness(entry.observedAt, now);
+    return filter === "all" || (filter === "current" ? freshness === "fresh" : freshness !== "fresh");
+  }).slice(-6).map(entry => ({ rule: entry.rule, observedAt: entry.observedAt }));
+}
+
 export type PersistenceRuleRecurrence = { rule: string; count: number };
 
 export function getPersistenceRuleRecurrence(history: ReadonlyArray<{ rule: string }> | undefined): PersistenceRuleRecurrence[] {

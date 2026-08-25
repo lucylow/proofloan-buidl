@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -29,5 +29,17 @@ describe("persistence diagnostics guidance", () => {
     expect(summary).toEqual([{ rule: "APPLICATION_IDENTITY", count: 1 }, { rule: "SNAPSHOT_INTEGRITY", count: 2 }]);
     expect(getPersistenceRuleRecurrence(Array.from({ length: 12 }, () => ({ rule: "AUDIT_METADATA" })))).toEqual([{ rule: "AUDIT_METADATA", count: 6 }]);
     expect(JSON.stringify(summary)).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("filters persistence history by freshness without exposing invalid entries", () => {
+    const now = Date.parse("2026-08-25T00:00:00.000Z");
+    const history = [
+      { rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T23:59:00.000Z" },
+      { rule: "SNAPSHOT_INTEGRITY", observedAt: "2026-08-24T23:00:00.000Z" },
+      { rule: "UNKNOWN_RULE", observedAt: "2026-08-24T23:59:00.000Z" },
+    ];
+    expect(filterPersistenceFailureHistory(history, "current", now)).toEqual([history[0]]);
+    expect(filterPersistenceFailureHistory(history, "stale", now)).toEqual([history[1]]);
+    expect(filterPersistenceFailureHistory(history, "all", now)).toEqual([history[0], history[1]]);
   });
 });

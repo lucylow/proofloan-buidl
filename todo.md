@@ -1489,3 +1489,8 @@
 - [x] Add bounded recurrence counts by persistence rule ID
 - [x] Keep recurrence summaries coarse, deterministic, and privacy-safe
 - [x] Add focused recurrence regressions and revalidate the project
+
+## Code improvement pass 97
+- [x] Add a read-only current-versus-stale persistence history filter
+- [x] Preserve bounded history and privacy-safe rule summaries under filtering
+- [x] Add focused filter regressions and revalidate the project
