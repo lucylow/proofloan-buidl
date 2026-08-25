@@ -1254,3 +1254,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent offer metadata
 - [x] Add focused regression coverage for offer metadata drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 50
+- [x] Harden modern acceptance replay validation against inconsistent offer expiry state
+- [x] Add focused regression coverage for expired replay offers
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

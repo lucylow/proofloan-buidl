@@ -241,6 +241,7 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   if (candidate.audit.slice(0, -1).some(event => event.state === "Executed")) return false;
   const terminalAudit = candidate.audit.at(-1);
   if (terminalAudit?.state !== "Executed") return false;
+  if (Date.parse(terminalAudit.timestamp as string) >= Date.parse(candidate.offer.expiresAt)) return false;
   const auditHash = terminalAudit.hash;
   if (!isCanonicalNonEmptyText(auditHash, MAX_PERSISTED_AUDIT_HASH_LENGTH)) return false;
   return candidate.receiptHash === hashValue({ applicationId, offer: candidate.offer, decisionHash: candidate.decision.decisionHash, auditHash }) && candidate.transactionHash === `0xcreditcoin_${candidate.receiptHash}`;
