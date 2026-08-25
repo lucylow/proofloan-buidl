@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -53,6 +53,16 @@ describe("persistence diagnostics guidance", () => {
     expect(readPersistenceFailureHistoryFilter({ getItem: () => { throw new Error("blocked"); } })).toBe("all");
     expect(writePersistenceFailureHistoryFilter({ setItem: () => { throw new Error("blocked"); } }, "current")).toBe(false);
     expect(JSON.stringify(values)).not.toContain("wallet");
+  });
+
+  it("classifies bounded recurrence alert levels without exposing raw details", () => {
+    expect(getPersistenceFailureAlertLevel(0)).toBe("clear");
+    expect(getPersistenceFailureAlertLevel(2)).toBe("watch");
+    expect(getPersistenceFailureAlertLevel(4)).toBe("critical");
+    expect(getPersistenceFailureAlertLevel(Number.NaN)).toBe("clear");
+    expect(getPersistenceFailureAlertLevel(6, { watchCount: 1, criticalCount: 99 })).toBe("critical");
+    expect(getPersistenceFailureAlertLabel("watch")).toBe("Watch recurrence");
+    expect(JSON.stringify(getPersistenceFailureAlertLabel("critical"))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("describes restored filters without exposing storage contents", () => {

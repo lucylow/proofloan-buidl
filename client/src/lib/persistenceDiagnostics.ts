@@ -58,6 +58,22 @@ export function filterPersistenceFailureHistory(history: ReadonlyArray<{ rule: s
   }).slice(-6).map(entry => ({ rule: entry.rule, observedAt: entry.observedAt }));
 }
 
+export type PersistenceFailureAlertThresholds = { watchCount: number; criticalCount: number };
+export type PersistenceFailureAlertLevel = "clear" | "watch" | "critical";
+
+export const DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS: PersistenceFailureAlertThresholds = { watchCount: 2, criticalCount: 4 };
+
+export function getPersistenceFailureAlertLevel(recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): PersistenceFailureAlertLevel {
+  const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
+  const watchCount = Number.isFinite(thresholds.watchCount) ? Math.min(6, Math.max(1, Math.floor(thresholds.watchCount))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.watchCount;
+  const criticalCount = Number.isFinite(thresholds.criticalCount) ? Math.min(6, Math.max(watchCount + 1, Math.floor(thresholds.criticalCount))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.criticalCount;
+  return safeRecentCount >= criticalCount ? "critical" : safeRecentCount >= watchCount ? "watch" : "clear";
+}
+
+export function getPersistenceFailureAlertLabel(level: PersistenceFailureAlertLevel): string {
+  return level === "critical" ? "Critical recurrence" : level === "watch" ? "Watch recurrence" : "Clear recurrence";
+}
+
 export type PersistenceFailureTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; priorCount: number; recentCount: number };
 
 export function getPersistenceFailureTrend(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined): PersistenceFailureTrend {

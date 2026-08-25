@@ -1509,3 +1509,8 @@
 - [x] Detect when the persistence-diagnostics filter is restored from the operator session
 - [x] Show bounded restoration feedback without exposing storage contents
 - [x] Add focused restoration regressions and revalidate the project
+
+## Code improvement pass 101
+- [x] Add bounded watch and critical thresholds for persistence failure recurrence
+- [x] Keep threshold state session-safe and alert copy privacy-safe
+- [x] Add focused threshold regressions and revalidate the project
