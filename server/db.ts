@@ -199,7 +199,7 @@ function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txH
 
 export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {
   if (!Array.isArray(snapshot.audit) || snapshot.audit.length === 0) return false;
-  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && (!snapshot.decision || snapshot.decision.confidence <= snapshot.features.freshnessScore) && (!snapshot.decision?.featureFingerprint || !snapshot.offer || snapshot.offer.collateralValue !== undefined) && hasUniqueAuditHashes(snapshot.audit) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
+  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && snapshot.facts.every(fact => fact.chain === snapshot.sourceChain) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && (!snapshot.decision || snapshot.decision.confidence <= snapshot.features.freshnessScore) && (!snapshot.decision?.featureFingerprint || !snapshot.offer || snapshot.offer.collateralValue !== undefined) && hasUniqueAuditHashes(snapshot.audit) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
 }
 
 export function isLoanSnapshotPersistable(snapshot: LoanSnapshot, now = Date.now()): boolean {

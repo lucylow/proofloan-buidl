@@ -1384,3 +1384,8 @@
 - [x] Reject persisted timestamp values that are not native valid Date instances
 - [x] Add focused regression coverage for string and timezone-like timestamp coercion
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 76
+- [x] Reject direct snapshot writes whose verified facts use a different source chain
+- [x] Add focused regression coverage for write-boundary source-chain drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

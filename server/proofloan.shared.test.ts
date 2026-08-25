@@ -177,6 +177,7 @@ describe("ProofLoan shared validation", () => {
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, audit: [] } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "EvidencePending" } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "Scored", decision: undefined } as never)).toBe(false);
+    expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, facts: [{ id: "fact-chain-drift", chain: "Polygon Amoy", txHash: "tx-chain-drift" }] } as never)).toBe(false);
     expect(isLoanSnapshotPersistable(consistentSnapshot as never)).toBe(true);
     expect(isLoanSnapshotPersistable({ ...consistentSnapshot, facts: [{ id: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 10, txHash: "tx", eventType: "REPAYMENT", amount: "1 USDC", verificationBlock: 11, verifiedAt: "invalid", freshness: "Fresh", proofRoot: "root" }] } as never)).toBe(false);
     expect(isLoanSnapshotPersistable({ ...consistentSnapshot, audit: [{ ...consistentSnapshot.audit[0], hash: " " }] } as never)).toBe(false);
