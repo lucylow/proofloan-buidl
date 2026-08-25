@@ -544,6 +544,20 @@ describe("transactional snapshot persistence", () => {
     })).toBe(false);
   });
 
+  it("rejects receipt-bearing replays with collateral-basis and LTV drift", () => {
+    const decisionBase = { pd30: 0.12, pd90: 0.16, confidence: 0.92, freshnessScore: 1, riskTier: "B" as const, reasonCodes: ["HIGH_LEVERAGE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: "evidence-1", decisionHash: "placeholder" };
+    const decision = { ...decisionBase, decisionHash: fingerprintDecision(decisionBase), featureFingerprint: "feature-fingerprint" };
+    expect(isDurableAcceptanceReplayResult("PL-PERSISTENCE-TEST", {
+      applicationId: "PL-PERSISTENCE-TEST",
+      state: "Executed",
+      transactionHash: `0xcreditcoin_${"a".repeat(18)}`,
+      receiptHash: "a".repeat(18),
+      offer: { status: "Executed", amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 3000, termDays: 90, expiresAt: "2026-08-26T00:00:00.000Z", poolLiquidity: 250_000 },
+      decision,
+      audit: [{ state: "Executed", label: "Executed", detail: "execution complete", hash: "terminal-executed-hash", timestamp: "2026-08-25T00:00:00.000Z" }],
+    })).toBe(false);
+  });
+
   it("returns false when the transaction callback fails, allowing the driver to roll back the bundle", async () => {
     let rollbackObserved = false;
     const failingTx = {
