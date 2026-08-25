@@ -1269,3 +1269,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent pool-liquidity provenance
 - [x] Add focused regression coverage for liquidity-basis drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 53
+- [x] Harden modern acceptance replay validation against inconsistent decision-to-offer amount binding
+- [x] Add focused regression coverage for amount drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
