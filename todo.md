@@ -1439,3 +1439,8 @@
 - [x] Add chain-specific wallet address validation without breaking explicit preview identifiers
 - [x] Add chain-aware transaction hash validation at live proof boundaries
 - [x] Add focused regressions and revalidate the project
+
+## Code improvement pass 87
+- [x] Add strict EVM wallet-address validation for live proof requests while preserving preview identifiers
+- [x] Route live-mode detection through the wallet and transaction identity predicates
+- [x] Add focused regressions and revalidate the project

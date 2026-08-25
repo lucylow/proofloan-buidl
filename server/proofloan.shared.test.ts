@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isAddressShapedIdentity, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveChainWalletAddress, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 import { POLICY_HASH } from "./underwriting";
 
@@ -30,6 +30,16 @@ describe("ProofLoan shared validation", () => {
     expect(isLiveChainTransactionHash(hash, "Polygon Amoy")).toBe(true);
     expect(isLiveChainTransactionHash(hash, "Ethereum Mainnet")).toBe(false);
     expect(isLiveChainTransactionHash("0x71C7...9A2F", "Ethereum Sepolia")).toBe(false);
+  });
+
+  it("accepts only strict EVM wallet addresses for supported chains", () => {
+    const address = `0x${"b".repeat(40)}`;
+    expect(isLiveChainWalletAddress(address, "Ethereum Sepolia")).toBe(true);
+    expect(isLiveChainWalletAddress(address, "Polygon Amoy")).toBe(true);
+    expect(isLiveChainWalletAddress(`0x${"b".repeat(39)}`, "Ethereum Sepolia")).toBe(false);
+    expect(isLiveChainWalletAddress(`0x${"g".repeat(40)}`, "Polygon Amoy")).toBe(false);
+    expect(isAddressShapedIdentity("0xborrower")).toBe(false);
+    expect(isAddressShapedIdentity(`0x${"g".repeat(40)}`)).toBe(true);
   });
 
   it("classifies structured router errors without misclassifying plain messages", () => {

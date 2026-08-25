@@ -84,6 +84,15 @@ export function isLiveChainTransactionHash(value: string, sourceChain: string): 
   return isSourceChain(sourceChain) && isLiveTxHash(value);
 }
 
+export function isLiveChainWalletAddress(value: string, sourceChain: string): boolean {
+  return isSourceChain(sourceChain) && /^0x[a-fA-F0-9]{40}$/.test(value.trim());
+}
+
+export function isAddressShapedIdentity(value: string): boolean {
+  const normalized = value.trim();
+  return normalized.startsWith("0x") && normalized.length >= 42;
+}
+
 export function isProofLoanApplicationId(value: string): boolean {
   return /^PL-[A-Z0-9_-]{8,128}$/.test(value.trim());
 }

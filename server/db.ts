@@ -3,7 +3,7 @@ import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { isProofLoanApplicationId } from "@shared/proofloan";
+import { isAddressShapedIdentity, isLiveChainWalletAddress, isProofLoanApplicationId } from "@shared/proofloan";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 const MAX_PERSISTED_FACTS = 64;
@@ -168,7 +168,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
 export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
   if (snapshot.decision) buildDecisionUpsertValues(snapshot.decision);
   const requestedAmount = snapshot.offer?.amount ?? 1500;
-  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalWalletAddress(snapshot.walletAddress) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
+  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalWalletAddress(snapshot.walletAddress, snapshot.sourceChain) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
     throw new Error("Invalid persisted application.");
   }
   return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
@@ -593,7 +593,7 @@ const isValidDate = (value: unknown): value is Date => value instanceof Date && 
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
 const isBoundedNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedText(value, maxLength) && value.trim().length > 0;
 const isCanonicalNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedNonEmptyText(value, maxLength) && value === value.trim() && !/[\u0000-\u001F\u007F]/.test(value);
-const isCanonicalWalletAddress = (value: unknown): value is string => isCanonicalNonEmptyText(value, MAX_PERSISTED_WALLET_LENGTH) && !/[\u0000-\u001f\u007f]/.test(value);
+const isCanonicalWalletAddress = (value: unknown, sourceChain: string): value is string => isCanonicalNonEmptyText(value, MAX_PERSISTED_WALLET_LENGTH) && (!isAddressShapedIdentity(value) || isLiveChainWalletAddress(value, sourceChain));
 const isOfferStateConsistent = (state: string, status: string) => (status === "Ready" && state === "AwaitingAcceptance") || (status === "Blocked" && state === "Rejected") || (status === "Executed" && state === "Executed");
 const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;
 const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDecision ? ["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) : !["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state);
@@ -617,7 +617,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!isRecord(input.application)) return false;
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length === 0 || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isFactStateConsistent(input.application.state as string, input.facts.length)) return false;
-  if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalWalletAddress(input.application.walletAddress) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
+  if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalWalletAddress(input.application.walletAddress, input.application.sourceChain) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   const applicationRecord = input.application as Record<string, unknown>;
   if (applicationRecord.createdAt !== undefined && !isValidDate(applicationRecord.createdAt)) return false;
   if (applicationRecord.updatedAt !== undefined && !isValidDate(applicationRecord.updatedAt)) return false;
