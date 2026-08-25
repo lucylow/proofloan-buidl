@@ -614,6 +614,10 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length === 0 || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isFactStateConsistent(input.application.state as string, input.facts.length)) return false;
   if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalWalletAddress(input.application.walletAddress) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
+  const applicationRecord = input.application as Record<string, unknown>;
+  if (applicationRecord.createdAt !== undefined && !isValidDate(applicationRecord.createdAt)) return false;
+  if (applicationRecord.updatedAt !== undefined && !isValidDate(applicationRecord.updatedAt)) return false;
+  if (applicationRecord.createdAt instanceof Date && applicationRecord.updatedAt instanceof Date && applicationRecord.updatedAt.getTime() < applicationRecord.createdAt.getTime()) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isCanonicalNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || fact.chain !== input.application.sourceChain || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFactBlockChronologyConsistent(fact.sourceBlock, fact.verificationBlock) || !isValidDate(fact.verifiedAt))) return false;
   const factIds = input.facts.map(fact => fact.factId);
   if (new Set(factIds).size !== factIds.length || !hasUniqueFactIdentity(input.facts)) return false;

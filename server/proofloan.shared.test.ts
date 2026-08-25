@@ -63,6 +63,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, ltv: "1.5" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, amount: "1499" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "-1" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, createdAt: "2026-08-24T20:00:00.000Z" } } as never)).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, createdAt: new Date("2026-08-24T20:00:00.000Z"), updatedAt: new Date("2026-08-24T19:00:00.000Z") } } as never)).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: "" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: " 1500" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, requestedAmount: null } })).toBe(false);

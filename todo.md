@@ -1379,3 +1379,8 @@
 - [x] Reject reconstructed applications updated before creation or after the terminal audit event
 - [x] Add focused regression coverage for update-timestamp chronology drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 75
+- [x] Reject persisted timestamp values that are not native valid Date instances
+- [x] Add focused regression coverage for string and timezone-like timestamp coercion
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
