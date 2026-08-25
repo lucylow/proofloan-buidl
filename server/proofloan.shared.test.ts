@@ -28,6 +28,7 @@ describe("ProofLoan shared validation", () => {
     expect(getProofMode(`0x${"a".repeat(64)}`)).toBe("live");
     expect(getProofMode(undefined)).toBe("preview");
     expect(getProofMode("0xmalformed")).toBe("preview");
+    expect(getProofMode(`0x${"a".repeat(64)}`, "Unsupported Chain")).toBe("preview");
     expect(getProofModeLabel("live")).toBe("Live Attestcoin proof");
     expect(getProofModeLabel("preview")).toBe("Preview adapter");
   });

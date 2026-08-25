@@ -86,8 +86,8 @@ export function isLiveChainTransactionHash(value: string, sourceChain: string): 
 
 export type ProofMode = "live" | "preview";
 
-export function getProofMode(sourceTransactionHash?: string): ProofMode {
-  return sourceTransactionHash !== undefined && isLiveTxHash(sourceTransactionHash) ? "live" : "preview";
+export function getProofMode(sourceTransactionHash?: string, sourceChain?: string): ProofMode {
+  return sourceTransactionHash !== undefined && isLiveTxHash(sourceTransactionHash) && (sourceChain === undefined || isSourceChain(sourceChain)) ? "live" : "preview";
 }
 
 export function getProofModeLabel(mode: ProofMode): string {

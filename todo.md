@@ -1584,3 +1584,8 @@
 - [x] Add deterministic mocked live Attestcoin coverage for persistence and state transitions
 - [x] Verify live requests preserve distinct wallet and source transaction identity
 - [x] Add fail-closed live-path regressions and revalidate the project
+
+## Code improvement pass 116
+- [x] Require a supported source chain for live proof mode classification
+- [x] Keep malformed or unknown-chain inputs fail-closed as preview state
+- [x] Add chain-aware classifier regressions and revalidate the project

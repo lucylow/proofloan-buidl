@@ -155,7 +155,7 @@ export default function Home() {
   const acceptOffer = trpc.proofloan.acceptOffer.useMutation({ onMutate: () => setOfferSubmitted(false), onSuccess: () => setOfferSubmitted(true), onError: (_error, variables) => { const recovery = getAcceptanceFailureRecovery({ hasApplication: Boolean(variables.applicationId), isOnline, pollingPaused }); if (recovery.shouldInvalidateCreditFile) { if (recovery.shouldResumePolling) setPollingPaused(false); void proofloanUtils.proofloan.getApplication.invalidate({ applicationId: variables.applicationId }).catch(() => undefined); } } });
   const applicationQuery = trpc.proofloan.getApplication.useQuery({ applicationId: applicationId ?? "_none_" }, { enabled: Boolean(applicationId) && !pollingPaused, retry: (_failureCount, _error) => shouldRetryCreditFileQuery({ isOnline, pollingPaused, failureCount: _failureCount }), refetchInterval: shouldPollCreditFile({ hasApplication: Boolean(applicationId), isOnline, pollingPaused }) ? 5000 : false });
   const app = applicationQuery.data;
-  const proofMode = getProofMode(app?.sourceTransactionHash);
+  const proofMode = getProofMode(app?.sourceTransactionHash, app?.sourceChain);
   const proofModeLabel = getProofModeLabel(proofMode);
   useEffect(() => {
     if (applicationQuery.error) setPollingPaused(true);

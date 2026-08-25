@@ -143,7 +143,7 @@ export const appRouter = router({
       const liveProofIdentity = sourceTransactionHash !== undefined;
       if (liveProofIdentity && (!isLiveChainTransactionHash(sourceTransactionHash, input.sourceChain) || !isLiveChainWalletAddress(input.walletAddress, input.sourceChain))) throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "Live proof requests require a valid wallet address and 32-byte source transaction hash for the selected chain.");
       if (!liveProofIdentity && isAddressShapedIdentity(input.walletAddress) && !isLiveChainWalletAddress(input.walletAddress, input.sourceChain)) throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "Address-shaped wallet values must be valid EVM values for the selected chain.");
-      const previewMode = getProofMode(sourceTransactionHash) === "preview";
+      const previewMode = getProofMode(sourceTransactionHash, input.sourceChain) === "preview";
       if (!previewMode && input.idempotencyKey) {
         const claim = await claimProofRequestReplay(input.idempotencyKey, input.walletAddress, input.sourceChain, undefined, sourceTransactionHash);
         if (claim.status === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof-request replay protection is unavailable; no verification was attempted.");
@@ -196,7 +196,7 @@ export const appRouter = router({
       if (cached && cached.requestKey === input.idempotencyKey) return cached.result;
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
-      const previewMode = !snapshot || getProofMode(snapshot.sourceTransactionHash) === "preview";
+      const previewMode = !snapshot || getProofMode(snapshot.sourceTransactionHash, snapshot.sourceChain) === "preview";
       if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status, snapshot.offer.expiresAt, Date.now(), snapshot.offer, snapshot.decision ?? undefined)) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "Offer is unavailable, expired, or already accepted.");
       if (!previewMode && input.idempotencyKey) {
         const claim = await claimAcceptanceReplay(snapshot.applicationId, input.idempotencyKey);
