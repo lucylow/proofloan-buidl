@@ -27,6 +27,12 @@ describe("transactional snapshot persistence", () => {
     await expect(cleanupReplayProtectionRecords(Number.NaN)).resolves.toBe(false);
     await expect(cleanupReplayProtectionRecords(Number.POSITIVE_INFINITY)).resolves.toBe(false);
   });
+  it("rejects malformed reconstruction identifiers before touching the database", async () => {
+    const select = vi.fn();
+    await expect(getPersistedLoanSnapshot("not-a-proofloan-id", { select } as never)).resolves.toBeUndefined();
+    expect(select).not.toHaveBeenCalled();
+  });
+
   it("reconstructs a valid persisted snapshot at the database read boundary", async () => {
     const createdAt = new Date("2026-08-24T20:00:00.000Z");
     const rows = [

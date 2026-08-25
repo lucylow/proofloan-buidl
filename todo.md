@@ -1334,3 +1334,8 @@
 - [x] Harden persisted wallet-address validation against control characters and non-canonical text
 - [x] Add focused regression coverage for malformed wallet addresses
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 66
+- [x] Reject non-canonical application IDs before persisted snapshot reconstruction queries
+- [x] Add focused regression coverage for malformed reconstruction identifiers
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

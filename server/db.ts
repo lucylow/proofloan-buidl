@@ -650,6 +650,7 @@ export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput
 }
 
 export async function getPersistedLoanSnapshot(applicationId: string, dbOverride?: DatabaseClient): Promise<LoanSnapshot | undefined> {
+  if (!isProofLoanApplicationId(applicationId)) return undefined;
   const db = dbOverride ?? await getDb();
   if (!db) return undefined;
   try {
