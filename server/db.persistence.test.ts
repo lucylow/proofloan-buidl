@@ -40,7 +40,7 @@ describe("transactional snapshot persistence", () => {
       [],
       [],
       [],
-      [{ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "read-audit-1", createdAt }],
+      [{ applicationId: "PL-READBOUNDARY", state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "read-audit-1", createdAt }],
     ];
     let index = 0;
     const db = { select: () => ({ from: () => ({ where: () => { const current = index++; return current === 0 ? { limit: async () => rows[0] } : { orderBy: () => current === 2 || current === 3 ? { limit: async () => rows[current] } : rows[current] }; } }) }) };
@@ -68,16 +68,17 @@ describe("transactional snapshot persistence", () => {
     const decision = { reasonCodes: JSON.stringify(["HIGH_LEVERAGE"]), riskTier: "B", pd30: "0.12", pd90: "0.16", confidence: "0.92", featureVersion: "features-v1", modelVersion: "model-v1", policyHash: "policy-1", evidenceRoot: hashValue(["root-rows"]), decisionHash: "decision-1" };
     const offer = { status: "Executed", amount: "1500", apr: "11.5", ltv: "0.54", termDays: 90, expiresAt: new Date("2026-08-25T20:00:00.000Z") };
     const audit = [{ state: "Executed", label: "Executed", detail: "executed", eventHash: "audit-rows-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
-    const rows = (factRow = fact, decisionRow = decision, offerRow = offer) => [ [application], [factRow], [decisionRow], [offerRow], audit ];
+    const rows = (factRow = fact, decisionRow = decision, offerRow = offer) => [ [application], [{ applicationId: "PL-READROWS", ...factRow }], [{ applicationId: "PL-READROWS", ...decisionRow }], [{ applicationId: "PL-READROWS", ...offerRow }], audit.map(event => ({ applicationId: "PL-READROWS", ...event })) ];
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows()) as never)).toMatchObject({ applicationId: "PL-READROWS", state: "Executed" });
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows({ ...fact, txHash: "" })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb([ [application], [{ applicationId: "PL-OTHER", ...fact }], [{ applicationId: "PL-READROWS", ...decision }], [{ applicationId: "PL-READROWS", ...offer }], audit.map(event => ({ applicationId: "PL-READROWS", ...event })) ]) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, reasonCodes: "not-json" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, expiresAt: new Date("invalid") })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, featureFingerprint: "0".repeat(18) })) as never)).toBeUndefined();
   });
 
   it("fails closed for malformed application metadata before feature derivation", async () => {
-    const audit = [{ state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "metadata-audit-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
+    const audit = [{ applicationId: "PL-READMETA", state: "EvidencePending", label: "EvidencePending", detail: "proof dispatched", eventHash: "metadata-audit-1", createdAt: new Date("2026-08-24T20:00:00.000Z") }];
     const rows = (application: Record<string, unknown>) => [[application], [], [], [], audit];
     const base = { applicationId: "PL-READMETA", walletAddress: "0xread-meta", state: "EvidencePending", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" };
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows(base)) as never)).toMatchObject({ applicationId: "PL-READMETA", features: { evidenceCount: 0 } });

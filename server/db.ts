@@ -662,6 +662,8 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const offerRows = await db.select().from(offers).where(eq(offers.applicationId, applicationId)).orderBy(desc(offers.id)).limit(2);
     if (decisionRows.length > 1 || offerRows.length > 1) return undefined;
     const auditRows = await db.select().from(auditEvents).where(eq(auditEvents.applicationId, applicationId)).orderBy(asc(auditEvents.id));
+    const childRows = [...factRows, ...decisionRows, ...offerRows, ...auditRows] as Array<{ applicationId?: unknown }>;
+    if (childRows.some(row => row.applicationId !== applicationId)) return undefined;
     if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows }, applicationId)) return undefined;
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
     const facts: VerifiedFact[] = factRows.map(fact => {

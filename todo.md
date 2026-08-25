@@ -1339,3 +1339,8 @@
 - [x] Reject non-canonical application IDs before persisted snapshot reconstruction queries
 - [x] Add focused regression coverage for malformed reconstruction identifiers
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 67
+- [x] Reject reconstructed child rows with mismatched application IDs
+- [x] Add focused regression coverage for cross-record identifier drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
