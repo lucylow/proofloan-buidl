@@ -1274,3 +1274,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent decision-to-offer amount binding
 - [x] Add focused regression coverage for amount drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 54
+- [x] Harden modern acceptance replay validation against inconsistent decision confidence metadata
+- [x] Add focused regression coverage for confidence drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
