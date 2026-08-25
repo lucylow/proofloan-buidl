@@ -157,7 +157,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
   if (typeof event.detail !== "string" || event.detail.trim().length === 0 || event.detail.length > MAX_PERSISTED_AUDIT_DETAIL_LENGTH) {
     throw new Error("Invalid persisted audit detail.");
   }
-  if (!isProofLoanState(event.state) || event.label !== event.state || typeof event.hash !== "string" || event.hash !== event.hash.trim() || event.hash.length === 0 || event.hash.length > MAX_PERSISTED_AUDIT_HASH_LENGTH || typeof event.timestamp !== "string") {
+  if (!isProofLoanState(event.state) || event.label !== event.state || !isCanonicalNonEmptyText(event.hash, MAX_PERSISTED_AUDIT_HASH_LENGTH) || typeof event.timestamp !== "string") {
     throw new Error("Invalid persisted audit event.");
   }
   const createdAt = new Date(event.timestamp);
@@ -592,7 +592,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isValidDate = (value: unknown): value is Date => value instanceof Date && !Number.isNaN(value.getTime());
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
 const isBoundedNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedText(value, maxLength) && value.trim().length > 0;
-const isCanonicalNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedNonEmptyText(value, maxLength) && value === value.trim();
+const isCanonicalNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedNonEmptyText(value, maxLength) && value === value.trim() && !/[\u0000-\u001F\u007F]/.test(value);
 const isCanonicalWalletAddress = (value: unknown): value is string => isCanonicalNonEmptyText(value, MAX_PERSISTED_WALLET_LENGTH) && !/[\u0000-\u001f\u007f]/.test(value);
 const isOfferStateConsistent = (state: string, status: string) => (status === "Ready" && state === "AwaitingAcceptance") || (status === "Blocked" && state === "Rejected") || (status === "Executed" && state === "Executed");
 const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;

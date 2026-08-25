@@ -146,6 +146,8 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: " hash-1" })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "hash-1 " })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "hash-1\noperator" })).toThrow("Invalid persisted audit event.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "hash-1\u0000" })).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, timestamp: "invalid" })).toThrow("Invalid persisted audit event.");
   });
 

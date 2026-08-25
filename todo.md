@@ -1399,3 +1399,8 @@
 - [x] Reject empty and whitespace-only audit details in direct audit upsert construction
 - [x] Add focused regression coverage for malformed audit details at the write boundary
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 79
+- [x] Reject audit hashes with control characters in direct upsert construction
+- [x] Add focused regression coverage for malformed audit hash text
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
