@@ -1359,3 +1359,8 @@
 - [x] Reject persisted verified facts timestamped after the terminal audit event
 - [x] Add focused regression coverage for fact-audit chronology drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 71
+- [x] Reject persisted audit events with empty or whitespace-only detail text
+- [x] Add focused regression coverage for empty audit details at the read boundary
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
