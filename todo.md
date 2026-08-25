@@ -1469,3 +1469,8 @@
 - [x] Add a bounded operator remediation guide for persistence rule identifiers
 - [x] Keep guidance read-only and free of sensitive persistence payloads
 - [x] Add focused guidance regressions and revalidate the project
+
+## Code improvement pass 93
+- [x] Report the last persistence failure rule through the read-only operator diagnostics response
+- [x] Normalize and display only bounded stable rule IDs with remediation lookup
+- [x] Add focused diagnostics-flow regressions and revalidate the project

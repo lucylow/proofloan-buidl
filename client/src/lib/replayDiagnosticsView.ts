@@ -1,7 +1,10 @@
+import { getPersistenceRuleGuidance } from "./persistenceDiagnostics";
+
 export type ReplayDiagnosticsInput = {
   generatedAt: string;
   acceptance: { pending: number; stale: number };
   proofRequest: { pending: number; stale: number };
+  persistence?: { rule: string; observedAt: string };
 };
 
 export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
@@ -93,7 +96,9 @@ export function normalizeReplayDiagnostics(value: unknown): ReplayDiagnosticsInp
   const proofPending = boundedCount(proofRequest.pending);
   const proofStale = boundedCount(proofRequest.stale);
   if (acceptancePending === null || acceptanceStale === null || proofPending === null || proofStale === null) return null;
-  return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale } };
+  const persistence = candidate.persistence;
+  if (persistence !== undefined && (!persistence || typeof persistence.rule !== "string" || !getPersistenceRuleGuidance(persistence.rule) || typeof persistence.observedAt !== "string" || !Number.isFinite(new Date(persistence.observedAt).getTime()))) return null;
+  return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale }, ...(persistence ? { persistence: { rule: persistence.rule, observedAt: persistence.observedAt } } : {}) };
 }
 
 export function getReplayDiagnosticsFreshness(timestamp: string, now = Date.now(), maxAgeMs = 90_000): ReplayDiagnosticsFreshness {

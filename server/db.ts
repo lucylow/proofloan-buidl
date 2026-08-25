@@ -292,6 +292,7 @@ export type ReplayProtectionDiagnostics = {
   generatedAt: string;
   acceptance: { pending: number; stale: number };
   proofRequest: { pending: number; stale: number };
+  persistence?: { rule: PersistenceValidationRule; observedAt: string };
 };
 
 function boundedReplayCount(value: unknown): number {
@@ -313,6 +314,7 @@ export async function getReplayProtectionDiagnostics(dbOverride?: DatabaseClient
     generatedAt: new Date().toISOString(),
     acceptance: { pending: boundedReplayCount(acceptancePending[0]?.count), stale: boundedReplayCount(acceptanceStale[0]?.count) },
     proofRequest: { pending: boundedReplayCount(proofPending[0]?.count), stale: boundedReplayCount(proofStale[0]?.count) },
+    ...(lastPersistenceFailure ? { persistence: lastPersistenceFailure } : {}),
   };
 }
 
@@ -626,6 +628,8 @@ export const PERSISTENCE_VALIDATION_RULES = {
 
 export type PersistenceValidationRule = (typeof PERSISTENCE_VALIDATION_RULES)[keyof typeof PERSISTENCE_VALIDATION_RULES];
 
+let lastPersistenceFailure: { rule: PersistenceValidationRule; observedAt: string } | undefined;
+
 export function getPersistedSnapshotValidationRule(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): PersistenceValidationRule | undefined {
   try {
     if (!Number.isFinite(now)) return PERSISTENCE_VALIDATION_RULES.CLOCK_INVALID;
@@ -715,7 +719,12 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
       const timedChildRows = [...decisionRows, ...offerRows] as Array<{ createdAt?: unknown }>;
       if (timedChildRows.some(row => row.createdAt instanceof Date && (!Number.isFinite(row.createdAt.getTime()) || row.createdAt.getTime() > terminalAuditTime))) return undefined;
     }
-    if (!isPersistedSnapshotValid({ application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows }, applicationId)) return undefined;
+    const persistenceInput = { application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows };
+    const persistenceRule = getPersistedSnapshotValidationRule(persistenceInput, applicationId);
+    if (persistenceRule) {
+      lastPersistenceFailure = { rule: persistenceRule, observedAt: new Date().toISOString() };
+      return undefined;
+    }
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
     const facts: VerifiedFact[] = factRows.map(fact => {
       if (!isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness)) throw new Error(`Invalid persisted fact enum for ${fact.factId}.`);

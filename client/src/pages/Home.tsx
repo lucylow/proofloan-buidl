@@ -14,7 +14,7 @@ import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCre
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
 import { getProofIdentityValidationError } from "@/lib/proofIdentityValidation";
-import { PERSISTENCE_RULE_GUIDANCE } from "@/lib/persistenceDiagnostics";
+import { getPersistenceRuleGuidance, PERSISTENCE_RULE_GUIDANCE } from "@/lib/persistenceDiagnostics";
 import { appendReplayRefreshTimelineEvent, appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshFailureLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, shouldApplyReplayRefreshPersistenceUpdate, getReplayRefreshSeverityStatusSummary, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterScopeLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshTimelineSummary, readReplayRefreshSeverityThresholds, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshSeverityThresholds, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, normalizeReplayRefreshSeverityThresholds, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshThresholdAuditEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
@@ -82,6 +82,7 @@ export default function Home() {
   const replayDiagnostics = trpc.proofloan.replayDiagnostics.useQuery(undefined, { enabled: authQuery.data?.role === "admin", refetchInterval: 30_000 });
   const safeReplayDiagnostics = normalizeReplayDiagnostics(replayDiagnostics.data);
   const replayDiagnosticsFreshness = safeReplayDiagnostics ? getReplayDiagnosticsFreshness(safeReplayDiagnostics.generatedAt) : "invalid";
+  const lastPersistenceRule = safeReplayDiagnostics?.persistence ? getPersistenceRuleGuidance(safeReplayDiagnostics.persistence.rule) : undefined;
   const replayDiagnosticsRefresh = getReplayDiagnosticsRefreshState({ isFetching: replayDiagnostics.isFetching, isOnline });
   const replayRefreshFeedback = getReplayDiagnosticsRefreshFeedback(replayRefreshOutcome);
   const replayRefreshTimelineSummary = getReplayRefreshTimelineSummary(replayRefreshTimeline);
@@ -199,6 +200,7 @@ export default function Home() {
             {replayRefreshOutcome === "refreshing" && <p role="status" className="mt-4 text-xs text-slate-400">Refreshing protected diagnostics… Last trustworthy snapshot remains visible.</p>}
             {replayDiagnostics.error && <p role="alert" className="mt-4 text-xs text-rose-200">Replay diagnostics are temporarily unavailable.</p>}
             {replayDiagnostics.data && !safeReplayDiagnostics && <p role="alert" className="mt-4 text-xs text-amber-100">Replay diagnostics returned an invalid payload and are being withheld.</p>}
+            {lastPersistenceRule && safeReplayDiagnostics?.persistence && <div role="status" className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold text-amber-100">Last snapshot rejection</span><code className="font-mono text-[10px] text-amber-200">{lastPersistenceRule.rule}</code></div><p className="mt-2 text-[11px] leading-5 text-amber-100/75">{lastPersistenceRule.guidance}</p><p className="mt-2 text-[10px] text-slate-500">Observed {formatReplayDiagnosticsTimestamp(safeReplayDiagnostics.persistence.observedAt)}. Sensitive row data is withheld.</p></div>}
             <details className="mt-4 rounded-xl border border-white/10 bg-[#0d1622] p-3">
               <summary className="cursor-pointer text-xs font-semibold text-slate-200">Persistence rule guide</summary>
               <p className="mt-2 text-[11px] leading-5 text-slate-500">Read-only remediation guidance. Rule IDs contain no wallet, payload, or evidence data.</p>
