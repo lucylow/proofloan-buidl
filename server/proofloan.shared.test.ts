@@ -158,6 +158,8 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildDecisionUpsertValues({ ...decision, pd30: 0.3, pd90: 0.2 })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, reasonCodes: ["UNKNOWN"] as never })).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, modelVersion: " model" })).toThrow("Invalid persisted decision.");
+    expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: 123456789012345678 } as never)).toThrow("Invalid persisted decision.");
+    expect(() => buildDecisionUpsertValues({ ...decision, featureFingerprint: { toString: () => "abcdefabcdefabcdef" } } as never)).toThrow("Invalid persisted decision.");
     expect(() => buildDecisionUpsertValues({ ...decision, policyHash: "policy " })).toThrow("Invalid persisted decision.");
     const offer = { amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 2800, termDays: 90, expiresAt: new Date(20_000).toISOString(), poolLiquidity: 100_000, status: "Ready" as const };
     expect(buildOfferUpsertValues(offer, "AwaitingAcceptance", 1500, 10_000).amount).toBe("1500");

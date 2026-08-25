@@ -1424,3 +1424,8 @@
 - [x] Reject verified facts with malformed asset or proof-worker provenance
 - [x] Add focused regression coverage for evidence provenance drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 84
+- [x] Reject non-string optional feature fingerprints before regex validation
+- [x] Add focused regression coverage for coercible fingerprint metadata
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
