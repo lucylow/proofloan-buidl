@@ -1504,3 +1504,8 @@
 - [x] Add bounded recurrence trend classification across diagnostics refreshes
 - [x] Keep trend telemetry coarse, deterministic, and privacy-safe
 - [x] Add focused trend regressions and revalidate the project
+
+## Code improvement pass 100
+- [x] Detect when the persistence-diagnostics filter is restored from the operator session
+- [x] Show bounded restoration feedback without exposing storage contents
+- [x] Add focused restoration regressions and revalidate the project

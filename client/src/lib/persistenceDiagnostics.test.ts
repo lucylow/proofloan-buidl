@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -53,6 +53,14 @@ describe("persistence diagnostics guidance", () => {
     expect(readPersistenceFailureHistoryFilter({ getItem: () => { throw new Error("blocked"); } })).toBe("all");
     expect(writePersistenceFailureHistoryFilter({ setItem: () => { throw new Error("blocked"); } }, "current")).toBe(false);
     expect(JSON.stringify(values)).not.toContain("wallet");
+  });
+
+  it("describes restored filters without exposing storage contents", () => {
+    expect(getPersistenceFilterRestorationNotice("current", true)).toBe("Restored the current persistence failures view for this session.");
+    expect(getPersistenceFilterRestorationNotice("stale", true)).toBe("Restored the stale persistence failures view for this session.");
+    expect(getPersistenceFilterRestorationNotice("all", true)).toBeNull();
+    expect(getPersistenceFilterRestorationNotice("current", false)).toBeNull();
+    expect(JSON.stringify(getPersistenceFilterRestorationNotice("stale", true))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("classifies bounded persistence failure recurrence trends without raw details", () => {

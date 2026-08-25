@@ -45,6 +45,11 @@ export function writePersistenceFailureHistoryFilter(storage: Pick<Storage, "set
   }
 }
 
+export function getPersistenceFilterRestorationNotice(filter: PersistenceFailureHistoryFilter, restored: boolean): string | null {
+  if (!restored || filter === "all") return null;
+  return `Restored the ${filter} persistence failures view for this session.`;
+}
+
 export function filterPersistenceFailureHistory(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined, filter: PersistenceFailureHistoryFilter, now = Date.now()): Array<{ rule: string; observedAt: string }> {
   return (history ?? []).filter(entry => {
     if (!entry || !getPersistenceRuleGuidance(entry.rule)) return false;
