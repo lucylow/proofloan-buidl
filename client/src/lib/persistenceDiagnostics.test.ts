@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearPersistenceFailureAlertAcknowledgment, filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { clearPersistenceFailureAlertAcknowledgment, clearPersistenceFailureAlertUnacknowledgment, filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertUnacknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, isPersistenceFailureAlertUnacknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureAlertUnacknowledgment, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertUnacknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -134,6 +134,25 @@ describe("persistence diagnostics guidance", () => {
     expect(isPersistenceFailureAlertAcknowledged({ filter: "stale", level: "critical", recentCount: 5, acknowledgedAt: "2026-08-25T00:00:00.000Z" }, key)).toBe(false);
     expect(getPersistenceFailureAlertAcknowledgmentNotice("all", 1, "2026-08-25T00:00:00.000Z")).toBe("Critical persistence recurrence acknowledged for the all scope (1 recent safe failure) at 2026-08-25T00:00:00.000Z for this session.");
     expect(JSON.stringify(getPersistenceFailureAlertAcknowledgmentNotice("stale", 6))).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("persists only a bounded unacknowledgment timestamp and fails closed on invalid data", () => {
+    const values = new Map<string, string>();
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+    const unacknowledgment = { filter: "current" as const, level: "critical" as const, recentCount: 4, unacknowledgedAt: "2026-08-25T00:00:00.000Z" };
+    expect(writePersistenceFailureAlertUnacknowledgment(storage, unacknowledgment)).toBe(true);
+    expect(readPersistenceFailureAlertUnacknowledgment(storage)).toEqual(unacknowledgment);
+    expect(isPersistenceFailureAlertUnacknowledged(unacknowledgment, getPersistenceFailureAlertAcknowledgmentKey("current", "critical", 4))).toBe(true);
+    expect(clearPersistenceFailureAlertUnacknowledgment(storage)).toBe(true);
+    expect(readPersistenceFailureAlertUnacknowledgment(storage)).toBeNull();
+    expect(clearPersistenceFailureAlertUnacknowledgment(undefined)).toBe(false);
+    values.set("proofloan.persistence-alert-unacknowledgment", JSON.stringify({ filter: "current", level: "critical", recentCount: 4, unacknowledgedAt: "not-a-date", payload: "secret" }));
+    expect(readPersistenceFailureAlertUnacknowledgment(storage)).toBeNull();
+    expect(readPersistenceFailureAlertUnacknowledgment({ getItem: () => { throw new Error("blocked"); } })).toBeNull();
+    expect(writePersistenceFailureAlertUnacknowledgment({ setItem: () => { throw new Error("blocked"); } }, unacknowledgment)).toBe(false);
+    expect(clearPersistenceFailureAlertUnacknowledgment({ removeItem: () => { throw new Error("blocked"); } })).toBe(false);
+    expect(getPersistenceFailureAlertUnacknowledgmentNotice("stale", 1, "2026-08-25T00:00:00.000Z")).toBe("Critical persistence recurrence unacknowledged for the stale scope (1 recent safe failure) at 2026-08-25T00:00:00.000Z; the escalation remains visible for this session.");
+    expect(JSON.stringify(getPersistenceFailureAlertUnacknowledgmentNotice("all", 6))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("classifies bounded persistence failure recurrence trends without raw details", () => {

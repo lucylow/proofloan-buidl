@@ -28,6 +28,7 @@ export type PersistenceFailureHistoryFilter = "all" | "current" | "stale";
 const persistenceHistoryFilterStorageKey = "proofloan.persistence-history-filter";
 const persistenceAlertThresholdsStorageKey = "proofloan.persistence-alert-thresholds";
 const persistenceAlertAcknowledgmentStorageKey = "proofloan.persistence-alert-acknowledgment";
+const persistenceAlertUnacknowledgmentStorageKey = "proofloan.persistence-alert-unacknowledgment";
 
 export function readPersistenceFailureHistoryFilter(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureHistoryFilter {
   try {
@@ -144,6 +145,58 @@ export function getPersistenceFailureAlertAcknowledgmentKey(filter: PersistenceF
 export function isPersistenceFailureAlertAcknowledged(acknowledgment: PersistenceFailureAlertAcknowledgment | null | undefined, key: string | null): boolean {
   if (!acknowledgment || !key) return false;
   return getPersistenceFailureAlertAcknowledgmentKey(acknowledgment.filter, acknowledgment.level, acknowledgment.recentCount) === key;
+}
+
+export type PersistenceFailureAlertUnacknowledgment = { filter: PersistenceFailureHistoryFilter; level: "critical"; recentCount: number; unacknowledgedAt: string };
+
+function normalizePersistenceFailureAlertUnacknowledgment(value: unknown): PersistenceFailureAlertUnacknowledgment | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<PersistenceFailureAlertUnacknowledgment>;
+  if ((candidate.filter !== "all" && candidate.filter !== "current" && candidate.filter !== "stale") || candidate.level !== "critical" || typeof candidate.recentCount !== "number" || !Number.isFinite(candidate.recentCount) || candidate.recentCount < 0 || typeof candidate.unacknowledgedAt !== "string") return null;
+  const timestamp = Date.parse(candidate.unacknowledgedAt);
+  if (!Number.isFinite(timestamp)) return null;
+  return { filter: candidate.filter, level: "critical", recentCount: Math.min(6, Math.floor(candidate.recentCount)), unacknowledgedAt: new Date(timestamp).toISOString() };
+}
+
+export function readPersistenceFailureAlertUnacknowledgment(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureAlertUnacknowledgment | null {
+  try {
+    const raw = storage?.getItem(persistenceAlertUnacknowledgmentStorageKey);
+    return raw ? normalizePersistenceFailureAlertUnacknowledgment(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writePersistenceFailureAlertUnacknowledgment(storage: Pick<Storage, "setItem"> | undefined, unacknowledgment: PersistenceFailureAlertUnacknowledgment): boolean {
+  try {
+    const normalized = normalizePersistenceFailureAlertUnacknowledgment(unacknowledgment);
+    if (!normalized || !storage) return false;
+    storage.setItem(persistenceAlertUnacknowledgmentStorageKey, JSON.stringify(normalized));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearPersistenceFailureAlertUnacknowledgment(storage: Pick<Storage, "removeItem"> | undefined): boolean {
+  try {
+    storage?.removeItem(persistenceAlertUnacknowledgmentStorageKey);
+    return !!storage;
+  } catch {
+    return false;
+  }
+}
+
+export function isPersistenceFailureAlertUnacknowledged(unacknowledgment: PersistenceFailureAlertUnacknowledgment | null | undefined, key: string | null): boolean {
+  if (!unacknowledgment || !key) return false;
+  return getPersistenceFailureAlertAcknowledgmentKey(unacknowledgment.filter, unacknowledgment.level, unacknowledgment.recentCount) === key;
+}
+
+export function getPersistenceFailureAlertUnacknowledgmentNotice(filter: PersistenceFailureHistoryFilter, recentCount: number, unacknowledgedAt?: string): string {
+  const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
+  const timestamp = typeof unacknowledgedAt === "string" ? Date.parse(unacknowledgedAt) : Number.NaN;
+  const timestampNotice = Number.isFinite(timestamp) ? ` at ${new Date(timestamp).toISOString()}` : "";
+  return `Critical persistence recurrence unacknowledged for the ${filter} scope (${safeRecentCount} recent safe failure${safeRecentCount === 1 ? "" : "s"})${timestampNotice}; the escalation remains visible for this session.`;
 }
 
 export function getPersistenceFailureAlertAcknowledgmentNotice(filter: PersistenceFailureHistoryFilter, recentCount: number, acknowledgedAt?: string): string {

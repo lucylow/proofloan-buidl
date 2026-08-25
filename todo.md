@@ -1559,3 +1559,8 @@
 - [x] Add a bounded UTC acknowledgment timestamp to the session-safe escalation marker
 - [x] Display acknowledgment timing without exposing sensitive diagnostics data
 - [x] Add timestamp normalization and privacy regressions, then revalidate the project
+
+## Code improvement pass 111
+- [x] Add a bounded UTC unacknowledgment timestamp to the session-safe escalation lifecycle
+- [x] Display the unacknowledgment timing without exposing sensitive diagnostics data
+- [x] Add lifecycle timestamp regressions and revalidate the project
