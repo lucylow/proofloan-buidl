@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
 import { POLICY_HASH } from "./underwriting";
 
@@ -22,6 +22,14 @@ describe("ProofLoan shared validation", () => {
     expect(isLiveTxHash(`0x${"a".repeat(63)}`)).toBe(false);
     expect(isLiveTxHash(`0x${"g".repeat(64)}`)).toBe(false);
     expect(isLiveTxHash("71C7...9A2F")).toBe(false);
+  });
+
+  it("requires a supported chain for live transaction identity", () => {
+    const hash = `0x${"a".repeat(64)}`;
+    expect(isLiveChainTransactionHash(hash, "Ethereum Sepolia")).toBe(true);
+    expect(isLiveChainTransactionHash(hash, "Polygon Amoy")).toBe(true);
+    expect(isLiveChainTransactionHash(hash, "Ethereum Mainnet")).toBe(false);
+    expect(isLiveChainTransactionHash("0x71C7...9A2F", "Ethereum Sepolia")).toBe(false);
   });
 
   it("classifies structured router errors without misclassifying plain messages", () => {

@@ -1434,3 +1434,8 @@
 - [x] Reject non-finite or non-canonical feature vectors before fingerprint comparison
 - [x] Add focused regression coverage for coercible feature-vector values
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 86
+- [x] Add chain-specific wallet address validation without breaking explicit preview identifiers
+- [x] Add chain-aware transaction hash validation at live proof boundaries
+- [x] Add focused regressions and revalidate the project

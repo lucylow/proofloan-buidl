@@ -80,6 +80,10 @@ export function isLiveTxHash(value: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(value.trim());
 }
 
+export function isLiveChainTransactionHash(value: string, sourceChain: string): boolean {
+  return isSourceChain(sourceChain) && isLiveTxHash(value);
+}
+
 export function isProofLoanApplicationId(value: string): boolean {
   return /^PL-[A-Z0-9_-]{8,128}$/.test(value.trim());
 }

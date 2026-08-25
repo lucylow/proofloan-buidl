@@ -7,7 +7,7 @@ import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { buildFeatureVector, evaluateRiskGuard, hashValue, isOfferAcceptable, runAiUnderwriting } from "./underwriting";
 import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, persistLoanSnapshot, transitionLoanState } from "./db";
-import { PROOFLOAN_ERROR_CODES, isLiveTxHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
+import { PROOFLOAN_ERROR_CODES, isLiveChainTransactionHash, isProofLoanApplicationId, type LoanSnapshot, type ProofLoanState, type SourceChain, type ProofLoanErrorCode } from "@shared/proofloan";
 import { TRPCError } from "@trpc/server";
 
 const applications = new Map<string, LoanSnapshot>();
@@ -138,7 +138,7 @@ export const appRouter = router({
       return diagnostics;
     }),
     createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]), idempotencyKey: z.string().trim().min(16).max(128).optional() })).mutation(async ({ input }) => {
-      const previewMode = !isLiveTxHash(input.walletAddress);
+      const previewMode = !isLiveChainTransactionHash(input.walletAddress, input.sourceChain);
       if (!previewMode && input.idempotencyKey) {
         const claim = await claimProofRequestReplay(input.idempotencyKey, input.walletAddress, input.sourceChain);
         if (claim.status === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof-request replay protection is unavailable; no verification was attempted.");
@@ -152,7 +152,7 @@ export const appRouter = router({
       await transitionLiveState(snapshot, "Intake", "EvidencePending", !previewMode);
       snapshot.audit.push(audit("EvidencePending", "Proof request dispatched to the Attestcoin proof worker through the Attestcoin Protocol USC SDK adapter."));
       await persistLiveSnapshot(snapshot, !previewMode);
-      if (isLiveTxHash(input.walletAddress)) {
+      if (isLiveChainTransactionHash(input.walletAddress, input.sourceChain)) {
         let verified;
         try {
           verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
@@ -191,7 +191,7 @@ export const appRouter = router({
       if (cached && cached.requestKey === input.idempotencyKey) return cached.result;
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
-      const previewMode = !!snapshot && !isLiveTxHash(snapshot.walletAddress);
+      const previewMode = !!snapshot && !isLiveChainTransactionHash(snapshot.walletAddress, snapshot.sourceChain);
       if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status, snapshot.offer.expiresAt, Date.now(), snapshot.offer, snapshot.decision ?? undefined)) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "Offer is unavailable, expired, or already accepted.");
       if (!previewMode && input.idempotencyKey) {
         const claim = await claimAcceptanceReplay(snapshot.applicationId, input.idempotencyKey);
