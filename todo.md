@@ -1599,3 +1599,8 @@
 - [x] Add deterministic mocked live Attestcoin coverage for persistence and state transitions
 - [x] Verify live requests preserve distinct wallet and source transaction identity
 - [x] Add fail-closed live-path regressions and revalidate the project
+
+## Code improvement pass 119
+- [x] Add exact live Attestcoin proof-worker failure recovery coverage
+- [x] Prove failed live verification cannot advance to advisory scoring or execution
+- [x] Add fail-closed recovery regressions and revalidate the project

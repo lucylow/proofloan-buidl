@@ -197,6 +197,22 @@ describe("proofloan API flow", () => {
     expect(accepted.audit.at(-1)?.state).toBe("Executed");
   }, 30_000);
 
+  it("fails closed when the live Attestcoin worker rejects before scoring", async () => {
+    mockedLiveSnapshots.clear();
+    vi.mocked(runAiUnderwriting).mockClear();
+    vi.mocked(evaluateRiskGuard).mockClear();
+    const sourceHash = `0x${"e".repeat(64)}`;
+    vi.mocked(verifyTransactionWithAttestcoin).mockRejectedValueOnce(new Error("Source transaction is not mined yet."));
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.proofloan.createApplication({ walletAddress: `0x${"f".repeat(40)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" })).rejects.toThrow("[PROOFLOAN_PROOF_WORKER_ERROR] Source transaction is not mined yet.");
+    expect(runAiUnderwriting).not.toHaveBeenCalled();
+    expect(evaluateRiskGuard).not.toHaveBeenCalled();
+    const [persistedBeforeFailure] = [...mockedLiveSnapshots.values()];
+    expect(persistedBeforeFailure?.state).toBe("EvidencePending");
+    expect(persistedBeforeFailure?.decision).toBeUndefined();
+    expect(persistedBeforeFailure?.offer).toBeUndefined();
+  }, 30_000);
+
   it("rejects whitespace-only proof requests at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.proofloan.createApplication({ walletAddress: "        ", sourceChain: "Ethereum Sepolia" })).rejects.toThrow();
