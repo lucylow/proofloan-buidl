@@ -26,6 +26,7 @@ export function getPersistenceFailureFreshness(observedAt: string, now = Date.no
 export type PersistenceFailureHistoryFilter = "all" | "current" | "stale";
 
 const persistenceHistoryFilterStorageKey = "proofloan.persistence-history-filter";
+const persistenceAlertThresholdsStorageKey = "proofloan.persistence-alert-thresholds";
 
 export function readPersistenceFailureHistoryFilter(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureHistoryFilter {
   try {
@@ -63,11 +64,40 @@ export type PersistenceFailureAlertLevel = "clear" | "watch" | "critical";
 
 export const DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS: PersistenceFailureAlertThresholds = { watchCount: 2, criticalCount: 4 };
 
+export function normalizePersistenceFailureAlertThresholds(value: Partial<PersistenceFailureAlertThresholds> | null | undefined): PersistenceFailureAlertThresholds {
+  const watchValue = value?.watchCount;
+  const criticalValue = value?.criticalCount;
+  const watchCount = typeof watchValue === "number" && Number.isFinite(watchValue) ? Math.min(5, Math.max(1, Math.floor(watchValue))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.watchCount;
+  const criticalCount = typeof criticalValue === "number" && Number.isFinite(criticalValue) ? Math.min(6, Math.max(watchCount + 1, Math.floor(criticalValue))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.criticalCount;
+  return { watchCount, criticalCount };
+}
+
+export function readPersistenceFailureAlertThresholds(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureAlertThresholds {
+  try {
+    const raw = storage?.getItem(persistenceAlertThresholdsStorageKey);
+    if (!raw) return DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS;
+    const candidate = parsed as Partial<PersistenceFailureAlertThresholds>;
+    return normalizePersistenceFailureAlertThresholds(candidate);
+  } catch {
+    return DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS;
+  }
+}
+
+export function writePersistenceFailureAlertThresholds(storage: Pick<Storage, "setItem"> | undefined, thresholds: PersistenceFailureAlertThresholds): boolean {
+  try {
+    storage?.setItem(persistenceAlertThresholdsStorageKey, JSON.stringify(normalizePersistenceFailureAlertThresholds(thresholds)));
+    return !!storage;
+  } catch {
+    return false;
+  }
+}
+
 export function getPersistenceFailureAlertLevel(recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): PersistenceFailureAlertLevel {
   const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
-  const watchCount = Number.isFinite(thresholds.watchCount) ? Math.min(6, Math.max(1, Math.floor(thresholds.watchCount))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.watchCount;
-  const criticalCount = Number.isFinite(thresholds.criticalCount) ? Math.min(6, Math.max(watchCount + 1, Math.floor(thresholds.criticalCount))) : DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS.criticalCount;
-  return safeRecentCount >= criticalCount ? "critical" : safeRecentCount >= watchCount ? "watch" : "clear";
+  const safeThresholds = normalizePersistenceFailureAlertThresholds(thresholds);
+  return safeRecentCount >= safeThresholds.criticalCount ? "critical" : safeRecentCount >= safeThresholds.watchCount ? "watch" : "clear";
 }
 
 export function getPersistenceFailureAlertLabel(level: PersistenceFailureAlertLevel): string {

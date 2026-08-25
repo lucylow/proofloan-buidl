@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -63,6 +63,18 @@ describe("persistence diagnostics guidance", () => {
     expect(getPersistenceFailureAlertLevel(6, { watchCount: 1, criticalCount: 99 })).toBe("critical");
     expect(getPersistenceFailureAlertLabel("watch")).toBe("Watch recurrence");
     expect(JSON.stringify(getPersistenceFailureAlertLabel("critical"))).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("normalizes and persists only bounded threshold values", () => {
+    expect(normalizePersistenceFailureAlertThresholds({ watchCount: -4, criticalCount: 99 })).toEqual({ watchCount: 1, criticalCount: 6 });
+    expect(normalizePersistenceFailureAlertThresholds({ watchCount: 4, criticalCount: 2 })).toEqual({ watchCount: 4, criticalCount: 5 });
+    const values = new Map<string, string>();
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) };
+    expect(writePersistenceFailureAlertThresholds(storage, { watchCount: 3, criticalCount: 5 })).toBe(true);
+    expect(readPersistenceFailureAlertThresholds(storage)).toEqual({ watchCount: 3, criticalCount: 5 });
+    values.set("proofloan.persistence-alert-thresholds", "wallet-secret");
+    expect(readPersistenceFailureAlertThresholds(storage)).toEqual({ watchCount: 2, criticalCount: 4 });
+    expect(JSON.stringify(values)).not.toContain("wallet");
   });
 
   it("describes restored filters without exposing storage contents", () => {

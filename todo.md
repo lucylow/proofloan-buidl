@@ -1514,3 +1514,8 @@
 - [x] Add bounded watch and critical thresholds for persistence failure recurrence
 - [x] Keep threshold state session-safe and alert copy privacy-safe
 - [x] Add focused threshold regressions and revalidate the project
+
+## Code improvement pass 102
+- [x] Add strictly bounded session-local recurrence threshold configuration
+- [x] Persist only validated threshold values and fail safely on malformed storage
+- [x] Add focused threshold-control regressions and revalidate the project
