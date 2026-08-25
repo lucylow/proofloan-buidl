@@ -1604,3 +1604,8 @@
 - [x] Add exact live Attestcoin proof-worker failure recovery coverage
 - [x] Prove failed live verification cannot advance to advisory scoring or execution
 - [x] Add fail-closed recovery regressions and revalidate the project
+
+## Code improvement pass 120
+- [x] Add deterministic live acceptance replay-conflict coverage
+- [x] Prove a conflicting request cannot execute or mutate the live offer state
+- [x] Add replay-boundary regressions and revalidate the project

@@ -11,6 +11,7 @@ vi.mock("./underwriting", async () => {
 });
 
 const mockedLiveSnapshots = new Map<string, LoanSnapshot>();
+const mockedAcceptanceReplayKeys = new Map<string, string>();
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
@@ -18,7 +19,7 @@ vi.mock("./db", async () => {
     ...actual,
     persistLoanSnapshot: vi.fn(async (snapshot: LoanSnapshot) => { mockedLiveSnapshots.set(snapshot.applicationId, { ...snapshot, facts: [...snapshot.facts], audit: [...snapshot.audit], offer: snapshot.offer ? { ...snapshot.offer } : undefined }); return true; }),
     transitionLoanState: vi.fn(async (applicationId: string, _from: string, to: string) => { const snapshot = mockedLiveSnapshots.get(applicationId); if (!snapshot) return "unavailable"; snapshot.state = to as LoanSnapshot["state"]; return "committed"; }),
-    claimAcceptanceReplay: vi.fn(async () => ({ status: "claimed" })),
+    claimAcceptanceReplay: vi.fn(async (applicationId: string, requestKey: string) => { const previousKey = mockedAcceptanceReplayKeys.get(applicationId); if (previousKey && previousKey !== requestKey) return { status: "conflict" }; mockedAcceptanceReplayKeys.set(applicationId, requestKey); return { status: "claimed" }; }),
     commitAcceptanceReplay: vi.fn(async () => true),
     getPersistedLoanSnapshot: vi.fn(async (applicationId: string) => mockedLiveSnapshots.get(applicationId)),
   };
@@ -183,6 +184,7 @@ describe("proofloan API flow", () => {
 
   it("accepts a mocked live offer through the Creditcoin execution boundary", async () => {
     mockedLiveSnapshots.clear();
+    mockedAcceptanceReplayKeys.clear();
     const sourceHash = `0x${"c".repeat(64)}`;
     const liveDecision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 0.93, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test-model", featureVersion: "test-features", evidenceRoot: "0xevidence", policyHash: "0xpolicy", decisionHash: "0xdecision", featureFingerprint: "0xfeatures" };
     vi.mocked(runAiUnderwriting).mockResolvedValueOnce(liveDecision);
@@ -195,6 +197,26 @@ describe("proofloan API flow", () => {
     expect(accepted.sourceTransactionHash).toBe(sourceHash);
     expect(accepted.transactionHash).toMatch(/^0xcreditcoin_/);
     expect(accepted.audit.at(-1)?.state).toBe("Executed");
+  }, 30_000);
+
+  it("rejects a conflicting live acceptance key without mutating execution state", async () => {
+    mockedLiveSnapshots.clear();
+    mockedAcceptanceReplayKeys.clear();
+    const sourceHash = `0x${"a".repeat(64)}`;
+    const liveDecision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 0.93, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test-model", featureVersion: "test-features", evidenceRoot: "0xevidence-conflict", policyHash: "0xpolicy", decisionHash: "0xdecision-conflict", featureFingerprint: "0xfeatures" };
+    vi.mocked(runAiUnderwriting).mockResolvedValueOnce(liveDecision);
+    vi.mocked(evaluateRiskGuard).mockReturnValueOnce({ amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 2800, termDays: 90, expiresAt: new Date(Date.now() + 86_400_000).toISOString(), poolLiquidity: 250_000, status: "Ready" });
+    vi.mocked(verifyTransactionWithAttestcoin).mockResolvedValueOnce({ verified: true, chainKey: 1, sourceBlock: 6421883, verificationBlock: 7000000, txHash: sourceHash, proofRoot: "0xproof-root-conflict", mode: "sdk" });
+    const caller = appRouter.createCaller(createContext());
+    const created = await caller.proofloan.createApplication({ walletAddress: `0x${"b".repeat(40)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" });
+    const beforeConflict = mockedLiveSnapshots.get(created.applicationId);
+    mockedAcceptanceReplayKeys.set(created.applicationId, "live-conflict-key-001");
+    await expect(caller.proofloan.acceptOffer({ applicationId: created.applicationId, idempotencyKey: "live-conflict-key-002" })).rejects.toThrow("[PROOFLOAN_STATE_CONFLICT] A different acceptance request is already associated with this application.");
+    const afterConflict = mockedLiveSnapshots.get(created.applicationId);
+    expect(beforeConflict?.state).toBe("AwaitingAcceptance");
+    expect(afterConflict?.state).toBe("AwaitingAcceptance");
+    expect(afterConflict?.audit.length).toBe(beforeConflict?.audit.length);
+    expect(afterConflict?.offer?.status).toBe("Ready");
   }, 30_000);
 
   it("fails closed when the live Attestcoin worker rejects before scoring", async () => {
