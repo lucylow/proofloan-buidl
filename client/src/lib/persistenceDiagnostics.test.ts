@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -63,6 +63,13 @@ describe("persistence diagnostics guidance", () => {
     expect(getPersistenceFailureAlertLevel(6, { watchCount: 1, criticalCount: 99 })).toBe("critical");
     expect(getPersistenceFailureAlertLabel("watch")).toBe("Watch recurrence");
     expect(JSON.stringify(getPersistenceFailureAlertLabel("critical"))).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("detects only watch-to-critical escalation without sensitive values", () => {
+    expect(getPersistenceFailureAlertEscalationNotice("watch", "critical")).toContain("escalated from watch to critical");
+    expect(getPersistenceFailureAlertEscalationNotice("clear", "critical")).toBeNull();
+    expect(getPersistenceFailureAlertEscalationNotice("critical", "watch")).toBeNull();
+    expect(JSON.stringify(getPersistenceFailureAlertEscalationNotice("watch", "critical"))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("explains threshold-aware alert states without sensitive values", () => {

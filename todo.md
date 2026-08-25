@@ -1529,3 +1529,8 @@
 - [x] Add bounded explanations for watch and critical persistence recurrence alerts
 - [x] Keep alert explanations threshold-aware and free of sensitive data
 - [x] Add focused explanation regressions and revalidate the project
+
+## Code improvement pass 105
+- [x] Add bounded watch-to-critical escalation transition detection
+- [x] Show a privacy-safe escalation notice with explicit operator action
+- [x] Add focused escalation regressions and revalidate the project

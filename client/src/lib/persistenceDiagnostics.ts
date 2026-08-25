@@ -100,6 +100,11 @@ export function getPersistenceFailureAlertLevel(recentCount: number, thresholds:
   return safeRecentCount >= safeThresholds.criticalCount ? "critical" : safeRecentCount >= safeThresholds.watchCount ? "watch" : "clear";
 }
 
+export function getPersistenceFailureAlertEscalationNotice(previous: PersistenceFailureAlertLevel, current: PersistenceFailureAlertLevel): string | null {
+  if (previous !== "watch" || current !== "critical") return null;
+  return "Persistence recurrence escalated from watch to critical. Pause automated review and inspect the rule guide.";
+}
+
 export function getPersistenceFailureAlertExplanation(level: PersistenceFailureAlertLevel, recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): string {
   const safeThresholds = normalizePersistenceFailureAlertThresholds(thresholds);
   const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
