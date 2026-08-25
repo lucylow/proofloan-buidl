@@ -1354,3 +1354,8 @@
 - [x] Reject persisted executed offers whose expiry is not after the terminal audit event
 - [x] Add focused regression coverage for offer-audit chronology drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 70
+- [x] Reject persisted verified facts timestamped after the terminal audit event
+- [x] Add focused regression coverage for fact-audit chronology drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

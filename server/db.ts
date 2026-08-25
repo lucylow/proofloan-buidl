@@ -630,9 +630,12 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!isAuditStateProgressionConsistent(input.audit)) return false;
   const lastAuditState = input.audit.length ? (input.audit[input.audit.length - 1] as { state?: unknown }).state : undefined;
   if (lastAuditState !== input.application.state) return false;
+  const terminalAudit = input.audit.at(-1);
+  const terminalAuditTime = terminalAudit?.createdAt instanceof Date ? terminalAudit.createdAt.getTime() : Number.NaN;
+  if (!Number.isFinite(terminalAuditTime)) return false;
+  if (input.facts.some(fact => fact.verifiedAt instanceof Date && fact.verifiedAt.getTime() > terminalAuditTime)) return false;
   if (input.offer?.status === "Executed") {
-    const terminalAudit = input.audit.at(-1);
-    if (!(terminalAudit?.createdAt instanceof Date) || !(input.offer.expiresAt instanceof Date) || input.offer.expiresAt.getTime() <= terminalAudit.createdAt.getTime()) return false;
+    if (!(input.offer.expiresAt instanceof Date) || input.offer.expiresAt.getTime() <= terminalAuditTime) return false;
   }
   const auditHashes = input.audit.map(event => event.eventHash);
   if (new Set(auditHashes).size !== auditHashes.length) return false;

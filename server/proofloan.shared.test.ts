@@ -52,6 +52,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, decision: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: valid.facts.map(fact => ({ ...fact, chain: "Polygon Amoy" })) })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: valid.facts.map(fact => ({ ...fact, verifiedAt: new Date(valid.audit[0].createdAt.getTime() + 1) })) })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, reasonCodes: "not-json" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: "NaN" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, pd30: "0.30", pd90: "0.20" } })).toBe(false);
@@ -90,7 +91,7 @@ describe("ProofLoan shared validation", () => {
     const scoredAudit = { ...valid.audit[0], state: "Scored", label: "Scored", eventHash: "hash-scored", createdAt: new Date(valid.audit[0].createdAt.getTime() - 1_000) };
     expect(isPersistedSnapshotValid({ ...valid, audit: [scoredAudit, { ...valid.audit[0], state: "EvidenceVerified", label: "EvidenceVerified", eventHash: "hash-evidence" }] })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, audit: [valid.audit[0], { ...valid.audit[0], state: "Rejected", label: "Rejected", eventHash: "hash-rejected", createdAt: new Date(valid.audit[0].createdAt.getTime() + 1_000) }] })).toBe(false);
-    const fact = { factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date() };
+    const fact = { factId: "fact-1", chain: "Ethereum Sepolia", sourceBlock: 1, txHash: "0xabc", eventType: "REPAYMENT", amount: "1,250 USDC", verificationBlock: 1, freshness: "Fresh", proofRoot: "root-1", verifiedAt: new Date(valid.audit[0].createdAt.getTime() - 1) };
     expect(isPersistedSnapshotValid({ ...valid, facts: [fact] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, facts: Array.from({ length: 65 }, () => fact) })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, facts: null as never })).toBe(false);
