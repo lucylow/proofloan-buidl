@@ -1289,3 +1289,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent decision metadata types
 - [x] Add focused regression coverage for string-encoded decision probabilities
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 57
+- [x] Harden modern acceptance replay validation against inconsistent decision metadata strings
+- [x] Add focused regression coverage for malformed decision metadata
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
