@@ -53,6 +53,17 @@ export function filterPersistenceFailureHistory(history: ReadonlyArray<{ rule: s
   }).slice(-6).map(entry => ({ rule: entry.rule, observedAt: entry.observedAt }));
 }
 
+export type PersistenceFailureTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; priorCount: number; recentCount: number };
+
+export function getPersistenceFailureTrend(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined): PersistenceFailureTrend {
+  const safeHistory = (history ?? []).filter(entry => !!entry && !!getPersistenceRuleGuidance(entry.rule) && Number.isFinite(new Date(entry.observedAt).getTime())).slice(-6);
+  if (safeHistory.length < 4) return { direction: "insufficient", priorCount: 0, recentCount: 0 };
+  const midpoint = Math.floor(safeHistory.length / 2);
+  const priorCount = safeHistory.slice(0, midpoint).length;
+  const recentCount = safeHistory.slice(midpoint).length;
+  return { direction: recentCount > priorCount ? "rising" : recentCount < priorCount ? "falling" : "flat", priorCount, recentCount };
+}
+
 export type PersistenceRuleRecurrence = { rule: string; count: number };
 
 export function getPersistenceRuleRecurrence(history: ReadonlyArray<{ rule: string }> | undefined): PersistenceRuleRecurrence[] {

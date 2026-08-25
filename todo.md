@@ -1499,3 +1499,8 @@
 - [x] Persist the selected persistence-diagnostics filter for the current operator session
 - [x] Handle blocked or malformed session storage safely without sensitive values
 - [x] Add focused storage regressions and revalidate the project
+
+## Code improvement pass 99
+- [x] Add bounded recurrence trend classification across diagnostics refreshes
+- [x] Keep trend telemetry coarse, deterministic, and privacy-safe
+- [x] Add focused trend regressions and revalidate the project

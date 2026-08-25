@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureHistoryFilter, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -53,5 +53,14 @@ describe("persistence diagnostics guidance", () => {
     expect(readPersistenceFailureHistoryFilter({ getItem: () => { throw new Error("blocked"); } })).toBe("all");
     expect(writePersistenceFailureHistoryFilter({ setItem: () => { throw new Error("blocked"); } }, "current")).toBe(false);
     expect(JSON.stringify(values)).not.toContain("wallet");
+  });
+
+  it("classifies bounded persistence failure recurrence trends without raw details", () => {
+    const at = (minute: number, rule = "APPLICATION_IDENTITY") => ({ rule, observedAt: `2026-08-25T00:${String(minute).padStart(2, "0")}:00.000Z` });
+    expect(getPersistenceFailureTrend([at(0), at(1), at(2), at(3)])).toMatchObject({ direction: "flat", priorCount: 2, recentCount: 2 });
+    expect(getPersistenceFailureTrend([at(0), at(1), at(2), at(3), at(4), at(5)])).toMatchObject({ direction: "flat" });
+    expect(getPersistenceFailureTrend([at(0), at(1), at(2)])).toMatchObject({ direction: "insufficient" });
+    expect(getPersistenceFailureTrend([at(0), at(1), at(2), { rule: "UNKNOWN", observedAt: at(3).observedAt }])).toMatchObject({ direction: "insufficient" });
+    expect(JSON.stringify(getPersistenceFailureTrend([at(0), at(1), at(2), at(3)]))).not.toMatch(/wallet|payload|evidence/);
   });
 });
