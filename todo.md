@@ -1239,3 +1239,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent audit event details
 - [x] Add focused regression coverage for audit detail drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 47
+- [x] Harden modern acceptance replay validation against inconsistent audit timestamps
+- [x] Add focused regression coverage for audit timestamp drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

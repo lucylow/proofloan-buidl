@@ -228,11 +228,9 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   if (!candidate.offer || typeof candidate.offer !== "object" || candidate.offer.status !== "Executed" || !candidate.decision || typeof candidate.decision !== "object" || typeof candidate.decision.decisionHash !== "string") return false;
   if (candidate.decision.decisionHash !== fingerprintDecision(candidate.decision)) return false;
   const auditTimestamps = candidate.audit.map(event => event.timestamp);
-  if (auditTimestamps.some(timestamp => timestamp !== undefined)) {
-    if (!auditTimestamps.every(timestamp => isCanonicalUtcIsoTimestamp(timestamp))) return false;
-    for (let index = 1; index < auditTimestamps.length; index += 1) {
-      if (Date.parse(auditTimestamps[index] as string) < Date.parse(auditTimestamps[index - 1] as string)) return false;
-    }
+  if (!auditTimestamps.every(timestamp => isCanonicalUtcIsoTimestamp(timestamp))) return false;
+  for (let index = 1; index < auditTimestamps.length; index += 1) {
+    if (Date.parse(auditTimestamps[index] as string) < Date.parse(auditTimestamps[index - 1] as string)) return false;
   }
   if (!candidate.audit.every(event => typeof event.state === "string" && isProofLoanState(event.state) && typeof event.label === "string" && event.label === event.state && isBoundedNonEmptyText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(candidate.audit as Array<{ state: string }>)) return false;
