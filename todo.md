@@ -1249,3 +1249,8 @@
 - [x] Harden modern acceptance replay validation against inconsistent audit-event hash format
 - [x] Add focused regression coverage for malformed audit hashes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 49
+- [x] Harden modern acceptance replay validation against inconsistent offer metadata
+- [x] Add focused regression coverage for offer metadata drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
