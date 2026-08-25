@@ -1459,3 +1459,8 @@
 - [x] Detect hash-shaped but non-canonical source identities before submission
 - [x] Provide specific 32-byte transaction-hash guidance without rejecting short preview identifiers
 - [x] Add focused regressions and revalidate the project
+
+## Code improvement pass 91
+- [x] Add stable, privacy-safe persistence validation rule identifiers
+- [x] Keep diagnostics free of wallet addresses, payloads, and evidence contents
+- [x] Add focused diagnostic regressions and revalidate the project

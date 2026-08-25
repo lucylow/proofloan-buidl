@@ -612,6 +612,38 @@ const isAuditStateProgressionConsistent = (audit: Array<{ state: string }>) => a
   return AUDIT_STATE_ORDER[current] >= AUDIT_STATE_ORDER[previous];
 });
 
+export const PERSISTENCE_VALIDATION_RULES = {
+  CLOCK_INVALID: "CLOCK_INVALID",
+  EXPECTED_APPLICATION_MISMATCH: "EXPECTED_APPLICATION_MISMATCH",
+  COLLECTION_SHAPE: "COLLECTION_SHAPE",
+  APPLICATION_SHAPE: "APPLICATION_SHAPE",
+  COLLECTION_BOUNDS: "COLLECTION_BOUNDS",
+  APPLICATION_IDENTITY: "APPLICATION_IDENTITY",
+  VERIFIED_FACT_METADATA: "VERIFIED_FACT_METADATA",
+  AUDIT_METADATA: "AUDIT_METADATA",
+  SNAPSHOT_INTEGRITY: "SNAPSHOT_INTEGRITY",
+} as const;
+
+export type PersistenceValidationRule = (typeof PERSISTENCE_VALIDATION_RULES)[keyof typeof PERSISTENCE_VALIDATION_RULES];
+
+export function getPersistedSnapshotValidationRule(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): PersistenceValidationRule | undefined {
+  try {
+    if (!Number.isFinite(now)) return PERSISTENCE_VALIDATION_RULES.CLOCK_INVALID;
+    if (expectedApplicationId !== undefined && input.application?.applicationId !== expectedApplicationId) return PERSISTENCE_VALIDATION_RULES.EXPECTED_APPLICATION_MISMATCH;
+    if (!Array.isArray(input.facts) || !Array.isArray(input.audit)) return PERSISTENCE_VALIDATION_RULES.COLLECTION_SHAPE;
+    if (!isRecord(input.application)) return PERSISTENCE_VALIDATION_RULES.APPLICATION_SHAPE;
+    if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length === 0 || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return PERSISTENCE_VALIDATION_RULES.COLLECTION_BOUNDS;
+    if (input.offer && input.offer.expiresAt instanceof Date && isOfferStatus(input.offer.status) && !isOfferExpiryConsistent(input.offer.status, input.offer.expiresAt, now)) return PERSISTENCE_VALIDATION_RULES.SNAPSHOT_INTEGRITY;
+    if (input.facts.some(fact => fact.verifiedAt instanceof Date && fact.verifiedAt.getTime() > now) || input.audit.some(event => event.createdAt instanceof Date && event.createdAt.getTime() > now)) return PERSISTENCE_VALIDATION_RULES.SNAPSHOT_INTEGRITY;
+    if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalWalletAddress(input.application.walletAddress, input.application.sourceChain) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return PERSISTENCE_VALIDATION_RULES.APPLICATION_IDENTITY;
+    if (input.facts.some(fact => !isRecord(fact) || !isCanonicalNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || fact.chain !== input.application.sourceChain || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness))) return PERSISTENCE_VALIDATION_RULES.VERIFIED_FACT_METADATA;
+    if (input.audit.some(event => !isRecord(event) || !isProofLoanState(event.state) || !isValidDate(event.createdAt) || !isBoundedNonEmptyText(event.label, MAX_PERSISTED_AUDIT_LABEL_LENGTH) || event.label !== event.state || !isCanonicalNonEmptyText(event.eventHash, MAX_PERSISTED_AUDIT_HASH_LENGTH) || !isBoundedNonEmptyText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return PERSISTENCE_VALIDATION_RULES.AUDIT_METADATA;
+    return isPersistedSnapshotValidUnsafe(input) ? undefined : PERSISTENCE_VALIDATION_RULES.SNAPSHOT_INTEGRITY;
+  } catch {
+    return PERSISTENCE_VALIDATION_RULES.SNAPSHOT_INTEGRITY;
+  }
+}
+
 function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput): boolean {
   if (!Array.isArray(input.facts) || !Array.isArray(input.audit)) return false;
   if (!isRecord(input.application)) return false;
@@ -652,16 +684,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
 }
 
 export function isPersistedSnapshotValid(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): boolean {
-  try {
-    if (!Number.isFinite(now)) return false;
-    if (expectedApplicationId !== undefined && input.application.applicationId !== expectedApplicationId) return false;
-    if (input.offer && input.offer.expiresAt instanceof Date && isOfferStatus(input.offer.status) && !isOfferExpiryConsistent(input.offer.status, input.offer.expiresAt, now)) return false;
-    if (Array.isArray(input.facts) && input.facts.some(fact => fact.verifiedAt instanceof Date && fact.verifiedAt.getTime() > now)) return false;
-    if (Array.isArray(input.audit) && input.audit.some(event => event.createdAt instanceof Date && event.createdAt.getTime() > now)) return false;
-    return isPersistedSnapshotValidUnsafe(input);
-  } catch {
-    return false;
-  }
+  return getPersistedSnapshotValidationRule(input, expectedApplicationId, now) === undefined;
 }
 
 export async function getPersistedLoanSnapshot(applicationId: string, dbOverride?: DatabaseClient): Promise<LoanSnapshot | undefined> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isAddressShapedIdentity, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveChainWalletAddress, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
-import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, parsePersistedReasonCodes } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, getPersistedSnapshotValidationRule, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, PERSISTENCE_VALIDATION_RULES, parsePersistedReasonCodes } from "./db";
 import { POLICY_HASH } from "./underwriting";
 
 describe("ProofLoan shared validation", () => {
@@ -40,6 +40,14 @@ describe("ProofLoan shared validation", () => {
     expect(isLiveChainWalletAddress(`0x${"g".repeat(40)}`, "Polygon Amoy")).toBe(false);
     expect(isAddressShapedIdentity("0xborrower")).toBe(false);
     expect(isAddressShapedIdentity(`0x${"g".repeat(40)}`)).toBe(true);
+  });
+
+  it("returns stable privacy-safe persistence rule identifiers", () => {
+    const walletAddress = `0x${"g".repeat(40)}`;
+    const input = { application: { applicationId: "PL-DIAGNOSTIC1", walletAddress, state: "Intake", sourceChain: "Ethereum Sepolia", requestedAmount: "1500" }, facts: [], audit: [{ state: "Intake", label: "Intake", detail: "safe", eventHash: "event-1", createdAt: new Date(1_000) }] };
+    const rule = getPersistedSnapshotValidationRule(input);
+    expect(rule).toBe(PERSISTENCE_VALIDATION_RULES.APPLICATION_IDENTITY);
+    expect(JSON.stringify(rule)).not.toContain(walletAddress);
   });
 
   it("classifies structured router errors without misclassifying plain messages", () => {
