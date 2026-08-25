@@ -261,3 +261,34 @@ export function getPersistenceRuleRecurrence(history: ReadonlyArray<{ rule: stri
   }
   return Array.from(counts.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([rule, count]) => ({ rule, count }));
 }
+
+export type PersistenceDiagnosticsExportInput = {
+  exportedAt: string;
+  filter: PersistenceFailureHistoryFilter;
+  history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined;
+  trend: PersistenceFailureTrend;
+  alert: PersistenceFailureAlertLevel;
+  thresholds: PersistenceFailureAlertThresholds;
+};
+
+function normalizeExportTimestamp(value: string): string {
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : "invalid";
+}
+
+export function buildPersistenceDiagnosticsExport(input: PersistenceDiagnosticsExportInput): string {
+  const filter = input.filter === "current" || input.filter === "stale" ? input.filter : "all";
+  const history = filterPersistenceFailureHistory(input.history, filter);
+  const safeTrend = input.trend.direction === "rising" || input.trend.direction === "falling" || input.trend.direction === "flat" || input.trend.direction === "insufficient" ? input.trend : { direction: "insufficient" as const, priorCount: 0, recentCount: 0 };
+  const boundedCount = (value: number) => Number.isFinite(value) && value >= 0 ? Math.min(6, Math.floor(value)) : 0;
+  return JSON.stringify({
+    schemaVersion: 1,
+    exportedAt: normalizeExportTimestamp(input.exportedAt),
+    scope: filter,
+    alert: input.alert === "critical" || input.alert === "watch" ? input.alert : "clear",
+    thresholds: normalizePersistenceFailureAlertThresholds(input.thresholds),
+    trend: { direction: safeTrend.direction, priorCount: boundedCount(safeTrend.priorCount), recentCount: boundedCount(safeTrend.recentCount) },
+    recurrence: getPersistenceRuleRecurrence(history),
+    history,
+  }, null, 2);
+}

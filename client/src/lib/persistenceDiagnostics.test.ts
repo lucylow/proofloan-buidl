@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { clearPersistenceFailureAlertAcknowledgment, clearPersistenceFailureAlertUnacknowledgment, filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertUnacknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, isPersistenceFailureAlertUnacknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureAlertUnacknowledgment, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertUnacknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { buildPersistenceDiagnosticsExport, clearPersistenceFailureAlertAcknowledgment, clearPersistenceFailureAlertUnacknowledgment, filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertUnacknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, isPersistenceFailureAlertUnacknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureAlertUnacknowledgment, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertUnacknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
+  it("serializes only bounded, privacy-safe diagnostics for operator export", () => {
+    const payload = buildPersistenceDiagnosticsExport({ exportedAt: "2026-08-25T00:00:00.000Z", filter: "all", history: [
+      { rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T23:59:00.000Z" },
+      { rule: "UNKNOWN_RULE", observedAt: "2026-08-24T23:59:00.000Z" },
+      ...Array.from({ length: 10 }, (_, index) => ({ rule: "CLOCK_INVALID", observedAt: `2026-08-24T23:${40 + index}:00.000Z` })),
+    ], trend: { direction: "rising", priorCount: 10, recentCount: 12 }, alert: "critical", thresholds: { watchCount: 2, criticalCount: 4 } });
+    const parsed = JSON.parse(payload) as Record<string, unknown>;
+    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.scope).toBe("all");
+    expect(parsed.exportedAt).toBe("2026-08-25T00:00:00.000Z");
+    expect((parsed.history as unknown[]).length).toBeLessThanOrEqual(6);
+    expect(payload).not.toMatch(/walletAddress|sourceTransactionHash|payload|evidenceRoot/);
+    expect(payload).toContain("CLOCK_INVALID");
+  });
+
   it("provides bounded guidance for every persistence rule", () => {
     expect(PERSISTENCE_RULE_GUIDANCE).toHaveLength(9);
     expect(PERSISTENCE_RULE_GUIDANCE.every(entry => entry.rule && entry.label && entry.guidance)).toBe(true);

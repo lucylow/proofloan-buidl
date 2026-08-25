@@ -1589,3 +1589,8 @@
 - [x] Require a supported source chain for live proof mode classification
 - [x] Keep malformed or unknown-chain inputs fail-closed as preview state
 - [x] Add chain-aware classifier regressions and revalidate the project
+
+## Code improvement pass 117
+- [x] Add deterministic bounded serialization for operator persistence diagnostics
+- [x] Add a browser download action that exports no sensitive identifiers or payloads
+- [x] Add export privacy regressions and revalidate the project
