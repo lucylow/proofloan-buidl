@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -63,6 +63,13 @@ describe("persistence diagnostics guidance", () => {
     expect(getPersistenceFailureAlertLevel(6, { watchCount: 1, criticalCount: 99 })).toBe("critical");
     expect(getPersistenceFailureAlertLabel("watch")).toBe("Watch recurrence");
     expect(JSON.stringify(getPersistenceFailureAlertLabel("critical"))).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("explains threshold-aware alert states without sensitive values", () => {
+    expect(getPersistenceFailureAlertExplanation("watch", 2, { watchCount: 2, criticalCount: 4 })).toContain("watch threshold of 2");
+    expect(getPersistenceFailureAlertExplanation("critical", 6, { watchCount: 2, criticalCount: 4 })).toContain("critical threshold of 4");
+    expect(getPersistenceFailureAlertExplanation("clear", 0)).toBe("Recent persistence failures are below the configured watch threshold.");
+    expect(JSON.stringify(getPersistenceFailureAlertExplanation("critical", 6))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("normalizes and persists only bounded threshold values", () => {

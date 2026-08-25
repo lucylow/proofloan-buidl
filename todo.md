@@ -1524,3 +1524,8 @@
 - [x] Add safe threshold reset to the bounded default configuration
 - [x] Show whether alert thresholds were restored from the current session
 - [x] Add focused reset and restoration regressions and revalidate the project
+
+## Code improvement pass 104
+- [x] Add bounded explanations for watch and critical persistence recurrence alerts
+- [x] Keep alert explanations threshold-aware and free of sensitive data
+- [x] Add focused explanation regressions and revalidate the project

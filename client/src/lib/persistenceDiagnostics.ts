@@ -100,6 +100,14 @@ export function getPersistenceFailureAlertLevel(recentCount: number, thresholds:
   return safeRecentCount >= safeThresholds.criticalCount ? "critical" : safeRecentCount >= safeThresholds.watchCount ? "watch" : "clear";
 }
 
+export function getPersistenceFailureAlertExplanation(level: PersistenceFailureAlertLevel, recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): string {
+  const safeThresholds = normalizePersistenceFailureAlertThresholds(thresholds);
+  const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
+  if (level === "critical") return `${safeRecentCount} recent safe failures meet the critical threshold of ${safeThresholds.criticalCount}. Pause automated review and inspect the rule guide.`;
+  if (level === "watch") return `${safeRecentCount} recent safe failures meet the watch threshold of ${safeThresholds.watchCount}. Review the bounded history before proceeding.`;
+  return "Recent persistence failures are below the configured watch threshold.";
+}
+
 export function getPersistenceAlertThresholdRestorationNotice(thresholds: PersistenceFailureAlertThresholds, restored: boolean): string | null {
   if (!restored) return null;
   return `Restored alert thresholds: watch ${thresholds.watchCount}, critical ${thresholds.criticalCount}.`;

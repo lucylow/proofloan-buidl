@@ -219,7 +219,8 @@ describe("ProofLoan shared validation", () => {
   });
 
   it("rejects malformed verified facts before database writes", () => {
-    const baseFact = { id: "fact-1", chain: "Ethereum Sepolia" as const, sourceBlock: 10, txHash: "0xabc", eventType: "REPAYMENT" as const, amount: "1,250 USDC", asset: "USDC", verificationBlock: 11, verifiedAt: new Date().toISOString(), observedAt: new Date().toISOString(), freshness: "Fresh" as const, proofRoot: "root-1", proofWorker: "Attestcoin proof worker" as const };
+    const timestamp = new Date().toISOString();
+    const baseFact = { id: "fact-1", chain: "Ethereum Sepolia" as const, sourceBlock: 10, txHash: "0xabc", eventType: "REPAYMENT" as const, amount: "1,250 USDC", asset: "USDC", verificationBlock: 11, verifiedAt: timestamp, observedAt: timestamp, freshness: "Fresh" as const, proofRoot: "root-1", proofWorker: "Attestcoin proof worker" as const };
     expect(buildFactUpsertValues(baseFact).values.factId).toBe("fact-1");
     expect(() => buildFactUpsertValues({ ...baseFact, id: " fact-1" })).toThrow("Invalid persisted verified fact.");
     expect(() => buildFactUpsertValues({ ...baseFact, txHash: " 0xabc" })).toThrow("Invalid persisted verified fact.");
