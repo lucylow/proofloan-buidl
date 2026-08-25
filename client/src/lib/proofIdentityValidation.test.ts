@@ -14,6 +14,11 @@ describe("proof identity validation", () => {
     expect(getProofIdentityValidationError(`0x${"g".repeat(40)}`, "Ethereum Sepolia")).toContain("valid EVM");
   });
 
+  it("explains malformed hash-shaped values", () => {
+    expect(getProofIdentityValidationError("0x1234567890abcdef", "Ethereum Sepolia")).toContain("32-byte hexadecimal");
+    expect(getProofIdentityValidationError("0x71C7...9A2F", "Ethereum Sepolia")).toBeUndefined();
+  });
+
   it("requires a usable identity before submission", () => {
     expect(getProofIdentityValidationError("short", "Ethereum Sepolia")).toContain("preview identifier");
   });

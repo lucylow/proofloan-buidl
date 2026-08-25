@@ -1454,3 +1454,8 @@
 - [x] Add pure client validation for malformed address-shaped proof identities
 - [x] Surface actionable inline feedback before proof submission
 - [x] Add focused client regressions and revalidate the project
+
+## Code improvement pass 90
+- [x] Detect hash-shaped but non-canonical source identities before submission
+- [x] Provide specific 32-byte transaction-hash guidance without rejecting short preview identifiers
+- [x] Add focused regressions and revalidate the project
