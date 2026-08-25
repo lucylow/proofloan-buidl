@@ -1544,3 +1544,8 @@
 - [x] Add a visible filter-scope label beside the persistence recurrence alert
 - [x] Keep the alert summary bounded and consistent with selected telemetry
 - [x] Add focused scope-summary regressions and revalidate the project
+
+## Code improvement pass 108
+- [x] Add a session-safe acknowledgment action for persistence escalation notices
+- [x] Keep acknowledgment state bounded, privacy-safe, and scoped to the current alert posture
+- [x] Add focused acknowledgment regressions and revalidate the project

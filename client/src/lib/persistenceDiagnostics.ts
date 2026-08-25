@@ -27,6 +27,7 @@ export type PersistenceFailureHistoryFilter = "all" | "current" | "stale";
 
 const persistenceHistoryFilterStorageKey = "proofloan.persistence-history-filter";
 const persistenceAlertThresholdsStorageKey = "proofloan.persistence-alert-thresholds";
+const persistenceAlertAcknowledgmentStorageKey = "proofloan.persistence-alert-acknowledgment";
 
 export function readPersistenceFailureHistoryFilter(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureHistoryFilter {
   try {
@@ -92,6 +93,51 @@ export function writePersistenceFailureAlertThresholds(storage: Pick<Storage, "s
   } catch {
     return false;
   }
+}
+
+export type PersistenceFailureAlertAcknowledgment = { filter: PersistenceFailureHistoryFilter; level: "critical"; recentCount: number };
+
+function normalizePersistenceFailureAlertAcknowledgment(value: unknown): PersistenceFailureAlertAcknowledgment | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<PersistenceFailureAlertAcknowledgment>;
+  if ((candidate.filter !== "all" && candidate.filter !== "current" && candidate.filter !== "stale") || candidate.level !== "critical" || typeof candidate.recentCount !== "number" || !Number.isFinite(candidate.recentCount) || candidate.recentCount < 0) return null;
+  return { filter: candidate.filter, level: "critical", recentCount: Math.min(6, Math.floor(candidate.recentCount)) };
+}
+
+export function readPersistenceFailureAlertAcknowledgment(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureAlertAcknowledgment | null {
+  try {
+    const raw = storage?.getItem(persistenceAlertAcknowledgmentStorageKey);
+    return raw ? normalizePersistenceFailureAlertAcknowledgment(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writePersistenceFailureAlertAcknowledgment(storage: Pick<Storage, "setItem"> | undefined, acknowledgment: PersistenceFailureAlertAcknowledgment): boolean {
+  try {
+    const normalized = normalizePersistenceFailureAlertAcknowledgment(acknowledgment);
+    if (!normalized || !storage) return false;
+    storage.setItem(persistenceAlertAcknowledgmentStorageKey, JSON.stringify(normalized));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getPersistenceFailureAlertAcknowledgmentKey(filter: PersistenceFailureHistoryFilter, level: PersistenceFailureAlertLevel, recentCount: number): string | null {
+  if (level !== "critical") return null;
+  const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
+  return `${filter}:critical:${safeRecentCount}`;
+}
+
+export function isPersistenceFailureAlertAcknowledged(acknowledgment: PersistenceFailureAlertAcknowledgment | null | undefined, key: string | null): boolean {
+  if (!acknowledgment || !key) return false;
+  return getPersistenceFailureAlertAcknowledgmentKey(acknowledgment.filter, acknowledgment.level, acknowledgment.recentCount) === key;
+}
+
+export function getPersistenceFailureAlertAcknowledgmentNotice(filter: PersistenceFailureHistoryFilter, recentCount: number): string {
+  const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
+  return `Critical persistence recurrence acknowledged for the ${filter} scope (${safeRecentCount} recent safe failure${safeRecentCount === 1 ? "" : "s"}) for this session.`;
 }
 
 export function getPersistenceFailureAlertLevel(recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): PersistenceFailureAlertLevel {
