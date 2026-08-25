@@ -13,6 +13,7 @@ import { isDashboardFailureDebugEnabled } from "@/lib/mobileDebug";
 import { getAcceptanceFailureRecovery, getMobileActionAvailability, getMobileCreditFileViewState, shouldClearMissingApplication, shouldInvokeMobileAction, shouldPollCreditFile, shouldRetryCreditFileQuery, shouldShowAcceptanceError } from "@/lib/mobileRecoveryState";
 import { getAcceptanceIdempotencyRef, type AcceptanceIdempotencyRef } from "@/lib/acceptanceIdempotency";
 import { getProofRequestIdempotencyKey } from "@/lib/proofRequestIdempotency";
+import { getProofIdentityValidationError } from "@/lib/proofIdentityValidation";
 import { appendReplayRefreshTimelineEvent, appendReplayRefreshThresholdAuditEvent, areReplayRefreshSeverityThresholdsEqual, categorizeReplayRefreshFailure, formatReplayDiagnosticsTimestamp, getReplayDiagnosticsFreshness, getReplayDiagnosticsRefreshFeedback, getReplayDiagnosticsRefreshState, filterReplayRefreshTimeline, getReplayDiagnosticsRows, getReplayRefreshCategoryCounts, getReplayRefreshCategoryTrends, getReplayRefreshFailureLabel, getReplayRefreshSeverityExplanation, getReplayRefreshSeverityNotice, getReplayRefreshSeverityPersistenceNotice, getReplayRefreshSeverityPersistenceStatus, getReplayRefreshSeverityPersistenceTransition, persistReplayRefreshSeverityThresholds, shouldApplyReplayRefreshPersistenceUpdate, getReplayRefreshSeverityStatusSummary, getReplayRefreshThresholdAuditAriaLabel, getReplayRefreshThresholdAuditLabel, getReplayRefreshFilterChangeNotice, getReplayRefreshFilterChangeScopeNotice, getReplayRefreshFilterLabel, getReplayRefreshFilterScopeLabel, getReplayRefreshFilterRestorationNotice, getReplayRefreshTimelineSummary, readReplayRefreshSeverityThresholds, readReplayRefreshTimelineFilter, shouldShowReplayRefreshFilterReset, writeReplayRefreshSeverityThresholds, writeReplayRefreshTimelineFilter, getReplayRefreshTrend, normalizeReplayDiagnostics, normalizeReplayRefreshSeverityThresholds, shouldApplyReplayRefreshOutcome, type ReplayDiagnosticsRefreshOutcome, type ReplayRefreshTimelineEvent, type ReplayRefreshThresholdAuditEvent, type ReplayRefreshTimelineFilter } from "@/lib/replayDiagnosticsView";
 
 const demoWallet = "0x71C7...9A2F";
@@ -130,8 +131,9 @@ export default function Home() {
 
   const startProof = () => {
     if (!shouldInvokeMobileAction({ action: "proof", isOnline, pending: createApplication.isPending, hasApplication: Boolean(applicationId) })) return;
-    if (walletAddress.trim().length < 8) {
-      setInputError("Enter a wallet address or source transaction hash before requesting verification.");
+    const validationError = getProofIdentityValidationError(walletAddress, sourceChain);
+    if (validationError) {
+      setInputError(validationError);
       return;
     }
     setInputError(null);

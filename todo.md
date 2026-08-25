@@ -1449,3 +1449,8 @@
 - [x] Reject malformed address-shaped proof identities instead of silently routing them to preview
 - [x] Clarify the borrower input contract so live proof identity is not conflated with a wallet address
 - [x] Add focused regressions and revalidate the project
+
+## Code improvement pass 89
+- [x] Add pure client validation for malformed address-shaped proof identities
+- [x] Surface actionable inline feedback before proof submission
+- [x] Add focused client regressions and revalidate the project
