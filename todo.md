@@ -1534,3 +1534,8 @@
 - [x] Add bounded watch-to-critical escalation transition detection
 - [x] Show a privacy-safe escalation notice with explicit operator action
 - [x] Add focused escalation regressions and revalidate the project
+
+## Code improvement pass 106
+- [x] Add bounded summary text for the selected persistence history filter
+- [x] Ensure displayed recurrence telemetry is explicitly scoped to the selected filter
+- [x] Add focused filter-summary regressions and revalidate the project

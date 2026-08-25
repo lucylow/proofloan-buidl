@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { filterPersistenceFailureHistory, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -63,6 +63,13 @@ describe("persistence diagnostics guidance", () => {
     expect(getPersistenceFailureAlertLevel(6, { watchCount: 1, criticalCount: 99 })).toBe("critical");
     expect(getPersistenceFailureAlertLabel("watch")).toBe("Watch recurrence");
     expect(JSON.stringify(getPersistenceFailureAlertLabel("critical"))).not.toMatch(/wallet|payload|evidence/);
+  });
+
+  it("summarizes the selected filter with bounded safe counts", () => {
+    expect(getPersistenceHistoryFilterSummary("all", 6)).toBe("All persistence history: 6 safe entries.");
+    expect(getPersistenceHistoryFilterSummary("current", 1)).toBe("Current persistence history: 1 safe entry.");
+    expect(getPersistenceHistoryFilterSummary("stale", 99)).toBe("Stale persistence history: 6 safe entries.");
+    expect(JSON.stringify(getPersistenceHistoryFilterSummary("all", 6))).not.toMatch(/wallet|payload|evidence/);
   });
 
   it("detects only watch-to-critical escalation without sensitive values", () => {

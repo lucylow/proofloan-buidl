@@ -124,6 +124,12 @@ export function getPersistenceFailureAlertLabel(level: PersistenceFailureAlertLe
 
 export type PersistenceFailureTrend = { direction: "rising" | "falling" | "flat" | "insufficient"; priorCount: number; recentCount: number };
 
+export function getPersistenceHistoryFilterSummary(filter: PersistenceFailureHistoryFilter, visibleCount: number): string {
+  const safeCount = Number.isFinite(visibleCount) && visibleCount >= 0 ? Math.min(6, Math.floor(visibleCount)) : 0;
+  const label = filter === "current" ? "current" : filter === "stale" ? "stale" : "all";
+  return `${label[0].toUpperCase()}${label.slice(1)} persistence history: ${safeCount} safe entr${safeCount === 1 ? "y" : "ies"}.`;
+}
+
 export function getPersistenceFailureTrend(history: ReadonlyArray<{ rule: string; observedAt: string }> | undefined): PersistenceFailureTrend {
   const safeHistory = (history ?? []).filter(entry => !!entry && !!getPersistenceRuleGuidance(entry.rule) && Number.isFinite(new Date(entry.observedAt).getTime())).slice(-6);
   if (safeHistory.length < 4) return { direction: "insufficient", priorCount: 0, recentCount: 0 };
