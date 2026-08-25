@@ -1539,3 +1539,8 @@
 - [x] Add bounded summary text for the selected persistence history filter
 - [x] Ensure displayed recurrence telemetry is explicitly scoped to the selected filter
 - [x] Add focused filter-summary regressions and revalidate the project
+
+## Code improvement pass 107
+- [x] Add a visible filter-scope label beside the persistence recurrence alert
+- [x] Keep the alert summary bounded and consistent with selected telemetry
+- [x] Add focused scope-summary regressions and revalidate the project
