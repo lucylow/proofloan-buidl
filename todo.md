@@ -1444,3 +1444,8 @@
 - [x] Add strict EVM wallet-address validation for live proof requests while preserving preview identifiers
 - [x] Route live-mode detection through the wallet and transaction identity predicates
 - [x] Add focused regressions and revalidate the project
+
+## Code improvement pass 88
+- [x] Reject malformed address-shaped proof identities instead of silently routing them to preview
+- [x] Clarify the borrower input contract so live proof identity is not conflated with a wallet address
+- [x] Add focused regressions and revalidate the project
