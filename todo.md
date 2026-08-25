@@ -1319,3 +1319,8 @@
 - [x] Harden replay cleanup against non-finite clock inputs
 - [x] Add focused regression coverage for invalid cleanup timestamps
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 63
+- [x] Harden replay affected-row validation against coercible and malformed values
+- [x] Add focused regression coverage for invalid affected-row metadata
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

@@ -232,6 +232,11 @@ describe("transactional snapshot persistence", () => {
     expect(hasExactlyOneReplayCommit({ affectedRows: 0 })).toBe(false);
     expect(hasExactlyOneReplayCommit({ affectedRows: 2 })).toBe(false);
     expect(hasExactlyOneReplayCommit({})).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: "1" })).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: true })).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: null })).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: 1.5 })).toBe(false);
+    expect(hasExactlyOneReplayCommit({ affectedRows: Number.NaN })).toBe(false);
   });
 
   it("records privacy-safe structured replay events", () => {

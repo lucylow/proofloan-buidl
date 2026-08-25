@@ -384,7 +384,7 @@ export async function claimAcceptanceReplay(applicationId: string, requestKey: s
 }
 
 export function hasExactlyOneReplayCommit(result: { affectedRows?: unknown }): boolean {
-  return Number(result.affectedRows) === 1;
+  return typeof result.affectedRows === "number" && Number.isFinite(result.affectedRows) && Number.isInteger(result.affectedRows) && result.affectedRows === 1;
 }
 
 export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown, dbOverride?: DatabaseClient): Promise<boolean> {
