@@ -1484,3 +1484,8 @@
 - [x] Add bounded freshness classification for persistence failure history
 - [x] Mark expired diagnostic history as stale without deleting safe rule IDs
 - [x] Add focused freshness regressions and revalidate the project
+
+## Code improvement pass 96
+- [x] Add bounded recurrence counts by persistence rule ID
+- [x] Keep recurrence summaries coarse, deterministic, and privacy-safe
+- [x] Add focused recurrence regressions and revalidate the project

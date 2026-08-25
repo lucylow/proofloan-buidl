@@ -22,3 +22,14 @@ export function getPersistenceFailureFreshness(observedAt: string, now = Date.no
   if (timestamp > now + 120_000) return "future";
   return now - timestamp > maxAgeMs ? "stale" : "fresh";
 }
+
+export type PersistenceRuleRecurrence = { rule: string; count: number };
+
+export function getPersistenceRuleRecurrence(history: ReadonlyArray<{ rule: string }> | undefined): PersistenceRuleRecurrence[] {
+  const counts = new Map<string, number>();
+  for (const entry of history ?? []) {
+    if (!entry || !getPersistenceRuleGuidance(entry.rule)) continue;
+    counts.set(entry.rule, Math.min(6, (counts.get(entry.rule) ?? 0) + 1));
+  }
+  return Array.from(counts.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([rule, count]) => ({ rule, count }));
+}
