@@ -123,6 +123,7 @@ export function fingerprintDecision(decision: Decision): string {
 }
 
 export function isFeatureVectorConsistentWithFacts(features: FeatureVector, facts: VerifiedFact[], nowMs = Date.now()): boolean {
+  if (!isFeatureVectorFiniteAndBounded(features)) return false;
   const expected = buildFeatureVector(facts, nowMs);
   return fingerprintFeatureVector(expected) === fingerprintFeatureVector(features);
 }

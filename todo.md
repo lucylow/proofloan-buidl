@@ -1429,3 +1429,8 @@
 - [x] Reject non-string optional feature fingerprints before regex validation
 - [x] Add focused regression coverage for coercible fingerprint metadata
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 85
+- [x] Reject non-finite or non-canonical feature vectors before fingerprint comparison
+- [x] Add focused regression coverage for coercible feature-vector values
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

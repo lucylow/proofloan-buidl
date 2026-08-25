@@ -39,6 +39,7 @@ describe("ProofLoan underwriting primitives", () => {
     expect(isFeatureVectorConsistentWithFacts(features, facts, nowMs)).toBe(true);
     expect(isFeatureVectorConsistentWithFacts({ ...features, volume30d: features.volume30d + 1 }, facts, nowMs)).toBe(false);
     expect(isFeatureVectorConsistentWithFacts(features, facts, nowMs + 86_400_000)).toBe(false);
+    expect(isFeatureVectorConsistentWithFacts({ ...features, volume30d: { toJSON: () => features.volume30d } } as never, facts, nowMs)).toBe(false);
   });
 
   it("accepts finite bounded feature vectors and rejects malformed derivation output", () => {
