@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, cleanupReplayProtectionRecords, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, cleanupReplayProtectionRecords, claimAcceptanceReplay, isCanonicalReplayRequestKey, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 import { fingerprintDecision, hashValue, POLICY_HASH } from "./underwriting";
 
@@ -201,8 +201,8 @@ describe("transactional snapshot persistence", () => {
   it("commits proof-request replay only when the mocked database updates one pending row", async () => {
     const update = (affectedRows: number) => ({ update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }) });
     const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "AwaitingAcceptance", facts: [], audit: [{ state: "Intake" }] };
-    expect(await commitProofRequestReplay("proof-key-123", "PL-PERSISTENCE-TEST", valid, update(1) as never)).toBe(true);
-    expect(await commitProofRequestReplay("proof-key-123", "PL-PERSISTENCE-TEST", valid, update(0) as never)).toBe(false);
+    expect(await commitProofRequestReplay("proof-request-key-123", "PL-PERSISTENCE-TEST", valid, update(1) as never)).toBe(true);
+    expect(await commitProofRequestReplay("proof-request-key-123", "PL-PERSISTENCE-TEST", valid, update(0) as never)).toBe(false);
   });
 
   it("fails closed and records a redacted write failure when acceptance commit throws", async () => {
@@ -218,12 +218,12 @@ describe("transactional snapshot persistence", () => {
 
   it("fails closed and records a redacted write failure when proof-request commit throws", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
-    const throwingDb = { update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-key-throw"); } }) }) };
+    const throwingDb = { update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-request-key-throw"); } }) }) };
     const valid = { applicationId: "PL-PERSISTENCE-TEST", state: "AwaitingAcceptance", facts: [], audit: [{ state: "Intake" }] };
-    expect(await commitProofRequestReplay("proof-key-throw", "PL-PERSISTENCE-TEST", valid, throwingDb as never)).toBe(false);
+    expect(await commitProofRequestReplay("proof-request-key-throw", "PL-PERSISTENCE-TEST", valid, throwingDb as never)).toBe(false);
     const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
     expect(payload.reason).toBe("write_failed");
-    expect(JSON.stringify(payload)).not.toContain("proof-key-throw");
+    expect(JSON.stringify(payload)).not.toContain("proof-request-key-throw");
     info.mockRestore();
   });
 
@@ -237,6 +237,16 @@ describe("transactional snapshot persistence", () => {
     expect(hasExactlyOneReplayCommit({ affectedRows: null })).toBe(false);
     expect(hasExactlyOneReplayCommit({ affectedRows: 1.5 })).toBe(false);
     expect(hasExactlyOneReplayCommit({ affectedRows: Number.NaN })).toBe(false);
+  });
+
+  it("rejects malformed replay request keys at the identity boundary", () => {
+    expect(isCanonicalReplayRequestKey("proof-request-key-123")).toBe(true);
+    expect(isCanonicalReplayRequestKey("too-short")).toBe(false);
+    expect(isCanonicalReplayRequestKey(" proof-request-key-123")).toBe(false);
+    expect(isCanonicalReplayRequestKey("proof-request-key-123 ")).toBe(false);
+    expect(isCanonicalReplayRequestKey("proof-request-key-\n")).toBe(false);
+    expect(isCanonicalReplayRequestKey("1".repeat(129))).toBe(false);
+    expect(isCanonicalReplayRequestKey(123)).toBe(false);
   });
 
   it("records privacy-safe structured replay events", () => {
@@ -267,11 +277,11 @@ describe("transactional snapshot persistence", () => {
   it("fails closed when a stale proof-request claim loses its recovery race", async () => {
     const replayDb = (affectedRows: number) => ({
       insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-race-key", walletAddress: "0xproof-race-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-request-race-key", walletAddress: "0xproof-race-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
       update: () => ({ set: () => ({ where: async () => [{ affectedRows }] }) }),
     });
-    await expect(claimProofRequestReplay("proof-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(0) as never)).resolves.toEqual({ status: "unavailable" });
-    await expect(claimProofRequestReplay("proof-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(1) as never)).resolves.toEqual({ status: "claimed" });
+    await expect(claimProofRequestReplay("proof-request-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(0) as never)).resolves.toEqual({ status: "unavailable" });
+    await expect(claimProofRequestReplay("proof-request-race-key", "0xproof-race-wallet", "Ethereum Sepolia", replayDb(1) as never)).resolves.toEqual({ status: "claimed" });
   });
 
   it("fails closed and classifies acceptance recovery database exceptions", async () => {
@@ -292,13 +302,13 @@ describe("transactional snapshot persistence", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const replayDb = {
       insert: () => ({ values: () => ({ onDuplicateKeyUpdate: async () => undefined }) }),
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-exception-key", walletAddress: "0xproof-exception-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
-      update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-exception-key"); } }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ requestKey: "proof-request-exception-key", walletAddress: "0xproof-exception-wallet", sourceChain: "Ethereum Sepolia", status: "Pending", createdAt: new Date("2020-01-01T00:00:00.000Z") }] }) }) }),
+      update: () => ({ set: () => ({ where: async () => { throw new Error("db outage: proof-request-exception-key"); } }) }),
     };
-    await expect(claimProofRequestReplay("proof-exception-key", "0xproof-exception-wallet", "Ethereum Sepolia", replayDb as never)).resolves.toEqual({ status: "unavailable" });
+    await expect(claimProofRequestReplay("proof-request-exception-key", "0xproof-exception-wallet", "Ethereum Sepolia", replayDb as never)).resolves.toEqual({ status: "unavailable" });
     const payload = JSON.parse(info.mock.calls.at(-1)?.[0] as string) as Record<string, unknown>;
     expect(payload.reason).toBe("write_failed");
-    expect(JSON.stringify(payload)).not.toContain("proof-exception-key");
+    expect(JSON.stringify(payload)).not.toContain("proof-request-exception-key");
     info.mockRestore();
   });
 

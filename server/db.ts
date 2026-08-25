@@ -20,6 +20,12 @@ const MAX_PERSISTED_WALLET_LENGTH = 128;
 const MAX_PERSISTED_DECISION_METADATA_LENGTH = 128;
 const MAX_ACCEPTANCE_RESULT_LENGTH = 65_536;
 const MAX_PROOF_REQUEST_RESULT_LENGTH = 65_536;
+const MIN_REPLAY_REQUEST_KEY_LENGTH = 16;
+const MAX_REPLAY_REQUEST_KEY_LENGTH = 128;
+
+export function isCanonicalReplayRequestKey(value: unknown): value is string {
+  return typeof value === "string" && value.length >= MIN_REPLAY_REQUEST_KEY_LENGTH && value.length <= MAX_REPLAY_REQUEST_KEY_LENGTH && value === value.trim() && !/[\u0000-\u001f\u007f]/.test(value);
+}
 
 export function isCanonicalUtcIsoTimestamp(value: unknown): value is string {
   if (typeof value !== "string") return false;
@@ -308,6 +314,7 @@ export async function getReplayProtectionDiagnostics(dbOverride?: DatabaseClient
 }
 
 export async function refreshStaleReplayClaim(target: ReplayRecoveryTarget, requestKey: string, applicationId?: string, dbOverride?: DatabaseClient): Promise<boolean> {
+  if (!isCanonicalReplayRequestKey(requestKey) || (target === "acceptance" && (!applicationId || !isProofLoanApplicationId(applicationId)))) return false;
   const db = dbOverride ?? await getDb();
   if (!db) {
     recordReplayProtectionEvent({ operation: target, outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
@@ -336,6 +343,7 @@ export type AcceptanceReplayClaim =
   | { status: "unavailable" };
 
 export async function claimAcceptanceReplay(applicationId: string, requestKey: string, dbOverride?: DatabaseClient): Promise<AcceptanceReplayClaim> {
+  if (!isProofLoanApplicationId(applicationId) || !isCanonicalReplayRequestKey(requestKey)) return { status: "unavailable" };
   const db = dbOverride ?? await getDb();
   if (!db) {
     recordReplayProtectionEvent({ operation: "acceptance", outcome: "unavailable", requestKey, applicationId, reason: "storage_unavailable" });
@@ -388,6 +396,7 @@ export function hasExactlyOneReplayCommit(result: { affectedRows?: unknown }): b
 }
 
 export async function commitAcceptanceReplay(applicationId: string, requestKey: string, result: unknown, dbOverride?: DatabaseClient): Promise<boolean> {
+  if (!isProofLoanApplicationId(applicationId) || !isCanonicalReplayRequestKey(requestKey)) return false;
   const db = dbOverride ?? await getDb();
   if (!db) return false;
   try {
@@ -419,6 +428,7 @@ export type ProofRequestReplayClaim =
   | { status: "unavailable" };
 
 export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string, dbOverride?: DatabaseClient): Promise<ProofRequestReplayClaim> {
+  if (!isCanonicalReplayRequestKey(requestKey)) return { status: "unavailable" };
   const db = dbOverride ?? await getDb();
   if (!db) {
     recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "storage_unavailable" });
@@ -467,6 +477,7 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
 }
 
 export async function commitProofRequestReplay(requestKey: string, applicationId: string, result: unknown, dbOverride?: DatabaseClient): Promise<boolean> {
+  if (!isCanonicalReplayRequestKey(requestKey) || !isProofLoanApplicationId(applicationId)) return false;
   const db = dbOverride ?? await getDb();
   if (!db || !isDurableProofRequestReplayResult(result) || result.applicationId !== applicationId) return false;
   try {
