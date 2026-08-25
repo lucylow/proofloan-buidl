@@ -1364,3 +1364,8 @@
 - [x] Reject persisted audit events with empty or whitespace-only detail text
 - [x] Add focused regression coverage for empty audit details at the read boundary
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 72
+- [x] Reject reconstructed decision and offer rows created after the terminal audit event
+- [x] Add focused regression coverage for child-record timing drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

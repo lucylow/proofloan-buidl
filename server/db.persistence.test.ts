@@ -75,6 +75,9 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, reasonCodes: "not-json" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, expiresAt: new Date("invalid") })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, featureFingerprint: "0".repeat(18) })) as never)).toBeUndefined();
+    const terminalTime = audit[0].createdAt.getTime();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, { ...decision, createdAt: new Date(terminalTime + 1) })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READROWS", createSnapshotReadDb(rows(fact, decision, { ...offer, createdAt: new Date(terminalTime + 1) })) as never)).toBeUndefined();
   });
 
   it("fails closed for malformed application metadata before feature derivation", async () => {
