@@ -676,9 +676,11 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     if (applicationRecord.createdAt !== undefined && !isValidDate(applicationRecord.createdAt)) return undefined;
     if (applicationRecord.updatedAt !== undefined && !isValidDate(applicationRecord.updatedAt)) return undefined;
     if (applicationRecord.createdAt instanceof Date && firstAuditRow?.createdAt instanceof Date && applicationRecord.createdAt.getTime() > firstAuditRow.createdAt.getTime()) return undefined;
+    if (applicationRecord.createdAt instanceof Date && applicationRecord.updatedAt instanceof Date && applicationRecord.updatedAt.getTime() < applicationRecord.createdAt.getTime()) return undefined;
     const terminalAuditRow = auditRows.at(-1);
     if (terminalAuditRow?.createdAt instanceof Date) {
       const terminalAuditTime = terminalAuditRow.createdAt.getTime();
+      if (applicationRecord.updatedAt instanceof Date && applicationRecord.updatedAt.getTime() > terminalAuditTime) return undefined;
       const timedChildRows = [...decisionRows, ...offerRows] as Array<{ createdAt?: unknown }>;
       if (timedChildRows.some(row => row.createdAt instanceof Date && (!Number.isFinite(row.createdAt.getTime()) || row.createdAt.getTime() > terminalAuditTime))) return undefined;
     }

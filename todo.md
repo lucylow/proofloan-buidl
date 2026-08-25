@@ -1374,3 +1374,8 @@
 - [x] Reject reconstructed applications with invalid or post-audit timestamps
 - [x] Add focused regression coverage for application timestamp drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 74
+- [x] Reject reconstructed applications updated before creation or after the terminal audit event
+- [x] Add focused regression coverage for update-timestamp chronology drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
