@@ -124,6 +124,15 @@ export function writePersistenceFailureAlertAcknowledgment(storage: Pick<Storage
   }
 }
 
+export function clearPersistenceFailureAlertAcknowledgment(storage: Pick<Storage, "removeItem"> | undefined): boolean {
+  try {
+    storage?.removeItem(persistenceAlertAcknowledgmentStorageKey);
+    return !!storage;
+  } catch {
+    return false;
+  }
+}
+
 export function getPersistenceFailureAlertAcknowledgmentKey(filter: PersistenceFailureHistoryFilter, level: PersistenceFailureAlertLevel, recentCount: number): string | null {
   if (level !== "critical") return null;
   const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;

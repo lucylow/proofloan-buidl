@@ -1549,3 +1549,8 @@
 - [x] Add a session-safe acknowledgment action for persistence escalation notices
 - [x] Keep acknowledgment state bounded, privacy-safe, and scoped to the current alert posture
 - [x] Add focused acknowledgment regressions and revalidate the project
+
+## Code improvement pass 109
+- [x] Add an explicit unacknowledge action for the active persistence escalation
+- [x] Clear acknowledgment storage safely without exposing or retaining sensitive data
+- [x] Add focused lifecycle regressions and revalidate the project

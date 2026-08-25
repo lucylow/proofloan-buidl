@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
+import { clearPersistenceFailureAlertAcknowledgment, filterPersistenceFailureHistory, getPersistenceFailureAlertAcknowledgmentKey, getPersistenceFailureAlertAcknowledgmentNotice, getPersistenceFailureAlertExplanation, getPersistenceFailureAlertEscalationNotice, getPersistenceFailureAlertLabel, getPersistenceFailureAlertLevel, getPersistenceHistoryFilterSummary, getPersistenceFailureFreshness, getPersistenceFailureTrend, getPersistenceFilterRestorationNotice, getPersistenceRuleGuidance, getPersistenceRuleRecurrence, isPersistenceFailureAlertAcknowledged, normalizePersistenceFailureAlertThresholds, PERSISTENCE_RULE_GUIDANCE, readPersistenceFailureAlertAcknowledgment, readPersistenceFailureAlertThresholds, readPersistenceFailureHistoryFilter, writePersistenceFailureAlertAcknowledgment, writePersistenceFailureAlertThresholds, writePersistenceFailureHistoryFilter } from "./persistenceDiagnostics";
 
 describe("persistence diagnostics guidance", () => {
   it("provides bounded guidance for every persistence rule", () => {
@@ -108,14 +108,18 @@ describe("persistence diagnostics guidance", () => {
 
   it("persists only a bounded critical acknowledgment and fails safely when storage is blocked", () => {
     const values = new Map<string, string>();
-    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) };
+    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
     const acknowledgment = { filter: "current" as const, level: "critical" as const, recentCount: 4 };
     expect(writePersistenceFailureAlertAcknowledgment(storage, acknowledgment)).toBe(true);
     expect(readPersistenceFailureAlertAcknowledgment(storage)).toEqual(acknowledgment);
+    expect(clearPersistenceFailureAlertAcknowledgment(storage)).toBe(true);
+    expect(readPersistenceFailureAlertAcknowledgment(storage)).toBeNull();
+    expect(clearPersistenceFailureAlertAcknowledgment(undefined)).toBe(false);
     values.set("proofloan.persistence-alert-acknowledgment", JSON.stringify({ filter: "all", level: "watch", recentCount: 2, walletAddress: "secret" }));
     expect(readPersistenceFailureAlertAcknowledgment(storage)).toBeNull();
     expect(readPersistenceFailureAlertAcknowledgment({ getItem: () => { throw new Error("blocked"); } })).toBeNull();
     expect(writePersistenceFailureAlertAcknowledgment({ setItem: () => { throw new Error("blocked"); } }, acknowledgment)).toBe(false);
+    expect(clearPersistenceFailureAlertAcknowledgment({ removeItem: () => { throw new Error("blocked"); } })).toBe(false);
     expect(JSON.stringify(values)).not.toContain("walletAddress");
   });
 
