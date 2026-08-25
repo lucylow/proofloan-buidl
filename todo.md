@@ -1369,3 +1369,8 @@
 - [x] Reject reconstructed decision and offer rows created after the terminal audit event
 - [x] Add focused regression coverage for child-record timing drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 73
+- [x] Reject reconstructed applications with invalid or post-audit timestamps
+- [x] Add focused regression coverage for application timestamp drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

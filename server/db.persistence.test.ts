@@ -88,6 +88,8 @@ describe("transactional snapshot persistence", () => {
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, walletAddress: " " })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, requestedAmount: "Infinity" })) as never)).toBeUndefined();
     expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, sourceChain: "Unknown" })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, createdAt: new Date("invalid") })) as never)).toBeUndefined();
+    expect(await getPersistedLoanSnapshot("PL-READMETA", createSnapshotReadDb(rows({ ...base, createdAt: new Date("2026-08-25T20:00:00.000Z") })) as never)).toBeUndefined();
   });
 
   it("rejects duplicate audit identity before persistence", () => {
