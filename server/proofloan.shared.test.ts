@@ -78,6 +78,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, termDays: true } as never })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, apr: " 11.5" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, status: "Ready" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, expiresAt: new Date(valid.audit[0].createdAt.getTime()) } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, offer: { ...valid.offer, expiresAt: new Date(valid.audit[0].createdAt.getTime() - 1) } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Rejected" }, offer: { ...valid.offer, status: "Blocked" }, audit: [{ ...valid.audit[0], state: "Rejected", label: "Rejected" }] })).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(2_000) }, facts: valid.facts.map(fact => ({ ...fact, verifiedAt: new Date(500) })), audit: valid.audit.map(event => ({ ...event, state: "AwaitingAcceptance", label: "AwaitingAcceptance", createdAt: new Date(500) })) }, undefined, 1_000)).toBe(true);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "AwaitingAcceptance" }, offer: { ...valid.offer, status: "Ready", expiresAt: new Date(1_000) } }, undefined, 2_000)).toBe(false);
