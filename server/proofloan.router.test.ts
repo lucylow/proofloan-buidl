@@ -1,8 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("./attestcoin", async () => {
+  const actual = await vi.importActual<typeof import("./attestcoin")>("./attestcoin");
+  return { ...actual, verifyTransactionWithAttestcoin: vi.fn() };
+});
+
+const mockedLiveStates = new Map<string, string>();
+
+vi.mock("./db", async () => {
+  const actual = await vi.importActual<typeof import("./db")>("./db");
+  return {
+    ...actual,
+    persistLoanSnapshot: vi.fn(async () => true),
+    transitionLoanState: vi.fn(async (applicationId: string, _from: string, to: string) => { mockedLiveStates.set(applicationId, to); return "committed"; }),
+    getPersistedLoanSnapshot: vi.fn(async (applicationId: string) => {
+      const state = mockedLiveStates.get(applicationId);
+      return state ? { applicationId, state } as LoanSnapshot : undefined;
+    }),
+  };
+});
 import { appRouter, allowProofRequest, createProofLoanApplicationId, normalizeAuditDetail, normalizeProofLoanErrorMessage, storePreviewApplication, registerPreviewApplication, withApplicationMutation } from "./routers";
 import type { LoanSnapshot } from "@shared/proofloan";
 import type { TrpcContext } from "./_core/context";
-import { previewAttestcoinFacts } from "./attestcoin";
+import { previewAttestcoinFacts, verifyTransactionWithAttestcoin } from "./attestcoin";
 import { createLoanFixture, createMalformedLoanFixture } from "./proofloan.fixtures";
 
 function createContext(): TrpcContext {
@@ -141,6 +161,18 @@ describe("proofloan API flow", () => {
     expect(["OfferPrepared", "Rejected"]).toContain(snapshot.audit.at(-1)?.state);
     expect(snapshot.facts).toHaveLength(3);
     expect(snapshot.decision?.reasonCodes.length).toBeGreaterThan(0);
+  }, 30_000);
+
+  it("runs the live proof path with distinct identity fields and verified provenance", async () => {
+    const sourceHash = `0x${"b".repeat(64)}`;
+    vi.mocked(verifyTransactionWithAttestcoin).mockResolvedValueOnce({ verified: true, chainKey: 1, sourceBlock: 6421883, verificationBlock: 7000000, txHash: sourceHash, proofRoot: "0xproof-root", mode: "sdk" });
+    const caller = appRouter.createCaller(createContext());
+    const snapshot = await caller.proofloan.createApplication({ walletAddress: `0x${"a".repeat(40)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" });
+    expect(verifyTransactionWithAttestcoin).toHaveBeenCalledWith(sourceHash, "Ethereum Sepolia");
+    expect(snapshot.sourceTransactionHash).toBe(sourceHash);
+    expect(snapshot.facts[0]?.txHash).toBe(sourceHash);
+    expect(snapshot.audit.map(event => event.state)).toContain("EvidenceVerified");
+    expect(["AwaitingAcceptance", "Rejected"]).toContain(snapshot.state);
   }, 30_000);
 
   it("rejects whitespace-only proof requests at the API boundary", async () => {

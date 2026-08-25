@@ -1579,3 +1579,8 @@
 - [x] Add an explicit privacy-safe live-versus-preview proof mode classifier
 - [x] Show mode state consistently in borrower and operator-facing surfaces
 - [x] Add classifier and UI regressions, then revalidate the project
+
+## Code improvement pass 115
+- [x] Add deterministic mocked live Attestcoin coverage for persistence and state transitions
+- [x] Verify live requests preserve distinct wallet and source transaction identity
+- [x] Add fail-closed live-path regressions and revalidate the project
