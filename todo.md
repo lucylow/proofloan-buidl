@@ -1409,3 +1409,8 @@
 - [x] Reject acceptance replay transaction hashes with control characters or non-canonical text
 - [x] Add focused regression coverage for malformed replay transaction hashes
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 81
+- [x] Reject persisted source and verification block values that rely on numeric coercion
+- [x] Add focused regression coverage for string and malformed block metadata
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

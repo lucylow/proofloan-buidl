@@ -587,7 +587,7 @@ const isFiniteInRange = (value: unknown, min: number, max: number) => {
   return Number.isFinite(numeric) && numeric >= min && numeric <= max;
 };
 
-const isFactBlockChronologyConsistent = (sourceBlock: unknown, verificationBlock: unknown) => isFiniteInRange(sourceBlock, 1, Number.MAX_SAFE_INTEGER) && isFiniteInRange(verificationBlock, 1, Number.MAX_SAFE_INTEGER) && Number(verificationBlock) >= Number(sourceBlock);
+const isFactBlockChronologyConsistent = (sourceBlock: unknown, verificationBlock: unknown) => typeof sourceBlock === "number" && typeof verificationBlock === "number" && Number.isSafeInteger(sourceBlock) && Number.isSafeInteger(verificationBlock) && sourceBlock >= 1 && verificationBlock >= 1 && verificationBlock >= sourceBlock;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isValidDate = (value: unknown): value is Date => value instanceof Date && !Number.isNaN(value.getTime());
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
