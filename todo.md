@@ -1554,3 +1554,8 @@
 - [x] Add an explicit unacknowledge action for the active persistence escalation
 - [x] Clear acknowledgment storage safely without exposing or retaining sensitive data
 - [x] Add focused lifecycle regressions and revalidate the project
+
+## Code improvement pass 110
+- [x] Add a bounded UTC acknowledgment timestamp to the session-safe escalation marker
+- [x] Display acknowledgment timing without exposing sensitive diagnostics data
+- [x] Add timestamp normalization and privacy regressions, then revalidate the project

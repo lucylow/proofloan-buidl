@@ -109,13 +109,15 @@ describe("persistence diagnostics guidance", () => {
   it("persists only a bounded critical acknowledgment and fails safely when storage is blocked", () => {
     const values = new Map<string, string>();
     const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
-    const acknowledgment = { filter: "current" as const, level: "critical" as const, recentCount: 4 };
+    const acknowledgment = { filter: "current" as const, level: "critical" as const, recentCount: 4, acknowledgedAt: "2026-08-25T00:00:00.000Z" };
     expect(writePersistenceFailureAlertAcknowledgment(storage, acknowledgment)).toBe(true);
     expect(readPersistenceFailureAlertAcknowledgment(storage)).toEqual(acknowledgment);
     expect(clearPersistenceFailureAlertAcknowledgment(storage)).toBe(true);
     expect(readPersistenceFailureAlertAcknowledgment(storage)).toBeNull();
     expect(clearPersistenceFailureAlertAcknowledgment(undefined)).toBe(false);
     values.set("proofloan.persistence-alert-acknowledgment", JSON.stringify({ filter: "all", level: "watch", recentCount: 2, walletAddress: "secret" }));
+    expect(readPersistenceFailureAlertAcknowledgment(storage)).toBeNull();
+    values.set("proofloan.persistence-alert-acknowledgment", JSON.stringify({ filter: "all", level: "critical", recentCount: 2, acknowledgedAt: "not-a-date", payload: "secret" }));
     expect(readPersistenceFailureAlertAcknowledgment(storage)).toBeNull();
     expect(readPersistenceFailureAlertAcknowledgment({ getItem: () => { throw new Error("blocked"); } })).toBeNull();
     expect(writePersistenceFailureAlertAcknowledgment({ setItem: () => { throw new Error("blocked"); } }, acknowledgment)).toBe(false);
@@ -127,10 +129,10 @@ describe("persistence diagnostics guidance", () => {
     const key = getPersistenceFailureAlertAcknowledgmentKey("stale", "critical", 99);
     expect(key).toBe("stale:critical:6");
     expect(getPersistenceFailureAlertAcknowledgmentKey("all", "watch", 6)).toBeNull();
-    expect(isPersistenceFailureAlertAcknowledged({ filter: "stale", level: "critical", recentCount: 6 }, key)).toBe(true);
-    expect(isPersistenceFailureAlertAcknowledged({ filter: "current", level: "critical", recentCount: 6 }, key)).toBe(false);
-    expect(isPersistenceFailureAlertAcknowledged({ filter: "stale", level: "critical", recentCount: 5 }, key)).toBe(false);
-    expect(getPersistenceFailureAlertAcknowledgmentNotice("all", 1)).toBe("Critical persistence recurrence acknowledged for the all scope (1 recent safe failure) for this session.");
+    expect(isPersistenceFailureAlertAcknowledged({ filter: "stale", level: "critical", recentCount: 6, acknowledgedAt: "2026-08-25T00:00:00.000Z" }, key)).toBe(true);
+    expect(isPersistenceFailureAlertAcknowledged({ filter: "current", level: "critical", recentCount: 6, acknowledgedAt: "2026-08-25T00:00:00.000Z" }, key)).toBe(false);
+    expect(isPersistenceFailureAlertAcknowledged({ filter: "stale", level: "critical", recentCount: 5, acknowledgedAt: "2026-08-25T00:00:00.000Z" }, key)).toBe(false);
+    expect(getPersistenceFailureAlertAcknowledgmentNotice("all", 1, "2026-08-25T00:00:00.000Z")).toBe("Critical persistence recurrence acknowledged for the all scope (1 recent safe failure) at 2026-08-25T00:00:00.000Z for this session.");
     expect(JSON.stringify(getPersistenceFailureAlertAcknowledgmentNotice("stale", 6))).not.toMatch(/wallet|payload|evidence/);
   });
 

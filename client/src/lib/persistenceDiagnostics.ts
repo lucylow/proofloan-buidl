@@ -95,13 +95,15 @@ export function writePersistenceFailureAlertThresholds(storage: Pick<Storage, "s
   }
 }
 
-export type PersistenceFailureAlertAcknowledgment = { filter: PersistenceFailureHistoryFilter; level: "critical"; recentCount: number };
+export type PersistenceFailureAlertAcknowledgment = { filter: PersistenceFailureHistoryFilter; level: "critical"; recentCount: number; acknowledgedAt: string };
 
 function normalizePersistenceFailureAlertAcknowledgment(value: unknown): PersistenceFailureAlertAcknowledgment | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<PersistenceFailureAlertAcknowledgment>;
-  if ((candidate.filter !== "all" && candidate.filter !== "current" && candidate.filter !== "stale") || candidate.level !== "critical" || typeof candidate.recentCount !== "number" || !Number.isFinite(candidate.recentCount) || candidate.recentCount < 0) return null;
-  return { filter: candidate.filter, level: "critical", recentCount: Math.min(6, Math.floor(candidate.recentCount)) };
+  if ((candidate.filter !== "all" && candidate.filter !== "current" && candidate.filter !== "stale") || candidate.level !== "critical" || typeof candidate.recentCount !== "number" || !Number.isFinite(candidate.recentCount) || candidate.recentCount < 0 || typeof candidate.acknowledgedAt !== "string") return null;
+  const timestamp = Date.parse(candidate.acknowledgedAt);
+  if (!Number.isFinite(timestamp)) return null;
+  return { filter: candidate.filter, level: "critical", recentCount: Math.min(6, Math.floor(candidate.recentCount)), acknowledgedAt: new Date(timestamp).toISOString() };
 }
 
 export function readPersistenceFailureAlertAcknowledgment(storage: Pick<Storage, "getItem"> | undefined): PersistenceFailureAlertAcknowledgment | null {
@@ -144,9 +146,11 @@ export function isPersistenceFailureAlertAcknowledged(acknowledgment: Persistenc
   return getPersistenceFailureAlertAcknowledgmentKey(acknowledgment.filter, acknowledgment.level, acknowledgment.recentCount) === key;
 }
 
-export function getPersistenceFailureAlertAcknowledgmentNotice(filter: PersistenceFailureHistoryFilter, recentCount: number): string {
+export function getPersistenceFailureAlertAcknowledgmentNotice(filter: PersistenceFailureHistoryFilter, recentCount: number, acknowledgedAt?: string): string {
   const safeRecentCount = Number.isFinite(recentCount) && recentCount >= 0 ? Math.min(6, Math.floor(recentCount)) : 0;
-  return `Critical persistence recurrence acknowledged for the ${filter} scope (${safeRecentCount} recent safe failure${safeRecentCount === 1 ? "" : "s"}) for this session.`;
+  const timestamp = typeof acknowledgedAt === "string" ? Date.parse(acknowledgedAt) : Number.NaN;
+  const timestampNotice = Number.isFinite(timestamp) ? ` at ${new Date(timestamp).toISOString()}` : "";
+  return `Critical persistence recurrence acknowledged for the ${filter} scope (${safeRecentCount} recent safe failure${safeRecentCount === 1 ? "" : "s"})${timestampNotice} for this session.`;
 }
 
 export function getPersistenceFailureAlertLevel(recentCount: number, thresholds: PersistenceFailureAlertThresholds = DEFAULT_PERSISTENCE_FAILURE_ALERT_THRESHOLDS): PersistenceFailureAlertLevel {
