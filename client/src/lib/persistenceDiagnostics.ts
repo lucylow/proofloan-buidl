@@ -100,6 +100,11 @@ export function getPersistenceFailureAlertLevel(recentCount: number, thresholds:
   return safeRecentCount >= safeThresholds.criticalCount ? "critical" : safeRecentCount >= safeThresholds.watchCount ? "watch" : "clear";
 }
 
+export function getPersistenceAlertThresholdRestorationNotice(thresholds: PersistenceFailureAlertThresholds, restored: boolean): string | null {
+  if (!restored) return null;
+  return `Restored alert thresholds: watch ${thresholds.watchCount}, critical ${thresholds.criticalCount}.`;
+}
+
 export function getPersistenceFailureAlertLabel(level: PersistenceFailureAlertLevel): string {
   return level === "critical" ? "Critical recurrence" : level === "watch" ? "Watch recurrence" : "Clear recurrence";
 }

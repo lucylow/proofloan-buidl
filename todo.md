@@ -1519,3 +1519,8 @@
 - [x] Add strictly bounded session-local recurrence threshold configuration
 - [x] Persist only validated threshold values and fail safely on malformed storage
 - [x] Add focused threshold-control regressions and revalidate the project
+
+## Code improvement pass 103
+- [x] Add safe threshold reset to the bounded default configuration
+- [x] Show whether alert thresholds were restored from the current session
+- [x] Add focused reset and restoration regressions and revalidate the project
