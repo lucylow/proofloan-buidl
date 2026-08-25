@@ -10,8 +10,11 @@ vi.mock("./underwriting", async () => {
   return { ...actual, evaluateRiskGuard: vi.fn(actual.evaluateRiskGuard), runAiUnderwriting: vi.fn(actual.runAiUnderwriting) };
 });
 
-const mockedLiveSnapshots = new Map<string, LoanSnapshot>();
-const mockedAcceptanceReplayKeys = new Map<string, string>();
+const { mockedLiveSnapshots, mockedAcceptanceReplayKeys, mockedCommitAcceptanceReplay } = vi.hoisted(() => ({
+  mockedLiveSnapshots: new Map<string, LoanSnapshot>(),
+  mockedAcceptanceReplayKeys: new Map<string, string>(),
+  mockedCommitAcceptanceReplay: vi.fn(async () => true),
+}));
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
@@ -20,7 +23,7 @@ vi.mock("./db", async () => {
     persistLoanSnapshot: vi.fn(async (snapshot: LoanSnapshot) => { mockedLiveSnapshots.set(snapshot.applicationId, { ...snapshot, facts: [...snapshot.facts], audit: [...snapshot.audit], offer: snapshot.offer ? { ...snapshot.offer } : undefined }); return true; }),
     transitionLoanState: vi.fn(async (applicationId: string, _from: string, to: string) => { const snapshot = mockedLiveSnapshots.get(applicationId); if (!snapshot) return "unavailable"; snapshot.state = to as LoanSnapshot["state"]; return "committed"; }),
     claimAcceptanceReplay: vi.fn(async (applicationId: string, requestKey: string) => { const previousKey = mockedAcceptanceReplayKeys.get(applicationId); if (previousKey && previousKey !== requestKey) return { status: "conflict" }; mockedAcceptanceReplayKeys.set(applicationId, requestKey); return { status: "claimed" }; }),
-    commitAcceptanceReplay: vi.fn(async () => true),
+    commitAcceptanceReplay: mockedCommitAcceptanceReplay,
     getPersistedLoanSnapshot: vi.fn(async (applicationId: string) => mockedLiveSnapshots.get(applicationId)),
   };
 });
@@ -217,6 +220,26 @@ describe("proofloan API flow", () => {
     expect(afterConflict?.state).toBe("AwaitingAcceptance");
     expect(afterConflict?.audit.length).toBe(beforeConflict?.audit.length);
     expect(afterConflict?.offer?.status).toBe("Ready");
+  }, 30_000);
+
+  it("surfaces live execution when replay commit finalization fails", async () => {
+    mockedLiveSnapshots.clear();
+    mockedAcceptanceReplayKeys.clear();
+    mockedCommitAcceptanceReplay.mockReset();
+    mockedCommitAcceptanceReplay.mockResolvedValue(true);
+    const sourceHash = `0x${"1".repeat(64)}`;
+    const liveDecision = { pd30: 0.08, pd90: 0.16, confidence: 0.92, freshnessScore: 0.93, riskTier: "B" as const, reasonCodes: ["STRONG_REPAYMENT_HISTORY" as const], modelVersion: "test-model", featureVersion: "test-features", evidenceRoot: "0xevidence-commit", policyHash: "0xpolicy", decisionHash: "0xdecision-commit", featureFingerprint: "0xfeatures" };
+    vi.mocked(runAiUnderwriting).mockResolvedValueOnce(liveDecision);
+    vi.mocked(evaluateRiskGuard).mockReturnValueOnce({ amount: 1500, apr: 11.5, ltv: 0.54, collateralValue: 2800, termDays: 90, expiresAt: new Date(Date.now() + 86_400_000).toISOString(), poolLiquidity: 250_000, status: "Ready" });
+    vi.mocked(verifyTransactionWithAttestcoin).mockResolvedValueOnce({ verified: true, chainKey: 1, sourceBlock: 6421883, verificationBlock: 7000000, txHash: sourceHash, proofRoot: "0xproof-root-commit", mode: "sdk" });
+    const caller = appRouter.createCaller(createContext());
+    const created = await caller.proofloan.createApplication({ walletAddress: `0x${"2".repeat(40)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" });
+    mockedCommitAcceptanceReplay.mockResolvedValueOnce(false);
+    await expect(caller.proofloan.acceptOffer({ applicationId: created.applicationId, idempotencyKey: "live-commit-failure-key-001" })).rejects.toThrow("[PROOFLOAN_DATABASE_ERROR] Acceptance committed, but replay protection could not be finalized.");
+    const persisted = mockedLiveSnapshots.get(created.applicationId);
+    expect(persisted?.state).toBe("Executed");
+    expect(persisted?.offer?.status).toBe("Executed");
+    expect(persisted?.audit.at(-1)?.state).toBe("Executed");
   }, 30_000);
 
   it("fails closed when the live Attestcoin worker rejects before scoring", async () => {

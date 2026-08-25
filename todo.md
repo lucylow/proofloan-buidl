@@ -1609,3 +1609,8 @@
 - [x] Add deterministic live acceptance replay-conflict coverage
 - [x] Prove a conflicting request cannot execute or mutate the live offer state
 - [x] Add replay-boundary regressions and revalidate the project
+
+## Code improvement pass 121
+- [x] Add deterministic Creditcoin replay-commit failure coverage
+- [x] Prove post-execution commit failure remains explicitly surfaced and auditable
+- [x] Add fail-closed acceptance regressions and revalidate the project
