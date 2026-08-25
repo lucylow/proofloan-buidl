@@ -1394,3 +1394,8 @@
 - [x] Reject fact identity values that rely on implicit string coercion
 - [x] Add focused regression coverage for malformed fact IDs and references
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 78
+- [x] Reject empty and whitespace-only audit details in direct audit upsert construction
+- [x] Add focused regression coverage for malformed audit details at the write boundary
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

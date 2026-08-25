@@ -154,7 +154,7 @@ import { loanApplications, verifiedFacts, decisions, offers, auditEvents } from 
 import type { LoanSnapshot } from "@shared/proofloan";
 
 export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
-  if (typeof event.detail !== "string" || event.detail.length > MAX_PERSISTED_AUDIT_DETAIL_LENGTH) {
+  if (typeof event.detail !== "string" || event.detail.trim().length === 0 || event.detail.length > MAX_PERSISTED_AUDIT_DETAIL_LENGTH) {
     throw new Error("Invalid persisted audit detail.");
   }
   if (!isProofLoanState(event.state) || event.label !== event.state || typeof event.hash !== "string" || event.hash !== event.hash.trim() || event.hash.length === 0 || event.hash.length > MAX_PERSISTED_AUDIT_HASH_LENGTH || typeof event.timestamp !== "string") {

@@ -139,6 +139,8 @@ describe("ProofLoan shared validation", () => {
     expect(buildAuditUpsertValues(baseEvent).values.detail).toBe("short detail");
     expect(() => buildAuditUpsertValues({ ...baseEvent, detail: "x".repeat(513) })).toThrow("Invalid persisted audit detail.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, detail: 42 } as never)).toThrow("Invalid persisted audit detail.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, detail: "" })).toThrow("Invalid persisted audit detail.");
+    expect(() => buildAuditUpsertValues({ ...baseEvent, detail: "   " })).toThrow("Invalid persisted audit detail.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, state: "Unknown", label: "Unknown" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, label: "EvidencePending" } as never)).toThrow("Invalid persisted audit event.");
     expect(() => buildAuditUpsertValues({ ...baseEvent, hash: "   " })).toThrow("Invalid persisted audit event.");
@@ -172,7 +174,7 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower\u0000" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, state: "Unknown" } as never)).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, offer: { amount: Number.NaN } } as never)).toThrow("Invalid persisted application.");
-    const consistentSnapshot = { ...baseSnapshot, audit: [{ state: "Intake", label: "Intake", timestamp: new Date().toISOString(), detail: "", hash: "hash-intake" }] };
+    const consistentSnapshot = { ...baseSnapshot, audit: [{ state: "Intake", label: "Intake", timestamp: new Date().toISOString(), detail: "initial state", hash: "hash-intake" }] };
     expect(isLoanSnapshotWriteConsistent(consistentSnapshot as never)).toBe(true);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, audit: [] } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "EvidencePending" } as never)).toBe(false);
