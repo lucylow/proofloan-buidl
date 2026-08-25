@@ -248,6 +248,7 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
 }
 
 export function isReplayRecordExpired(createdAt: Date, now = Date.now()): boolean {
+  if (!(createdAt instanceof Date) || !Number.isFinite(createdAt.getTime()) || !Number.isFinite(now) || now < createdAt.getTime()) return false;
   return now - createdAt.getTime() > REPLAY_PENDING_LEASE_MS;
 }
 

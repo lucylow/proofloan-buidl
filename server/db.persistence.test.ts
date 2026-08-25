@@ -330,6 +330,10 @@ describe("transactional snapshot persistence", () => {
     const now = Date.parse("2026-08-24T00:30:00.000Z");
     expect(isReplayRecordExpired(new Date(now - 10 * 60_000 - 1), now)).toBe(true);
     expect(isReplayRecordExpired(new Date(now - 10 * 60_000), now)).toBe(false);
+    expect(isReplayRecordExpired(new Date(now + 1), now)).toBe(false);
+    expect(isReplayRecordExpired(new Date("invalid"), now)).toBe(false);
+    expect(isReplayRecordExpired({ getTime: () => now - 20 * 60_000 } as unknown as Date, now)).toBe(false);
+    expect(isReplayRecordExpired(new Date(now - 20 * 60_000), Number.NaN)).toBe(false);
   });
 
   it("validates proof-request replay results before durable commit", () => {
