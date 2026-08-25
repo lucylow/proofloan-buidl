@@ -84,6 +84,16 @@ export function isLiveChainTransactionHash(value: string, sourceChain: string): 
   return isSourceChain(sourceChain) && isLiveTxHash(value);
 }
 
+export type ProofMode = "live" | "preview";
+
+export function getProofMode(sourceTransactionHash?: string): ProofMode {
+  return sourceTransactionHash !== undefined && isLiveTxHash(sourceTransactionHash) ? "live" : "preview";
+}
+
+export function getProofModeLabel(mode: ProofMode): string {
+  return mode === "live" ? "Live Attestcoin proof" : "Preview adapter";
+}
+
 export function isLiveChainWalletAddress(value: string, sourceChain: string): boolean {
   return isSourceChain(sourceChain) && /^0x[a-fA-F0-9]{40}$/.test(value.trim());
 }

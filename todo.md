@@ -1574,3 +1574,8 @@
 - [x] Separate walletAddress and sourceTransactionHash across the proof identity boundary
 - [x] Preserve fail-closed validation and privacy-safe diagnostics for both fields
 - [x] Add migration, persistence, API, and UI regressions, then revalidate the project
+
+## Code improvement pass 114
+- [x] Add an explicit privacy-safe live-versus-preview proof mode classifier
+- [x] Show mode state consistently in borrower and operator-facing surfaces
+- [x] Add classifier and UI regressions, then revalidate the project

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanProofLoanErrorMessage, getProofLoanErrorCode, isAddressShapedIdentity, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveChainWalletAddress, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
+import { cleanProofLoanErrorMessage, getProofLoanErrorCode, getProofMode, getProofModeLabel, isAddressShapedIdentity, isExpectedProofLoanError, isFreshness, isLiveChainTransactionHash, isLiveChainWalletAddress, isLiveTxHash, isOfferStatus, isProofLoanApplicationId, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType } from "@shared/proofloan";
 import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, getPersistedSnapshotValidationRule, isLoanSnapshotPersistable, isLoanSnapshotWriteConsistent, isPersistedSnapshotValid, PERSISTENCE_VALIDATION_RULES, parsePersistedReasonCodes } from "./db";
 import { POLICY_HASH } from "./underwriting";
 
@@ -22,6 +22,14 @@ describe("ProofLoan shared validation", () => {
     expect(isLiveTxHash(`0x${"a".repeat(63)}`)).toBe(false);
     expect(isLiveTxHash(`0x${"g".repeat(64)}`)).toBe(false);
     expect(isLiveTxHash("71C7...9A2F")).toBe(false);
+  });
+
+  it("classifies only canonical source hashes as live proof mode", () => {
+    expect(getProofMode(`0x${"a".repeat(64)}`)).toBe("live");
+    expect(getProofMode(undefined)).toBe("preview");
+    expect(getProofMode("0xmalformed")).toBe("preview");
+    expect(getProofModeLabel("live")).toBe("Live Attestcoin proof");
+    expect(getProofModeLabel("preview")).toBe("Preview adapter");
   });
 
   it("requires a supported chain for live transaction identity", () => {
