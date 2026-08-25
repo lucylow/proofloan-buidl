@@ -234,13 +234,14 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
   }
   if (!candidate.audit.every(event => typeof event.state === "string" && isProofLoanState(event.state) && typeof event.label === "string" && event.label === event.state && isBoundedNonEmptyText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(candidate.audit as Array<{ state: string }>)) return false;
-  const auditHashes = candidate.audit.map(event => event.hash).filter((hash): hash is string => typeof hash === "string" && hash.trim().length > 0);
-  if (auditHashes.length !== candidate.audit.length || new Set(auditHashes).size !== auditHashes.length) return false;
+  const auditHashes = candidate.audit.map(event => event.hash);
+  if (!auditHashes.every(hash => isCanonicalNonEmptyText(hash, MAX_PERSISTED_AUDIT_HASH_LENGTH))) return false;
+  if (new Set(auditHashes).size !== auditHashes.length) return false;
   if (candidate.audit.slice(0, -1).some(event => event.state === "Executed")) return false;
   const terminalAudit = candidate.audit.at(-1);
   if (terminalAudit?.state !== "Executed") return false;
   const auditHash = terminalAudit.hash;
-  if (typeof auditHash !== "string" || auditHash.trim().length === 0) return false;
+  if (!isCanonicalNonEmptyText(auditHash, MAX_PERSISTED_AUDIT_HASH_LENGTH)) return false;
   return candidate.receiptHash === hashValue({ applicationId, offer: candidate.offer, decisionHash: candidate.decision.decisionHash, auditHash }) && candidate.transactionHash === `0xcreditcoin_${candidate.receiptHash}`;
 }
 
