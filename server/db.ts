@@ -234,7 +234,7 @@ export function isDurableAcceptanceReplayResult(applicationId: string, result: u
       if (Date.parse(auditTimestamps[index] as string) < Date.parse(auditTimestamps[index - 1] as string)) return false;
     }
   }
-  if (!candidate.audit.every(event => typeof event.state === "string" && isProofLoanState(event.state) && typeof event.label === "string" && event.label === event.state && isBoundedText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
+  if (!candidate.audit.every(event => typeof event.state === "string" && isProofLoanState(event.state) && typeof event.label === "string" && event.label === event.state && isBoundedNonEmptyText(event.detail, MAX_PERSISTED_AUDIT_DETAIL_LENGTH))) return false;
   if (!isAuditStateProgressionConsistent(candidate.audit as Array<{ state: string }>)) return false;
   const auditHashes = candidate.audit.map(event => event.hash).filter((hash): hash is string => typeof hash === "string" && hash.trim().length > 0);
   if (auditHashes.length !== candidate.audit.length || new Set(auditHashes).size !== auditHashes.length) return false;
