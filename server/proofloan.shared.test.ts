@@ -67,6 +67,8 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, applicationId: "PL-APPTEST1 " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "   " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "x".repeat(129) } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "0xborrower\noperator" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, walletAddress: "0xborrower\u0000" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: " " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, pd30: "0.08 " } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, modelVersion: "" } })).toBe(false);
@@ -158,6 +160,8 @@ describe("ProofLoan shared validation", () => {
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, applicationId: " PL-APPTEST1" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: " 0xborrower" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower " })).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower\noperator" })).toThrow("Invalid persisted application.");
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower\u0000" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, state: "Unknown" } as never)).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, offer: { amount: Number.NaN } } as never)).toThrow("Invalid persisted application.");
     const consistentSnapshot = { ...baseSnapshot, audit: [{ state: "Intake", label: "Intake", timestamp: new Date().toISOString(), detail: "", hash: "hash-intake" }] };

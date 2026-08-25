@@ -1329,3 +1329,8 @@
 - [x] Harden replay request-key and application-ID validation at persistence boundaries
 - [x] Add focused regression coverage for malformed replay identity inputs
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 65
+- [x] Harden persisted wallet-address validation against control characters and non-canonical text
+- [x] Add focused regression coverage for malformed wallet addresses
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

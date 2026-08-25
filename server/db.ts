@@ -168,7 +168,7 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
 export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
   if (snapshot.decision) buildDecisionUpsertValues(snapshot.decision);
   const requestedAmount = snapshot.offer?.amount ?? 1500;
-  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalNonEmptyText(snapshot.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
+  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalWalletAddress(snapshot.walletAddress) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
     throw new Error("Invalid persisted application.");
   }
   return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
@@ -590,6 +590,7 @@ const isValidDate = (value: unknown): value is Date => value instanceof Date && 
 const isBoundedText = (value: unknown, maxLength: number): value is string => typeof value === "string" && value.length <= maxLength;
 const isBoundedNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedText(value, maxLength) && value.trim().length > 0;
 const isCanonicalNonEmptyText = (value: unknown, maxLength: number): value is string => isBoundedNonEmptyText(value, maxLength) && value === value.trim();
+const isCanonicalWalletAddress = (value: unknown): value is string => isCanonicalNonEmptyText(value, MAX_PERSISTED_WALLET_LENGTH) && !/[\u0000-\u001f\u007f]/.test(value);
 const isOfferStateConsistent = (state: string, status: string) => (status === "Ready" && state === "AwaitingAcceptance") || (status === "Blocked" && state === "Rejected") || (status === "Executed" && state === "Executed");
 const isOfferExpiryConsistent = (status: string, expiresAt: Date, now: number) => status !== "Ready" || expiresAt.getTime() > now;
 const isDecisionStateConsistent = (state: string, hasDecision: boolean) => hasDecision ? ["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state) : !["Scored", "OfferPrepared", "AwaitingAcceptance", "Executed", "Rejected"].includes(state);
@@ -612,7 +613,7 @@ function isPersistedSnapshotValidUnsafe(input: PersistedSnapshotValidationInput)
   if (!isRecord(input.application)) return false;
   if (input.facts.length > MAX_PERSISTED_FACTS || input.audit.length === 0 || input.audit.length > MAX_PERSISTED_AUDIT_EVENTS) return false;
   if (!isFactStateConsistent(input.application.state as string, input.facts.length)) return false;
-  if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalNonEmptyText(input.application.walletAddress, MAX_PERSISTED_WALLET_LENGTH) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
+  if (!isCanonicalNonEmptyText(input.application.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(input.application.applicationId) || !isCanonicalWalletAddress(input.application.walletAddress) || !isProofLoanState(input.application.state) || !isSourceChain(input.application.sourceChain) || !isFiniteInRange(input.application.requestedAmount, 0.01, 2500)) return false;
   if (input.facts.some(fact => !isRecord(fact) || !isCanonicalNonEmptyText(fact.factId, MAX_PERSISTED_FACT_ID_LENGTH) || !isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isCanonicalNonEmptyText(fact.txHash, MAX_PERSISTED_TX_HASH_LENGTH) || !isCanonicalNonEmptyText(fact.amount, MAX_PERSISTED_AMOUNT_LENGTH) || !isCanonicalNonEmptyText(fact.proofRoot, MAX_PERSISTED_PROOF_ROOT_LENGTH) || !isFreshness(fact.freshness) || !isFactBlockChronologyConsistent(fact.sourceBlock, fact.verificationBlock) || !isValidDate(fact.verifiedAt))) return false;
   const factIds = input.facts.map(fact => fact.factId);
   if (new Set(factIds).size !== factIds.length || !hasUniqueFactIdentity(input.facts)) return false;
