@@ -197,6 +197,9 @@ describe("ProofLoan shared validation", () => {
   it("rejects malformed applications before database writes", () => {
     const baseSnapshot = { applicationId: "PL-APPTEST1", walletAddress: "0xborrower", sourceChain: "Ethereum Sepolia" as const, state: "Intake" as const, facts: [], features: { repaymentCount: 0, latePayments: 0, leverageRatio: 0, walletAgeDays: 0, volume7d: 0, volume30d: 0, volume180d: 0, evidenceCount: 0, freshnessScore: 0 }, audit: [] };
     expect(buildApplicationUpsertValues(baseSnapshot).requestedAmount).toBe("1500");
+    const sourceHash = `0x${"b".repeat(64)}`;
+    expect(buildApplicationUpsertValues({ ...baseSnapshot, sourceTransactionHash: sourceHash }).sourceTransactionHash).toBe(sourceHash);
+    expect(() => buildApplicationUpsertValues({ ...baseSnapshot, sourceTransactionHash: "0x1234" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, applicationId: " PL-APPTEST1" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: " 0xborrower" })).toThrow("Invalid persisted application.");
     expect(() => buildApplicationUpsertValues({ ...baseSnapshot, walletAddress: "0xborrower " })).toThrow("Invalid persisted application.");
@@ -210,6 +213,7 @@ describe("ProofLoan shared validation", () => {
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "EvidencePending" } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, state: "Scored", decision: undefined } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, facts: [{ id: "fact-chain-drift", chain: "Polygon Amoy", txHash: "tx-chain-drift" }] } as never)).toBe(false);
+    expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, sourceTransactionHash: `0x${"b".repeat(64)}`, facts: [{ id: "fact-source-mismatch", chain: "Ethereum Sepolia", txHash: "different-tx" }] } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, facts: [{ id: 42, chain: "Ethereum Sepolia", txHash: "tx-fact" }] } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, facts: [{ id: "fact-ref", chain: "Ethereum Sepolia", txHash: true }] } as never)).toBe(false);
     expect(isLoanSnapshotWriteConsistent({ ...consistentSnapshot, audit: [{ ...consistentSnapshot.audit[0], hash: 42 }] } as never)).toBe(false);

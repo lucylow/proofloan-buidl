@@ -1,0 +1,1 @@
+ALTER TABLE `proof_request_idempotency` ADD `sourceTransactionHash` varchar(128);

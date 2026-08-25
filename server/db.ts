@@ -3,7 +3,7 @@ import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { isAddressShapedIdentity, isLiveChainWalletAddress, isProofLoanApplicationId } from "@shared/proofloan";
+import { isAddressShapedIdentity, isLiveChainWalletAddress, isLiveTxHash, isProofLoanApplicationId } from "@shared/proofloan";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 const MAX_PERSISTED_FACTS = 64;
@@ -168,10 +168,10 @@ export function buildAuditUpsertValues(event: LoanSnapshot["audit"][number]) {
 export function buildApplicationUpsertValues(snapshot: LoanSnapshot) {
   if (snapshot.decision) buildDecisionUpsertValues(snapshot.decision);
   const requestedAmount = snapshot.offer?.amount ?? 1500;
-  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalWalletAddress(snapshot.walletAddress, snapshot.sourceChain) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
+  if (!isCanonicalNonEmptyText(snapshot.applicationId, MAX_PERSISTED_APPLICATION_ID_LENGTH) || !isProofLoanApplicationId(snapshot.applicationId) || !isCanonicalWalletAddress(snapshot.walletAddress, snapshot.sourceChain) || (snapshot.sourceTransactionHash !== undefined && !isLiveTxHash(snapshot.sourceTransactionHash)) || !isSourceChain(snapshot.sourceChain) || !isProofLoanState(snapshot.state) || !isFiniteInRange(requestedAmount, 0.01, 2500)) {
     throw new Error("Invalid persisted application.");
   }
-  return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
+  return { applicationId: snapshot.applicationId, walletAddress: snapshot.walletAddress, sourceTransactionHash: snapshot.sourceTransactionHash, sourceChain: snapshot.sourceChain, state: snapshot.state, requestedAmount: String(requestedAmount), evidenceRoot: snapshot.decision?.evidenceRoot, policyHash: snapshot.decision?.policyHash, modelVersion: snapshot.decision?.modelVersion, decisionHash: snapshot.decision?.decisionHash };
 }
 
 export function buildDecisionUpsertValues(decision: NonNullable<LoanSnapshot["decision"]>) {
@@ -202,7 +202,7 @@ function hasUniqueFactIdentity(facts: Array<{ id?: unknown; chain?: unknown; txH
 
 export function isLoanSnapshotWriteConsistent(snapshot: LoanSnapshot): boolean {
   if (!Array.isArray(snapshot.audit) || snapshot.audit.length === 0) return false;
-  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && snapshot.facts.every(fact => fact.chain === snapshot.sourceChain) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && (!snapshot.decision || snapshot.decision.confidence <= snapshot.features.freshnessScore) && (!snapshot.decision?.featureFingerprint || !snapshot.offer || snapshot.offer.collateralValue !== undefined) && hasUniqueAuditHashes(snapshot.audit) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
+  return isFactStateConsistent(snapshot.state, snapshot.facts.length) && snapshot.facts.every(fact => fact.chain === snapshot.sourceChain) && (!snapshot.sourceTransactionHash || snapshot.facts.length > 0 && snapshot.facts.every(fact => fact.txHash === snapshot.sourceTransactionHash)) && hasUniqueFactIdentity(snapshot.facts) && isDecisionStateConsistent(snapshot.state, Boolean(snapshot.decision)) && (!snapshot.decision || snapshot.decision.confidence <= snapshot.features.freshnessScore) && (!snapshot.decision?.featureFingerprint || !snapshot.offer || snapshot.offer.collateralValue !== undefined) && hasUniqueAuditHashes(snapshot.audit) && snapshot.audit[snapshot.audit.length - 1]?.state === snapshot.state && isAuditStateProgressionConsistent(snapshot.audit);
 }
 
 export function isLoanSnapshotPersistable(snapshot: LoanSnapshot, now = Date.now()): boolean {
@@ -432,7 +432,7 @@ export type ProofRequestReplayClaim =
   | { status: "conflict" }
   | { status: "unavailable" };
 
-export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string, dbOverride?: DatabaseClient): Promise<ProofRequestReplayClaim> {
+export async function claimProofRequestReplay(requestKey: string, walletAddress: string, sourceChain: string, dbOverride?: DatabaseClient, sourceTransactionHash?: string): Promise<ProofRequestReplayClaim> {
   if (!isCanonicalReplayRequestKey(requestKey)) return { status: "unavailable" };
   const db = dbOverride ?? await getDb();
   if (!db) {
@@ -441,13 +441,13 @@ export async function claimProofRequestReplay(requestKey: string, walletAddress:
   }
   try {
     if (!dbOverride) await cleanupReplayProtectionRecords();
-    await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
+    await db.insert(proofRequestIdempotency).values({ requestKey, walletAddress, sourceTransactionHash: sourceTransactionHash || null, sourceChain, status: "Pending" }).onDuplicateKeyUpdate({ set: { requestKey } });
     const row = await db.select().from(proofRequestIdempotency).where(eq(proofRequestIdempotency.requestKey, requestKey)).limit(1);
     if (!row[0]) {
       recordReplayProtectionEvent({ operation: "proof_request", outcome: "unavailable", requestKey, reason: "missing_record" });
       return { status: "unavailable" };
     }
-    if (row[0].walletAddress !== walletAddress || row[0].sourceChain !== sourceChain) {
+    if (row[0].walletAddress !== walletAddress || (row[0].sourceTransactionHash ?? null) !== (sourceTransactionHash || null) || row[0].sourceChain !== sourceChain) {
       recordReplayProtectionEvent({ operation: "proof_request", outcome: "conflict", requestKey });
       return { status: "conflict" };
     }
@@ -759,7 +759,8 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     if (decision && decision.confidence > features.freshnessScore) return undefined;
         if (decision?.featureFingerprint !== undefined && decision.featureFingerprint !== fingerprintFeatureVector(features)) return undefined;
     if (decision?.featureFingerprint !== undefined && decision.decisionHash !== fingerprintDecision(decision)) return undefined;
-    return { applicationId, walletAddress: application.walletAddress, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
+    if (application.sourceTransactionHash !== null && application.sourceTransactionHash !== undefined && !isLiveTxHash(application.sourceTransactionHash)) return undefined;
+    return { applicationId, walletAddress: application.walletAddress, sourceTransactionHash: application.sourceTransactionHash ?? undefined, sourceChain: application.sourceChain, state: application.state, facts, features, decision, offer, audit };
   } catch (error) {
     console.warn("[ProofLoan] Database read unavailable; using active in-memory snapshot.", error instanceof Error ? error.message : error);
     return undefined;

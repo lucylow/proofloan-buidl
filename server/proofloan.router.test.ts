@@ -153,6 +153,13 @@ describe("proofloan API flow", () => {
     await expect(caller.proofloan.createApplication({ walletAddress: "0x" + "a".repeat(300), sourceChain: "Ethereum Sepolia" })).rejects.toThrow();
   });
 
+  it("keeps live proof identity fields distinct at the API boundary", async () => {
+    const caller = appRouter.createCaller(createContext());
+    const sourceHash = `0x${"b".repeat(64)}`;
+    await expect(caller.proofloan.createApplication({ walletAddress: sourceHash, sourceTransactionHash: "0x1234", sourceChain: "Ethereum Sepolia" })).rejects.toThrow("32-byte");
+    await expect(caller.proofloan.createApplication({ walletAddress: `0x${"a".repeat(64)}`, sourceTransactionHash: sourceHash, sourceChain: "Ethereum Sepolia" })).rejects.toThrow("valid wallet");
+  });
+
   it("rejects undersized proof-request idempotency keys at the API boundary", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.proofloan.createApplication({ walletAddress: "0xproof-request-key-wallet", sourceChain: "Ethereum Sepolia", idempotencyKey: "short" })).rejects.toThrow();

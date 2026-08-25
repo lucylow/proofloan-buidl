@@ -108,11 +108,12 @@ export function createProofLoanApplicationId(): string {
   return `PL-${randomUUID().replaceAll("-", "").toUpperCase()}`;
 }
 
-function seedSnapshot(walletAddress: string, sourceChain: SourceChain): LoanSnapshot {
+function seedSnapshot(walletAddress: string, sourceChain: SourceChain, sourceTransactionHash?: string): LoanSnapshot {
   const applicationId = createProofLoanApplicationId();
   return {
     applicationId,
     walletAddress,
+    sourceTransactionHash,
     sourceChain,
     state: "Intake",
     facts: [],
@@ -137,19 +138,21 @@ export const appRouter = router({
       if (!diagnostics) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Replay diagnostics are unavailable while the database is offline.");
       return diagnostics;
     }),
-    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]), idempotencyKey: z.string().trim().min(16).max(128).optional() })).mutation(async ({ input }) => {
-      const liveProofIdentity = isLiveChainTransactionHash(input.walletAddress, input.sourceChain);
-      if (!liveProofIdentity && isAddressShapedIdentity(input.walletAddress) && !isLiveChainWalletAddress(input.walletAddress, input.sourceChain)) throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "Address-shaped proof identities must be valid EVM values for the selected chain.");
+    createApplication: publicProcedure.input(z.object({ walletAddress: z.string().trim().min(8).max(256), sourceTransactionHash: z.string().trim().max(128).optional(), sourceChain: z.enum(["Ethereum Sepolia", "Polygon Amoy"]), idempotencyKey: z.string().trim().min(16).max(128).optional() })).mutation(async ({ input }) => {
+      const sourceTransactionHash = input.sourceTransactionHash?.trim() || undefined;
+      const liveProofIdentity = sourceTransactionHash !== undefined;
+      if (liveProofIdentity && (!isLiveChainTransactionHash(sourceTransactionHash, input.sourceChain) || !isLiveChainWalletAddress(input.walletAddress, input.sourceChain))) throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "Live proof requests require a valid wallet address and 32-byte source transaction hash for the selected chain.");
+      if (!liveProofIdentity && isAddressShapedIdentity(input.walletAddress) && !isLiveChainWalletAddress(input.walletAddress, input.sourceChain)) throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "Address-shaped wallet values must be valid EVM values for the selected chain.");
       const previewMode = !liveProofIdentity;
       if (!previewMode && input.idempotencyKey) {
-        const claim = await claimProofRequestReplay(input.idempotencyKey, input.walletAddress, input.sourceChain);
+        const claim = await claimProofRequestReplay(input.idempotencyKey, input.walletAddress, input.sourceChain, undefined, sourceTransactionHash);
         if (claim.status === "unavailable") throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Proof-request replay protection is unavailable; no verification was attempted.");
         if (claim.status === "conflict") throw proofLoanError(PROOFLOAN_ERROR_CODES.VALIDATION, "This proof-request key is already bound to different inputs.");
         if (claim.status === "pending") throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "This proof request is already in progress; retry with the same key shortly.");
         if (claim.status === "committed") return claim.result as LoanSnapshot;
       }
       if (!allowProofRequest(input.walletAddress)) throw proofLoanError(PROOFLOAN_ERROR_CODES.RATE_LIMITED, "Too many proof requests. Please retry shortly.");
-      const snapshot = seedSnapshot(input.walletAddress, input.sourceChain);
+      const snapshot = seedSnapshot(input.walletAddress, input.sourceChain, sourceTransactionHash);
       if (!previewMode && !(await persistLoanSnapshot(snapshot))) throw proofLoanError(PROOFLOAN_ERROR_CODES.DATABASE, "Live Attestcoin applications require database persistence before state transitions.");
       await transitionLiveState(snapshot, "Intake", "EvidencePending", !previewMode);
       snapshot.audit.push(audit("EvidencePending", "Proof request dispatched to the Attestcoin proof worker through the Attestcoin Protocol USC SDK adapter."));
@@ -157,7 +160,7 @@ export const appRouter = router({
       if (liveProofIdentity) {
         let verified;
         try {
-          verified = await verifyTransactionWithAttestcoin(input.walletAddress, input.sourceChain);
+          verified = await verifyTransactionWithAttestcoin(sourceTransactionHash!, input.sourceChain);
         } catch (error) {
           const detail = error instanceof Error ? error.message : "Attestcoin proof worker failed.";
           throw proofLoanError(PROOFLOAN_ERROR_CODES.PROOF_WORKER, detail);
@@ -193,7 +196,7 @@ export const appRouter = router({
       if (cached && cached.requestKey === input.idempotencyKey) return cached.result;
       const persistedSnapshot = await getPersistedLoanSnapshot(input.applicationId);
       const snapshot = persistedSnapshot ?? applications.get(input.applicationId);
-      const previewMode = !!snapshot && !isLiveChainTransactionHash(snapshot.walletAddress, snapshot.sourceChain);
+      const previewMode = !!snapshot && snapshot.sourceTransactionHash === undefined;
       if (!snapshot || (!persistedSnapshot && !previewMode) || !snapshot.offer || !isOfferAcceptable(snapshot.state, snapshot.offer.status, snapshot.offer.expiresAt, Date.now(), snapshot.offer, snapshot.decision ?? undefined)) throw proofLoanError(PROOFLOAN_ERROR_CODES.STATE_CONFLICT, "Offer is unavailable, expired, or already accepted.");
       if (!previewMode && input.idempotencyKey) {
         const claim = await claimAcceptanceReplay(snapshot.applicationId, input.idempotencyKey);

@@ -163,6 +163,7 @@ export type AuditEvent = {
 export type LoanSnapshot = {
   applicationId: string;
   walletAddress: string;
+  sourceTransactionHash?: string;
   sourceChain: SourceChain;
   state: ProofLoanState;
   facts: VerifiedFact[];

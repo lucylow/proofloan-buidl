@@ -1,0 +1,1 @@
+ALTER TABLE `loan_applications` ADD `sourceTransactionHash` varchar(128);

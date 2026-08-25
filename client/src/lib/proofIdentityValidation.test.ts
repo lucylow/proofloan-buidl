@@ -19,6 +19,12 @@ describe("proof identity validation", () => {
     expect(getProofIdentityValidationError("0x71C7...9A2F", "Ethereum Sepolia")).toBeUndefined();
   });
 
+  it("validates explicit wallet and source transaction fields independently", () => {
+    expect(getProofIdentityValidationError(`0x${"a".repeat(40)}`, `0x${"b".repeat(64)}`, "Ethereum Sepolia")).toBeUndefined();
+    expect(getProofIdentityValidationError(`0x${"a".repeat(40)}`, "0x1234", "Ethereum Sepolia")).toContain("32-byte hexadecimal");
+    expect(getProofIdentityValidationError("0xborrower", `0x${"b".repeat(64)}`, "Ethereum Sepolia")).toContain("valid EVM wallet");
+  });
+
   it("requires a usable identity before submission", () => {
     expect(getProofIdentityValidationError("short", "Ethereum Sepolia")).toContain("preview identifier");
   });

@@ -1569,3 +1569,8 @@
 - [x] Prune persisted acknowledgment markers when the active critical posture changes
 - [x] Keep lifecycle pruning bounded, session-local, and privacy-safe
 - [x] Add posture-mismatch regressions and revalidate the project
+
+## Code improvement pass 113
+- [x] Separate walletAddress and sourceTransactionHash across the proof identity boundary
+- [x] Preserve fail-closed validation and privacy-safe diagnostics for both fields
+- [x] Add migration, persistence, API, and UI regressions, then revalidate the project
