@@ -1479,3 +1479,8 @@
 - [x] Add bounded recent persistence failure rule history
 - [x] Keep history coarse, read-only, and free of sensitive identifiers
 - [x] Add focused recurring-rule regressions and revalidate the project
+
+## Code improvement pass 95
+- [x] Add bounded freshness classification for persistence failure history
+- [x] Mark expired diagnostic history as stale without deleting safe rule IDs
+- [x] Add focused freshness regressions and revalidate the project

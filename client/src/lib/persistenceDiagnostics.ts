@@ -13,3 +13,12 @@ export const PERSISTENCE_RULE_GUIDANCE = [
 export function getPersistenceRuleGuidance(rule: string): (typeof PERSISTENCE_RULE_GUIDANCE)[number] | undefined {
   return PERSISTENCE_RULE_GUIDANCE.find(entry => entry.rule === rule);
 }
+
+export type PersistenceFailureFreshness = "fresh" | "stale" | "future" | "invalid";
+
+export function getPersistenceFailureFreshness(observedAt: string, now = Date.now(), maxAgeMs = 300_000): PersistenceFailureFreshness {
+  const timestamp = new Date(observedAt).getTime();
+  if (!Number.isFinite(timestamp) || !Number.isFinite(now)) return "invalid";
+  if (timestamp > now + 120_000) return "future";
+  return now - timestamp > maxAgeMs ? "stale" : "fresh";
+}
