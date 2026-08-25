@@ -4,7 +4,7 @@ export type ReplayDiagnosticsInput = {
   generatedAt: string;
   acceptance: { pending: number; stale: number };
   proofRequest: { pending: number; stale: number };
-  persistence?: { rule: string; observedAt: string };
+  persistence?: { rule: string; observedAt: string; history: Array<{ rule: string; observedAt: string }> };
 };
 
 export type ReplayDiagnosticsFreshness = "fresh" | "stale" | "future" | "invalid";
@@ -97,8 +97,9 @@ export function normalizeReplayDiagnostics(value: unknown): ReplayDiagnosticsInp
   const proofStale = boundedCount(proofRequest.stale);
   if (acceptancePending === null || acceptanceStale === null || proofPending === null || proofStale === null) return null;
   const persistence = candidate.persistence;
-  if (persistence !== undefined && (!persistence || typeof persistence.rule !== "string" || !getPersistenceRuleGuidance(persistence.rule) || typeof persistence.observedAt !== "string" || !Number.isFinite(new Date(persistence.observedAt).getTime()))) return null;
-  return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale }, ...(persistence ? { persistence: { rule: persistence.rule, observedAt: persistence.observedAt } } : {}) };
+  if (persistence !== undefined && (!persistence || typeof persistence.rule !== "string" || !getPersistenceRuleGuidance(persistence.rule) || typeof persistence.observedAt !== "string" || !Number.isFinite(new Date(persistence.observedAt).getTime()) || !Array.isArray(persistence.history))) return null;
+  const history = persistence?.history.filter(entry => !!entry && typeof entry.rule === "string" && !!getPersistenceRuleGuidance(entry.rule) && typeof entry.observedAt === "string" && Number.isFinite(new Date(entry.observedAt).getTime())).slice(-6).map(entry => ({ rule: entry.rule, observedAt: entry.observedAt })) ?? [];
+  return { generatedAt: candidate.generatedAt, acceptance: { pending: acceptancePending, stale: acceptanceStale }, proofRequest: { pending: proofPending, stale: proofStale }, ...(persistence ? { persistence: { rule: persistence.rule, observedAt: persistence.observedAt, history } } : {}) };
 }
 
 export function getReplayDiagnosticsFreshness(timestamp: string, now = Date.now(), maxAgeMs = 90_000): ReplayDiagnosticsFreshness {

@@ -258,9 +258,9 @@ describe("replay diagnostics view model", () => {
   });
 
   it("normalizes only known privacy-safe persistence failure rules", () => {
-    const normalized = normalizeReplayDiagnostics({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 }, persistence: { rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z", walletAddress: "secret-wallet" } });
-    expect(normalized?.persistence).toEqual({ rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z" });
+    const normalized = normalizeReplayDiagnostics({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 }, persistence: { rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z", history: [{ rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z" }], walletAddress: "secret-wallet" } });
+    expect(normalized?.persistence).toEqual({ rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z", history: [{ rule: "APPLICATION_IDENTITY", observedAt: "2026-08-24T00:00:00.000Z" }] });
     expect(JSON.stringify(normalized)).not.toContain("secret-wallet");
-    expect(normalizeReplayDiagnostics({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 }, persistence: { rule: "UNKNOWN", observedAt: "2026-08-24T00:00:00.000Z" } })).toBeNull();
+    expect(normalizeReplayDiagnostics({ generatedAt: "2026-08-24T00:00:00.000Z", acceptance: { pending: 1, stale: 0 }, proofRequest: { pending: 1, stale: 0 }, persistence: { rule: "UNKNOWN", observedAt: "2026-08-24T00:00:00.000Z", history: [] } })).toBeNull();
   });
 });

@@ -1474,3 +1474,8 @@
 - [x] Report the last persistence failure rule through the read-only operator diagnostics response
 - [x] Normalize and display only bounded stable rule IDs with remediation lookup
 - [x] Add focused diagnostics-flow regressions and revalidate the project
+
+## Code improvement pass 94
+- [x] Add bounded recent persistence failure rule history
+- [x] Keep history coarse, read-only, and free of sensitive identifiers
+- [x] Add focused recurring-rule regressions and revalidate the project

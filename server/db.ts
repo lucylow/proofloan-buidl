@@ -292,7 +292,7 @@ export type ReplayProtectionDiagnostics = {
   generatedAt: string;
   acceptance: { pending: number; stale: number };
   proofRequest: { pending: number; stale: number };
-  persistence?: { rule: PersistenceValidationRule; observedAt: string };
+  persistence?: { rule: PersistenceValidationRule; observedAt: string; history: Array<{ rule: PersistenceValidationRule; observedAt: string }> };
 };
 
 function boundedReplayCount(value: unknown): number {
@@ -314,7 +314,7 @@ export async function getReplayProtectionDiagnostics(dbOverride?: DatabaseClient
     generatedAt: new Date().toISOString(),
     acceptance: { pending: boundedReplayCount(acceptancePending[0]?.count), stale: boundedReplayCount(acceptanceStale[0]?.count) },
     proofRequest: { pending: boundedReplayCount(proofPending[0]?.count), stale: boundedReplayCount(proofStale[0]?.count) },
-    ...(lastPersistenceFailure ? { persistence: lastPersistenceFailure } : {}),
+    ...(lastPersistenceFailure ? { persistence: { ...lastPersistenceFailure, history: persistenceFailureHistory } } : {}),
   };
 }
 
@@ -628,7 +628,15 @@ export const PERSISTENCE_VALIDATION_RULES = {
 
 export type PersistenceValidationRule = (typeof PERSISTENCE_VALIDATION_RULES)[keyof typeof PERSISTENCE_VALIDATION_RULES];
 
+const MAX_PERSISTENCE_FAILURE_HISTORY = 6;
 let lastPersistenceFailure: { rule: PersistenceValidationRule; observedAt: string } | undefined;
+let persistenceFailureHistory: Array<{ rule: PersistenceValidationRule; observedAt: string }> = [];
+
+function recordPersistenceFailure(rule: PersistenceValidationRule): void {
+  const entry = { rule, observedAt: new Date().toISOString() };
+  lastPersistenceFailure = entry;
+  persistenceFailureHistory = [...persistenceFailureHistory, entry].slice(-MAX_PERSISTENCE_FAILURE_HISTORY);
+}
 
 export function getPersistedSnapshotValidationRule(input: PersistedSnapshotValidationInput, expectedApplicationId?: string, now = Date.now()): PersistenceValidationRule | undefined {
   try {
@@ -722,7 +730,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const persistenceInput = { application, facts: factRows, decision: decisionRows[0], offer: offerRows[0], audit: auditRows };
     const persistenceRule = getPersistedSnapshotValidationRule(persistenceInput, applicationId);
     if (persistenceRule) {
-      lastPersistenceFailure = { rule: persistenceRule, observedAt: new Date().toISOString() };
+      recordPersistenceFailure(persistenceRule);
       return undefined;
     }
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
