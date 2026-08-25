@@ -1344,3 +1344,8 @@
 - [x] Reject reconstructed child rows with mismatched application IDs
 - [x] Add focused regression coverage for cross-record identifier drift
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 68
+- [x] Reject reconstructed verified facts from a different source chain
+- [x] Add focused regression coverage for source-chain drift
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

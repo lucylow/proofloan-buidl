@@ -51,6 +51,7 @@ describe("ProofLoan shared validation", () => {
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, state: "Intake" }, decision: valid.decision, offer: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: undefined })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, application: { ...valid.application, sourceChain: "Mainnet" } })).toBe(false);
+    expect(isPersistedSnapshotValid({ ...valid, facts: valid.facts.map(fact => ({ ...fact, chain: "Polygon Amoy" })) })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, reasonCodes: "not-json" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, confidence: "NaN" } })).toBe(false);
     expect(isPersistedSnapshotValid({ ...valid, decision: { ...valid.decision, pd30: "0.30", pd90: "0.20" } })).toBe(false);
