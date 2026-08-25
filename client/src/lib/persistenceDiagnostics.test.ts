@@ -142,7 +142,10 @@ describe("persistence diagnostics guidance", () => {
     const unacknowledgment = { filter: "current" as const, level: "critical" as const, recentCount: 4, unacknowledgedAt: "2026-08-25T00:00:00.000Z" };
     expect(writePersistenceFailureAlertUnacknowledgment(storage, unacknowledgment)).toBe(true);
     expect(readPersistenceFailureAlertUnacknowledgment(storage)).toEqual(unacknowledgment);
-    expect(isPersistenceFailureAlertUnacknowledged(unacknowledgment, getPersistenceFailureAlertAcknowledgmentKey("current", "critical", 4))).toBe(true);
+    const currentKey = getPersistenceFailureAlertAcknowledgmentKey("current", "critical", 4);
+    expect(isPersistenceFailureAlertUnacknowledged(unacknowledgment, currentKey)).toBe(true);
+    expect(isPersistenceFailureAlertUnacknowledged({ filter: "stale", level: "critical", recentCount: 4, unacknowledgedAt: unacknowledgment.unacknowledgedAt }, currentKey)).toBe(false);
+    expect(isPersistenceFailureAlertUnacknowledged({ filter: "current", level: "critical", recentCount: 5, unacknowledgedAt: unacknowledgment.unacknowledgedAt }, currentKey)).toBe(false);
     expect(clearPersistenceFailureAlertUnacknowledgment(storage)).toBe(true);
     expect(readPersistenceFailureAlertUnacknowledgment(storage)).toBeNull();
     expect(clearPersistenceFailureAlertUnacknowledgment(undefined)).toBe(false);

@@ -114,6 +114,11 @@ export default function Home() {
   const persistenceAlertUnacknowledged = isPersistenceFailureAlertUnacknowledged(persistenceAlertUnacknowledgment, persistenceAlertAcknowledgmentKey);
   const acknowledgePersistenceAlert = () => { if (!persistenceAlertAcknowledgmentKey || persistenceFailureAlert !== "critical") return; setPersistenceAlertAcknowledgment({ filter: persistenceHistoryFilter, level: "critical", recentCount: persistenceFailureTrend.recentCount, acknowledgedAt: new Date().toISOString() }); setPersistenceAlertUnacknowledgment(null); };
   const unacknowledgePersistenceAlert = () => { if (!persistenceAlertAcknowledged) return; setPersistenceAlertAcknowledgment(null); setPersistenceAlertUnacknowledgment({ filter: persistenceHistoryFilter, level: "critical", recentCount: persistenceFailureTrend.recentCount, unacknowledgedAt: new Date().toISOString() }); };
+  useEffect(() => {
+    if (!persistenceAlertAcknowledgmentKey) return;
+    if (persistenceAlertAcknowledgment && !persistenceAlertAcknowledged) setPersistenceAlertAcknowledgment(null);
+    if (persistenceAlertUnacknowledgment && !persistenceAlertUnacknowledged) setPersistenceAlertUnacknowledgment(null);
+  }, [persistenceAlertAcknowledgment, persistenceAlertAcknowledgmentKey, persistenceAlertAcknowledged, persistenceAlertUnacknowledgment, persistenceAlertUnacknowledged]);
   useEffect(() => { previousPersistenceAlertRef.current = persistenceFailureAlert; }, [persistenceFailureAlert]);
   const replayDiagnosticsRefresh = getReplayDiagnosticsRefreshState({ isFetching: replayDiagnostics.isFetching, isOnline });
   const replayRefreshFeedback = getReplayDiagnosticsRefreshFeedback(replayRefreshOutcome);

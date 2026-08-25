@@ -1564,3 +1564,8 @@
 - [x] Add a bounded UTC unacknowledgment timestamp to the session-safe escalation lifecycle
 - [x] Display the unacknowledgment timing without exposing sensitive diagnostics data
 - [x] Add lifecycle timestamp regressions and revalidate the project
+
+## Code improvement pass 112
+- [x] Prune persisted acknowledgment markers when the active critical posture changes
+- [x] Keep lifecycle pruning bounded, session-local, and privacy-safe
+- [x] Add posture-mismatch regressions and revalidate the project
