@@ -693,6 +693,12 @@ describe("transactional snapshot persistence", () => {
     })).toBe(false);
   });
 
+  it("rejects acceptance replays with non-canonical transaction hashes", () => {
+    const result = { applicationId: "PL-PERSISTENCE-TEST", state: "Executed", transactionHash: "tx\noperator", audit: [{ state: "Executed", label: "Executed", detail: "execution complete", hash: "terminal-executed-hash", timestamp: "2026-08-25T00:00:00.000Z" }] };
+    expect(isDurableAcceptanceReplayResult(result.applicationId, result as never)).toBe(false);
+    expect(isDurableAcceptanceReplayResult(result.applicationId, { ...result, transactionHash: "tx\u0000operator" } as never)).toBe(false);
+  });
+
   it("rejects receipt-bearing replays with a non-canonical application identifier", () => {
     const applicationId = "not-a-proofloan-id";
     const decisionBase = { pd30: 0.12, pd90: 0.16, confidence: 0.8, freshnessScore: 0.9, riskTier: "B" as const, reasonCodes: ["HIGH_LEVERAGE" as const], featureVersion: "features-v1", modelVersion: "model-v1", policyHash: POLICY_HASH, evidenceRoot: "evidence-1", decisionHash: "placeholder" };

@@ -1404,3 +1404,8 @@
 - [x] Reject audit hashes with control characters in direct upsert construction
 - [x] Add focused regression coverage for malformed audit hash text
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 80
+- [x] Reject acceptance replay transaction hashes with control characters or non-canonical text
+- [x] Add focused regression coverage for malformed replay transaction hashes
+- [x] Revalidate typecheck, tests, production build, and responsive rendering
