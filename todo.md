@@ -1314,3 +1314,8 @@
 - [x] Harden replay-record expiry validation against invalid and future timestamps
 - [x] Add focused regression coverage for malformed replay timestamps
 - [x] Revalidate typecheck, tests, production build, and responsive rendering
+
+## Code improvement pass 62
+- [x] Harden replay cleanup against non-finite clock inputs
+- [x] Add focused regression coverage for invalid cleanup timestamps
+- [x] Revalidate typecheck, tests, production build, and responsive rendering

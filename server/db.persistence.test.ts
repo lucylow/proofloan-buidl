@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
+import { buildApplicationUpsertValues, buildAuditUpsertValues, buildDecisionUpsertValues, buildFactUpsertValues, buildOfferUpsertValues, cleanupReplayProtectionRecords, claimAcceptanceReplay, claimProofRequestReplay, commitAcceptanceReplay, commitProofRequestReplay, getPersistedLoanSnapshot, getReplayProtectionDiagnostics, hasExactlyOneReplayCommit, isDurableAcceptanceReplayResult, isDurableProofRequestReplayResult, isLoanSnapshotWriteConsistent, isReplayRecordExpired, persistLoanSnapshot, recordReplayProtectionEvent } from "./db";
 import type { LoanSnapshot } from "@shared/proofloan";
 import { fingerprintDecision, hashValue, POLICY_HASH } from "./underwriting";
 
@@ -23,6 +23,10 @@ const snapshot: LoanSnapshot = {
 };
 
 describe("transactional snapshot persistence", () => {
+  it("rejects non-finite cleanup clock input without touching persistence", async () => {
+    await expect(cleanupReplayProtectionRecords(Number.NaN)).resolves.toBe(false);
+    await expect(cleanupReplayProtectionRecords(Number.POSITIVE_INFINITY)).resolves.toBe(false);
+  });
   it("reconstructs a valid persisted snapshot at the database read boundary", async () => {
     const createdAt = new Date("2026-08-24T20:00:00.000Z");
     const rows = [

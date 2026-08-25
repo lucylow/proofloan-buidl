@@ -253,6 +253,10 @@ export function isReplayRecordExpired(createdAt: Date, now = Date.now()): boolea
 }
 
 export async function cleanupReplayProtectionRecords(now = Date.now()): Promise<boolean> {
+  if (!Number.isFinite(now)) {
+    recordReplayProtectionEvent({ operation: "cleanup", outcome: "unavailable", reason: "cleanup_failed" });
+    return false;
+  }
   if (now - lastReplayCleanupAt < REPLAY_CLEANUP_INTERVAL_MS) return true;
   const db = await getDb();
   if (!db) return false;
