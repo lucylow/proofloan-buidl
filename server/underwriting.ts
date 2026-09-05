@@ -17,6 +17,12 @@ export const POLICY_HASH = "riskguard-policy-v0.1.0:amount-ltv-rate-freshness-co
 export const hashValue = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 18);
 
+export function canonicalEvidenceRoot(facts: VerifiedFact[]): string {
+  return hashValue([...facts]
+    .sort((left, right) => `${left.chain}:${left.sourceBlock}:${left.txHash}:${left.eventType}:${left.proofRoot}`.localeCompare(`${right.chain}:${right.sourceBlock}:${right.txHash}:${right.eventType}:${right.proofRoot}`))
+    .map(fact => fact.proofRoot));
+}
+
 export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceChain): VerifiedFact[] {
   const chainPrefix = sourceChain === "Ethereum Sepolia" ? "0x7a" : "0x9b";
   const verificationBlock = sourceChain === "Ethereum Sepolia" ? 7_000_000 : 13_000_000;
@@ -139,7 +145,7 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   if (sparse) reasonCodes.push("SPARSE_EVIDENCE");
   if (reasonCodes.length === 0) reasonCodes.push("SPARSE_EVIDENCE");
   const riskTier = riskTierForPd30(pd30);
-  const evidenceRoot = hashValue(facts.map(f => f.proofRoot));
+  const evidenceRoot = canonicalEvidenceRoot(facts);
   const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, featureFingerprint: fingerprintFeatureVector(features) };
   const decision = {
     ...decisionBase,

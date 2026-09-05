@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, evaluateRiskGuard, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, canonicalEvidenceRoot, evaluateRiskGuard, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -18,6 +18,13 @@ describe("ProofLoan underwriting primitives", () => {
     expect(features).toMatchObject({ repaymentCount: 2, latePayments: 0, walletAgeDays: 90, volume7d: 4050, volume30d: 4050, volume180d: 4900, evidenceCount: 3 });
     expect(features.leverageRatio).toBeGreaterThan(0);
     expect(features.freshnessScore).toBeLessThan(1);
+  });
+
+  it("canonicalizes evidence roots independently of fact ordering", () => {
+    const facts = buildVerifiedFacts("0x71C7...9A2F", "Ethereum Sepolia");
+    expect(canonicalEvidenceRoot(facts)).toMatch(/^[a-f0-9]{18}$/);
+    expect(canonicalEvidenceRoot([...facts].reverse())).toBe(canonicalEvidenceRoot(facts));
+    expect(canonicalEvidenceRoot(facts.map((fact, index) => index === 0 ? { ...fact, proofRoot: `${fact.proofRoot}-tampered` } : fact))).not.toBe(canonicalEvidenceRoot(facts));
   });
 
   it("fingerprints feature vectors canonically and detects drift", () => {

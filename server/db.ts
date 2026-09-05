@@ -539,7 +539,7 @@ export async function persistLoanSnapshot(snapshot: LoanSnapshot, dbOverride?: D
 }
 
 
-import { buildFeatureVector, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, aprForRiskTier, isFeatureVectorFiniteAndBounded, ltvForOfferAmount, isProbabilityOrderConsistent, POLICY_HASH, riskTierForPd30 } from "./underwriting";
+import { buildFeatureVector, canonicalEvidenceRoot, fingerprintDecision, fingerprintFeatureVector, hashValue, isFeatureVectorConsistentWithFacts, aprForRiskTier, isFeatureVectorFiniteAndBounded, ltvForOfferAmount, isProbabilityOrderConsistent, POLICY_HASH, riskTierForPd30 } from "./underwriting";
 import { REASON_CODES, isFreshness, isOfferStatus, isProofLoanState, isReasonCode, isRiskTier, isSourceChain, isVerifiedEventType, type SourceChain, type VerifiedFact, type Decision, type Offer, type AuditEvent, type ProofLoanState } from "@shared/proofloan";
 
 export type LoanTransitionResult = "committed" | "unavailable" | "conflict";
@@ -752,7 +752,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     const offer: Offer | undefined = offerRow && offerStatus ? { amount: Number(offerRow.amount), apr: Number(offerRow.apr), ltv: Number(offerRow.ltv), collateralValue: offerRow.collateralValue === null || offerRow.collateralValue === undefined ? undefined : Number(offerRow.collateralValue), poolLiquidity: Number(offerRow.poolLiquidity ?? 250000), termDays: offerRow.termDays, expiresAt: offerRow.expiresAt.toISOString(), status: offerStatus } : undefined;
     const audit: AuditEvent[] = auditRows.map(event => ({ state: event.state as AuditEvent["state"], label: event.label, timestamp: event.createdAt.toISOString(), detail: event.detail, hash: event.eventHash }));
     const reconstructionNow = Date.now();
-    if (decision && decision.evidenceRoot !== hashValue(facts.map(fact => fact.proofRoot))) return undefined;
+    if (decision && decision.evidenceRoot !== canonicalEvidenceRoot(facts)) return undefined;
     const features = buildFeatureVector(facts, reconstructionNow);
     if (!isFeatureVectorFiniteAndBounded(features) || !isFeatureVectorConsistentWithFacts(features, facts, reconstructionNow)) return undefined;
     if (decision) decision = { ...decision, freshnessScore: features.freshnessScore };
