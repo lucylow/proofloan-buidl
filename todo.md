@@ -1619,3 +1619,8 @@
 - [x] Inspect the provided hardening pack against the canonical ProofLoan implementation
 - [x] Integrate one high-value non-duplicative integrity improvement with focused regressions
 - [x] Revalidate tests, typecheck, production build, and responsive rendering
+
+## Code improvement pass 123
+- [x] Audit the attached versioned evidence-integrity proposal against current contracts and persistence
+- [x] Add versioned evidence-root metadata, decision-hash binding, and explicit evidence mode with focused regressions
+- [x] Revalidate tests, typecheck, production build, and responsive operator surfaces

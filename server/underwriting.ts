@@ -8,6 +8,8 @@ import {
   isReasonCode,
   type SourceChain,
   type VerifiedFact,
+  EVIDENCE_ROOT_ALGORITHM,
+  EVIDENCE_ROOT_SCHEMA_VERSION,
 } from "@shared/proofloan";
 
 const MODEL_VERSION = "proofloan-underwriter-v0.1.0";
@@ -42,6 +44,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       freshness: "Fresh",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 1 })}`,
       proofWorker: "Attestcoin proof worker",
+      evidenceMode: "preview",
     },
     {
       id: `vf_${hashValue({ walletAddress, sourceChain, n: 2 })}`,
@@ -57,6 +60,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       freshness: "Fresh",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 2 })}`,
       proofWorker: "Attestcoin proof worker",
+      evidenceMode: "preview",
     },
     {
       id: `vf_${hashValue({ walletAddress, sourceChain, n: 3 })}`,
@@ -72,6 +76,7 @@ export function buildVerifiedFacts(walletAddress: string, sourceChain: SourceCha
       freshness: "Aging",
       proofRoot: `0xproof_${hashValue({ walletAddress, sourceChain, root: 3 })}`,
       proofWorker: "Attestcoin proof worker",
+      evidenceMode: "preview",
     },
   ];
 }
@@ -125,7 +130,7 @@ export function riskTierForPd30(pd30: number): Decision["riskTier"] {
 
 export function fingerprintDecision(decision: Decision): string {
   const { decisionHash: _decisionHash, ...canonicalDecision } = decision;
-  return hashValue(canonicalDecision);
+  return hashValue({ ...canonicalDecision, evidenceRootVersion: decision.evidenceRootVersion ?? EVIDENCE_ROOT_SCHEMA_VERSION, evidenceRootAlgorithm: decision.evidenceRootAlgorithm ?? EVIDENCE_ROOT_ALGORITHM });
 }
 
 export function isFeatureVectorConsistentWithFacts(features: FeatureVector, facts: VerifiedFact[], nowMs = Date.now()): boolean {
@@ -146,7 +151,7 @@ function deterministicDecision(features: FeatureVector, facts: VerifiedFact[]): 
   if (reasonCodes.length === 0) reasonCodes.push("SPARSE_EVIDENCE");
   const riskTier = riskTierForPd30(pd30);
   const evidenceRoot = canonicalEvidenceRoot(facts);
-  const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, featureFingerprint: fingerprintFeatureVector(features) };
+  const decisionBase = { pd30, pd90, confidence: features.freshnessScore * Math.min(0.98, 0.68 + features.evidenceCount * 0.08), freshnessScore: features.freshnessScore, riskTier, reasonCodes, evidenceRoot, evidenceRootVersion: EVIDENCE_ROOT_SCHEMA_VERSION, evidenceRootAlgorithm: EVIDENCE_ROOT_ALGORITHM, featureFingerprint: fingerprintFeatureVector(features) };
   const decision = {
     ...decisionBase,
     modelVersion: MODEL_VERSION,

@@ -3,7 +3,7 @@ import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, acceptanceIdempotency as acceptanceIdempotencyRecords, proofRequestIdempotency } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { isAddressShapedIdentity, isLiveChainWalletAddress, isLiveTxHash, isProofLoanApplicationId } from "@shared/proofloan";
+import { EVIDENCE_ROOT_ALGORITHM, EVIDENCE_ROOT_SCHEMA_VERSION, getProofMode, isAddressShapedIdentity, isLiveChainWalletAddress, isLiveTxHash, isProofLoanApplicationId } from "@shared/proofloan";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 const MAX_PERSISTED_FACTS = 64;
@@ -736,7 +736,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
     if (!isProofLoanState(application.state) || !isSourceChain(application.sourceChain)) return undefined;
     const facts: VerifiedFact[] = factRows.map(fact => {
       if (!isSourceChain(fact.chain) || !isVerifiedEventType(fact.eventType) || !isFreshness(fact.freshness)) throw new Error(`Invalid persisted fact enum for ${fact.factId}.`);
-      return { id: fact.factId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, asset: "USDC", verificationBlock: fact.verificationBlock, verifiedAt: fact.verifiedAt.toISOString(), observedAt: fact.verifiedAt.toISOString(), freshness: fact.freshness, proofRoot: fact.proofRoot, proofWorker: "Attestcoin proof worker" };
+      return { id: fact.factId, chain: fact.chain, sourceBlock: fact.sourceBlock, txHash: fact.txHash, eventType: fact.eventType, amount: fact.amount, asset: "USDC", verificationBlock: fact.verificationBlock, verifiedAt: fact.verifiedAt.toISOString(), observedAt: fact.verifiedAt.toISOString(), freshness: fact.freshness, proofRoot: fact.proofRoot, proofWorker: "Attestcoin proof worker", evidenceMode: getProofMode(application.sourceTransactionHash ?? undefined, application.sourceChain) };
     });
     const decisionRow = decisionRows[0];
     let decision: Decision | undefined;
@@ -744,7 +744,7 @@ export async function getPersistedLoanSnapshot(applicationId: string, dbOverride
       const parsedReasonCodes = parsePersistedReasonCodes(decisionRow.reasonCodes);
       if (!parsedReasonCodes || !isRiskTier(decisionRow.riskTier)) return undefined;
       const riskTier = decisionRow.riskTier;
-      decision = { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier, reasonCodes: parsedReasonCodes, featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, decisionHash: decisionRow.decisionHash, featureFingerprint: decisionRow.featureFingerprint ?? undefined };
+      decision = { pd30: Number(decisionRow.pd30), pd90: Number(decisionRow.pd90), confidence: Number(decisionRow.confidence), freshnessScore: facts.length ? facts.filter(f => f.freshness === "Fresh").length / facts.length : 0, riskTier, reasonCodes: parsedReasonCodes, featureVersion: decisionRow.featureVersion, modelVersion: decisionRow.modelVersion, policyHash: decisionRow.policyHash, evidenceRoot: decisionRow.evidenceRoot, evidenceRootVersion: EVIDENCE_ROOT_SCHEMA_VERSION, evidenceRootAlgorithm: EVIDENCE_ROOT_ALGORITHM, decisionHash: decisionRow.decisionHash, featureFingerprint: decisionRow.featureFingerprint ?? undefined };
     }
     const offerRow = offerRows[0];
     const offerStatus: Offer["status"] | undefined = offerRow && isOfferStatus(offerRow.status) ? offerRow.status : undefined;

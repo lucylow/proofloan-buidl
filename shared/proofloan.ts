@@ -1,3 +1,8 @@
+export const EVIDENCE_ROOT_SCHEMA_VERSION = "evidence-root-v1" as const;
+export const EVIDENCE_ROOT_ALGORITHM = "sha256-canonical-order-v1" as const;
+export type EvidenceRootAlgorithm = typeof EVIDENCE_ROOT_ALGORITHM;
+export type EvidenceMode = "live" | "preview";
+
 export const PROOFLOAN_ERROR_CODES = {
   VALIDATION: "PROOFLOAN_VALIDATION_ERROR",
   DATABASE: "PROOFLOAN_DATABASE_ERROR",
@@ -121,6 +126,7 @@ export type VerifiedFact = {
   freshness: "Fresh" | "Aging" | "Stale";
   proofRoot: string;
   proofWorker: "Attestcoin proof worker";
+  evidenceMode?: EvidenceMode;
 };
 
 export type FeatureVector = {
@@ -145,6 +151,8 @@ export type Decision = {
   modelVersion: string;
   featureVersion: string;
   evidenceRoot: string;
+  evidenceRootVersion?: string;
+  evidenceRootAlgorithm?: EvidenceRootAlgorithm;
   policyHash: string;
   decisionHash: string;
   featureFingerprint?: string;

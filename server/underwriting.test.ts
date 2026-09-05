@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildFeatureVector, buildVerifiedFacts, canonicalEvidenceRoot, evaluateRiskGuard, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { buildFeatureVector, buildVerifiedFacts, canonicalEvidenceRoot, evaluateRiskGuard, fingerprintDecision, fingerprintFeatureVector, isFeatureVectorConsistentWithFacts, isFeatureVectorFiniteAndBounded, isOfferAcceptable, sanitizeAiCandidate } from "./underwriting";
+import { EVIDENCE_ROOT_ALGORITHM, EVIDENCE_ROOT_SCHEMA_VERSION } from "@shared/proofloan";
 import { PROOFLOAN_STATES, REASON_CODES } from "@shared/proofloan";
 
 describe("ProofLoan underwriting primitives", () => {
@@ -10,6 +11,7 @@ describe("ProofLoan underwriting primitives", () => {
     expect(facts[0]).toMatchObject({ chain: "Ethereum Sepolia", eventType: "REPAYMENT", freshness: "Fresh" });
     expect(facts[0]?.proofRoot).toMatch(/^0xproof_/);
     expect(facts.every(fact => fact.verificationBlock >= fact.sourceBlock)).toBe(true);
+    expect(facts.every(fact => fact.evidenceMode === "preview")).toBe(true);
     expect(buildVerifiedFacts("0x71C7...9A2F", "Polygon Amoy").every(fact => fact.verificationBlock >= fact.sourceBlock)).toBe(true);
   });
 
@@ -25,6 +27,12 @@ describe("ProofLoan underwriting primitives", () => {
     expect(canonicalEvidenceRoot(facts)).toMatch(/^[a-f0-9]{18}$/);
     expect(canonicalEvidenceRoot([...facts].reverse())).toBe(canonicalEvidenceRoot(facts));
     expect(canonicalEvidenceRoot(facts.map((fact, index) => index === 0 ? { ...fact, proofRoot: `${fact.proofRoot}-tampered` } : fact))).not.toBe(canonicalEvidenceRoot(facts));
+  });
+
+  it("binds evidence-root version metadata into the decision fingerprint", () => {
+    const decision = { pd30: 0.12, pd90: 0.16, confidence: 0.8, freshnessScore: 0.9, riskTier: "B" as const, reasonCodes: ["SPARSE_EVIDENCE" as const], modelVersion: "model", featureVersion: "features", evidenceRoot: "root", policyHash: "policy", decisionHash: "ignored" };
+    expect(fingerprintDecision(decision)).toBe(fingerprintDecision({ ...decision, evidenceRootVersion: EVIDENCE_ROOT_SCHEMA_VERSION, evidenceRootAlgorithm: EVIDENCE_ROOT_ALGORITHM }));
+    expect(fingerprintDecision({ ...decision, evidenceRootAlgorithm: "sha256-future-v2" as never })).not.toBe(fingerprintDecision(decision));
   });
 
   it("fingerprints feature vectors canonically and detects drift", () => {
