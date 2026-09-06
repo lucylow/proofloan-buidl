@@ -1629,3 +1629,8 @@
 - [x] Audit the attached Attestcoin integration summary against the canonical adapter, router, and UI
 - [x] Add a privacy-safe canonical Attestcoin lifecycle summary with focused regressions
 - [x] Integrate the explanation into the borrower/operator experience and revalidate the project
+
+## Code improvement pass 125
+- [x] Audit the attached multi-page frontend plan against current routing and layout primitives
+- [x] Add a dedicated Docs route with shared Attestcoin integration content and navigation
+- [x] Add route regressions and revalidate tests, build, and responsive rendering
