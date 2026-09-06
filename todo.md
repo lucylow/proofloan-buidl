@@ -1634,3 +1634,8 @@
 - [x] Audit the attached multi-page frontend plan against current routing and layout primitives
 - [x] Add a dedicated Docs route with shared Attestcoin integration content and navigation
 - [x] Add route regressions and revalidate tests, build, and responsive rendering
+
+## Code improvement pass 126
+- [x] Audit the attached application-route and provider patterns against current session and tRPC contracts
+- [x] Add a session-aware Dashboard route with safe loading, empty, error, and refresh states
+- [x] Add focused dashboard regressions and revalidate tests, build, and responsive rendering
