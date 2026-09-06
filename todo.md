@@ -1624,3 +1624,8 @@
 - [x] Audit the attached versioned evidence-integrity proposal against current contracts and persistence
 - [x] Add versioned evidence-root metadata, decision-hash binding, and explicit evidence mode with focused regressions
 - [x] Revalidate tests, typecheck, production build, and responsive operator surfaces
+
+## Code improvement pass 124
+- [x] Audit the attached Attestcoin integration summary against the canonical adapter, router, and UI
+- [x] Add a privacy-safe canonical Attestcoin lifecycle summary with focused regressions
+- [x] Integrate the explanation into the borrower/operator experience and revalidate the project
